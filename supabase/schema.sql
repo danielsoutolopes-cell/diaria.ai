@@ -1,0 +1,212 @@
+-- ========================================================
+-- Ponto Patrícia / Diária.AI - Multi-Tenant Database Schema
+-- Supabase PostgreSQL Engine
+-- ========================================================
+
+-- Habilitar extensão para geração de UUID
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- --------------------------------------------------------
+-- 1. TIPOS ENUMERADOS
+-- --------------------------------------------------------
+DO $$ BEGIN
+    CREATE TYPE tipo_obra_enum AS ENUM ('PISCINA', 'OBRA_CIVIL');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE nivel_permissao_enum AS ENUM ('APONTAMENTO', 'CONSULTA', 'MASTER');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE tipo_lancamento_enum AS ENUM ('PONTO', 'VALE', 'LIQUIDACAO');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE status_lancamento_enum AS ENUM ('PENDENTE', 'VALIDADO', 'LIQUIDADO');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE status_validacao_enum AS ENUM ('PENDENTE', 'VALIDADO');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- --------------------------------------------------------
+-- 2. TABELAS PRINCIPAIS
+-- --------------------------------------------------------
+
+-- Tabela: obras_config
+CREATE TABLE IF NOT EXISTS obras_config (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    nome VARCHAR(255) NOT NULL,
+    local VARCHAR(255) NOT NULL,
+    tipo_obra tipo_obra_enum NOT NULL DEFAULT 'PISCINA',
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Tabela: funcionarios_obra
+CREATE TABLE IF NOT EXISTS funcionarios_obra (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    obra_id UUID REFERENCES obras_config(id) ON DELETE SET NULL,
+    nome_trabalhador VARCHAR(255) NOT NULL,
+    funcao VARCHAR(100) DEFAULT 'OPERACIONAL',
+    valor_diaria NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    chave_pix VARCHAR(255),
+    telefone VARCHAR(50),
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Tabela: encarregados_obras
+CREATE TABLE IF NOT EXISTS encarregados_obras (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    telefone_encarregado VARCHAR(50) NOT NULL,
+    nome VARCHAR(255),
+    obra_id UUID REFERENCES obras_config(id) ON DELETE CASCADE,
+    nivel_permissao nivel_permissao_enum NOT NULL DEFAULT 'APONTAMENTO',
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Tabela: ponto_lote (Cabeçalho de Apontamento da IA/WhatsApp)
+CREATE TABLE IF NOT EXISTS ponto_lote (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    obra_id UUID REFERENCES obras_config(id) ON DELETE CASCADE,
+    data_referencia DATE NOT NULL DEFAULT CURRENT_DATE,
+    texto_original TEXT NOT NULL,
+    status_validacao status_validacao_enum NOT NULL DEFAULT 'PENDENTE',
+    token_aprovacao VARCHAR(128) NOT NULL UNIQUE,
+    validado_por VARCHAR(255),
+    validado_em TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Tabela: ponto_detalhe (Linhas de Trabalhadores do Lote)
+CREATE TABLE IF NOT EXISTS ponto_detalhe (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    ponto_lote_id UUID NOT NULL REFERENCES ponto_lote(id) ON DELETE CASCADE,
+    funcionario_id UUID REFERENCES funcionarios_obra(id) ON DELETE SET NULL,
+    nome_trabalhador VARCHAR(255) NOT NULL,
+    fracao_dia NUMERIC(3, 2) NOT NULL DEFAULT 1.00,
+    motivo_excecao TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Tabela: lancamentos_financeiros (Extrato Consolidado e Liquidação)
+CREATE TABLE IF NOT EXISTS lancamentos_financeiros (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    obra_id UUID REFERENCES obras_config(id) ON DELETE SET NULL,
+    funcionario_id UUID REFERENCES funcionarios_obra(id) ON DELETE SET NULL,
+    nome_trabalhador VARCHAR(255) NOT NULL,
+    tipo_lancamento tipo_lancamento_enum NOT NULL,
+    fracao_dia NUMERIC(3, 2) DEFAULT 1.00,
+    valor_monetario NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    status status_lancamento_enum NOT NULL DEFAULT 'PENDENTE',
+    data_referencia DATE NOT NULL DEFAULT CURRENT_DATE,
+    observacao TEXT,
+    ponto_lote_id UUID REFERENCES ponto_lote(id) ON DELETE SET NULL,
+    liquidado_em TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- --------------------------------------------------------
+-- 3. ÍNDICES DE PERFORMANCE
+-- --------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_obras_tenant ON obras_config(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_funcionarios_tenant ON funcionarios_obra(tenant_id, obra_id);
+CREATE INDEX IF NOT EXISTS idx_encarregados_telefone ON encarregados_obras(telefone_encarregado);
+CREATE INDEX IF NOT EXISTS idx_ponto_lote_token ON ponto_lote(token_aprovacao);
+CREATE INDEX IF NOT EXISTS idx_ponto_lote_status ON ponto_lote(tenant_id, status_validacao);
+CREATE INDEX IF NOT EXISTS idx_lancamentos_financeiros_status ON lancamentos_financeiros(tenant_id, obra_id, status);
+CREATE INDEX IF NOT EXISTS idx_lancamentos_financeiros_data ON lancamentos_financeiros(tenant_id, data_referencia);
+
+-- --------------------------------------------------------
+-- 4. ROW LEVEL SECURITY (RLS) MULTI-TENANT
+-- --------------------------------------------------------
+ALTER TABLE obras_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE funcionarios_obra ENABLE ROW LEVEL SECURITY;
+ALTER TABLE encarregados_obras ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ponto_lote ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ponto_detalhe ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lancamentos_financeiros ENABLE ROW LEVEL SECURITY;
+
+-- Funções utilitárias de Tenant
+CREATE OR REPLACE FUNCTION get_current_tenant_id()
+RETURNS UUID AS $$
+BEGIN
+    RETURN NULLIF(current_setting('app.current_tenant_id', true), '')::UUID;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- Políticas para obras_config
+CREATE POLICY "Tenant isolation for obras_config" ON obras_config
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
+
+-- Políticas para funcionarios_obra
+CREATE POLICY "Tenant isolation for funcionarios_obra" ON funcionarios_obra
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
+
+-- Políticas para encarregados_obras
+CREATE POLICY "Tenant isolation for encarregados_obras" ON encarregados_obras
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
+
+-- Políticas para ponto_lote
+CREATE POLICY "Tenant isolation for ponto_lote" ON ponto_lote
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
+
+-- Políticas para ponto_detalhe
+CREATE POLICY "Tenant isolation for ponto_detalhe" ON ponto_detalhe
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
+
+-- Políticas para lancamentos_financeiros
+CREATE POLICY "Tenant isolation for lancamentos_financeiros" ON lancamentos_financeiros
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
