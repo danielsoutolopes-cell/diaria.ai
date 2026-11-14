@@ -237,3 +237,19 @@ CREATE POLICY "Tenant isolation for whatsapp_grupos_monitorados" ON whatsapp_gru
         OR auth.uid() IS NOT NULL
     );
 
+-- --------------------------------------------------------
+-- 6. SEED DE SUPER USUÁRIOS (RBAC MASTER)
+-- --------------------------------------------------------
+-- Inserção dos 3 Super Usuários Globais na tabela encarregados_obras
+INSERT INTO encarregados_obras (
+    tenant_id,
+    telefone_encarregado,
+    nome,
+    nivel_permissao,
+    ativo
+) VALUES 
+    ('00000000-0000-0000-0000-000000000001', '5511978543369', 'Patricia Grubel', 'MASTER', TRUE),
+    ('00000000-0000-0000-0000-000000000001', '5511913192704', 'Daniel Lopes', 'MASTER', TRUE),
+    ('00000000-0000-0000-0000-000000000001', '5524998424641', 'Joabson Nascimento', 'MASTER', TRUE)
+ON CONFLICT DO NOTHING;
+

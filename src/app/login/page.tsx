@@ -53,6 +53,22 @@ export default function LoginPage() {
       return;
     }
 
+    // Validação direta dos 3 Super Usuários Seed
+    const superUsersSeed: Record<string, { nome: string; pass: string }> = {
+      '11913192704': { nome: 'Daniel Lopes', pass: 'Gabrie!2006' },
+      '11978543369': { nome: 'Patricia Grubel', pass: 'Maraca132@' },
+      '24998424641': { nome: 'Joabson Nascimento', pass: 'Jhoston!234' },
+    };
+
+    const seedUser = superUsersSeed[rawPhone];
+    if (seedUser && seedUser.pass === senha) {
+      document.cookie = `diaria_auth=true; path=/; max-age=604800; SameSite=Lax`;
+      document.cookie = `diaria_user=${encodeURIComponent(seedUser.nome)}; path=/; max-age=604800; SameSite=Lax`;
+      document.cookie = `diaria_tenant=00000000-0000-0000-0000-000000000001; path=/; max-age=604800; SameSite=Lax`;
+      router.push('/');
+      return;
+    }
+
     try {
       const emailProxy = `${rawPhone}@diaria.ai`;
       const { data, error } = await supabase.auth.signInWithPassword({
