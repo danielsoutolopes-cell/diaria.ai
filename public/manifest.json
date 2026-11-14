@@ -1,0 +1,24 @@
+{
+  "name": "Ponto Patrícia | Micro-ERP de Campo",
+  "short_name": "Ponto Patrícia",
+  "description": "Controle inteligente de ponto, vales e diárias de campo com IA Human-in-the-Loop",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#022c22",
+  "theme_color": "#022c22",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

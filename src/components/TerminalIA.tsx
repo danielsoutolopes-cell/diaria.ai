@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Send, Bot, User, Sparkles, Loader2, CheckCircle2, ArrowRight, CornerDownLeft } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
 import { NLPExtracaoResponse } from '@/types/database';
+import { processarMensagemNLP } from '@/actions/nlp';
 
 interface ChatMessage {
   id: string;
@@ -47,31 +48,29 @@ export default function TerminalIA() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/nlp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem: userText }),
-      });
+      // Invocação direta da Server Action do Next.js 14
+      const resultado = await processarMensagemNLP(userText);
 
-      const json = await res.json();
-      const extracao: NLPExtracaoResponse = json.extracao;
-
-      const botMsg: ChatMessage = {
-        id: `bot-${Date.now()}`,
-        sender: 'bot',
-        text: `Entendido perfeitamente! Extraí ${extracao.obras?.length || 0} canteiro(s) da sua mensagem. Os dados foram organizados e aguardam sua aprovação na tela de Validações.`,
-        data: extracao,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-
-      setMessages((prev) => [...prev, botMsg]);
+      if (resultado.success && resultado.extracao) {
+        const extracao = resultado.extracao;
+        const botMsg: ChatMessage = {
+          id: `bot-${Date.now()}`,
+          sender: 'bot',
+          text: `Entendido perfeitamente! Extraí ${extracao.obras?.length || 0} canteiro(s) da sua mensagem. Os dados foram organizados e aguardam sua aprovação na tela de Validações.`,
+          data: extracao,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, botMsg]);
+      } else {
+        throw new Error(resultado.error || 'Erro no processamento');
+      }
     } catch (err) {
       setMessages((prev) => [
         ...prev,
         {
           id: `bot-err-${Date.now()}`,
           sender: 'bot',
-          text: 'Houve uma oscilação na conexão com o Gemini. Por favor, tente novamente.',
+          text: 'Houve uma oscilação na conexão com o Gemini via Server Action. Por favor, tente novamente.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -98,10 +97,10 @@ export default function TerminalIA() {
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-sm tracking-tight text-white">Assistente Executivo de Campo</h3>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
-                Gemini 1.5 Flash
+                Next.js Server Actions
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">NLP Multi-Contexto • Human-in-the-Loop</p>
+            <p className="text-[11px] text-slate-400">NLP Multi-Contexto • Gemini 1.5 Flash</p>
           </div>
         </div>
 
@@ -223,7 +222,7 @@ export default function TerminalIA() {
         {loading && (
           <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 w-fit text-slate-600 text-xs shadow-sm">
             <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-            <span className="font-medium">O Gemini 1.5 Flash está analisando a mensagem...</span>
+            <span className="font-medium">O Gemini 1.5 Flash está analisando via Server Action...</span>
           </div>
         )}
       </div>

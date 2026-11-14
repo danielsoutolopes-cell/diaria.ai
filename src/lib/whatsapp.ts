@@ -96,3 +96,4 @@ export function toggleGroupMonitored(jid: string): WhatsAppGroupItem[] {
   );
   return discoveredGroups;
 }
+

@@ -1,28 +1,27 @@
 # Diário de Bordo & Transição de Contexto (HANDOFF.md)
 
 ## Estado Atual
-- **Dados Mockados e Estáticos Removidos**: Todo o sistema agora opera em estado dinâmico/zerado conectado diretamente ao Supabase.
-- **Módulo de Conexão WhatsApp Entregue (`/whatsapp`)**:
-  - Geração dinâmica de QR Code via biblioteca `qrcode`.
-  - Função de "Nova Sincronização" para atualizar a conexão ou lista de grupos.
-  - Painel com todos os grupos descobertos no aparelho e chaves individuais para ligar/desligar o monitoramento de cada obra.
-  - Persistência dos grupos monitorados na tabela `whatsapp_grupos_monitorados` do Supabase.
-- **Build de Produção**: `npm run build` compilado com 100% de sucesso (16 rotas estáticas e dinâmicas).
+- **Fase 3 Integralmente Concluída**:
+  - Autenticação Multi-Tenant via celular no padrão `(XX) 9XXXX-XXXX` + senha.
+  - Suporte completo a **PWA Standalone** com autenticação nativa por **Biometria (Face ID, Touch ID, Digital no Android e Windows Hello)** via WebAuthn/Passkeys.
+  - Proteção de rotas em `src/middleware.ts` garantindo sessão e injeção do cabeçalho `x-tenant-id`.
+  - Menu lateral atualizado com as seções obrigatórias:
+    - Validações Pendentes
+    - Lançamentos em Lote (Setup)
+    - Fechamento (Borderô)
+    - Configuração do Bot (WhatsApp)
+    - Configurações de Acesso (RBAC)
+  - **Terminal de IA (Prompt 3.2)**: Integrado diretamente com **Next.js 14 Server Actions** (`src/actions/nlp.ts`) para extração multi-contexto via Google Gemini 1.5 Flash.
+  - Build de produção (`npm run build`) validado com **0 erros** em 18 rotas.
 
 ## Últimas Ações
-1. **Limpeza Geral de Mock Data**:
-   - `page.tsx`: Métricas zeradas por padrão, alimentadas pela rota dinâmica `/api/dashboard`.
-   - `validacoes/page.tsx`: Alimentado pela rota dinâmica `/api/pendentes`. Exibe o estado limpo quando não há pendências reais no banco.
-   - `setup/page.tsx`: Conectado diretamente com a tabela `obras_config` do Supabase com criação real de registros.
-   - `bordero/page.tsx`: Alimentado pela rota dinâmica `/api/bordero`, calculando diárias e vales reais validados.
-2. **Nova Tela `/whatsapp` & APIs**:
-   - `src/app/whatsapp/page.tsx`: Interface completa de emparelhamento com status visual, QR Code, lista de grupos de obra e chave toggle de monitoramento.
-   - `src/app/api/whatsapp/route.ts`: Endpoint para `gerar-qrcode`, `sincronizar`, `toggle-grupo` e `desconectar`.
-   - `src/lib/whatsapp.ts`: Motor de sessão e emparelhamento.
-   - Inclusão do item *"Conexão WhatsApp"* com ícone de QR Code na barra lateral (`Sidebar.tsx`).
-3. **Modelagem SQL**:
-   - Adicionada a tabela `whatsapp_grupos_monitorados` com RLS em `supabase/schema.sql`.
-
-## Próximos Passos
-- Executar o script `supabase/schema.sql` no SQL Editor do dashboard do Supabase (`https://supabase.com/dashboard/project/lzkwouvczhpcrudqkixs/sql`) para criar as tabelas no banco de dados remoto.
-- `git push -u origin main` para acionar a build automática no Render.
+1. **PWA & Biometria**:
+   - Criação de `public/manifest.json` com nome, cores de tema (`#022c22`) e modo `standalone`.
+   - Implementação de `src/lib/biometria.ts` para detecção de autenticadores de plataforma e verificação de biometria.
+   - Botão de acesso direto via biometria integrado na tela de login (`/login`).
+   - Configuração de viewport e tags de aplicativo Apple em `src/app/layout.tsx`.
+2. **Server Actions (Prompt 3.2)**:
+   - Criação de `src/actions/nlp.ts` com a diretiva `'use server'` e chamada a `extrairDadosMensagem`.
+   - Atualização de `TerminalIA.tsx` para executar a Server Action de forma nativa e reativa.
+3. **Página de RBAC & Segurança (Prompt 3.1)**:
+   - Criação de `src/app/configuracoes/page.tsx` para gerenciar membros, níveis de acesso (`MASTER`, `APONTAMENTO`, `CONSULTA`), tenant ID e encerramento de sessão.
