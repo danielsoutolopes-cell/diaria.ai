@@ -11,9 +11,11 @@ import {
   CreditCard,
   RefreshCw,
   TrendingDown,
+  Download,
 } from 'lucide-react';
 import { gerarPayloadPix } from '@/lib/pix';
 import { ReceiptLightbox } from '@/components/ReceiptLightbox';
+import { exportarParaExcel, LinhaBorderoExport } from '@/lib/exportExcel';
 
 interface LinhaLancamento {
   id: string;
@@ -185,7 +187,32 @@ export default function BorderoPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => {
+              const linhasExport: LinhaBorderoExport[] = funcionarios.map((f) => {
+                const totais = calcularTotais(f);
+                return {
+                  Colaborador: f.nome,
+                  Obra: f.obra,
+                  'Chave PIX': f.chavePix || 'Não informada',
+                  'Diárias Qtd': totais.totalDiarias,
+                  'Total Diárias (R$)': totais.totalBruto,
+                  'Vales Deduzidos (R$)': totais.totalVales,
+                  'Líquido a Pagar (R$)': totais.totalLiquido,
+                  Período: 'FECHAMENTO',
+                };
+              });
+              exportarParaExcel(linhasExport, `fechamento-bordero-${new Date().toISOString().split('T')[0]}`);
+            }}
+            disabled={funcionarios.length === 0}
+            className="px-4 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-50"
+            title="Exportar borderô para planilha Excel"
+          >
+            <Download className="w-4 h-4 text-emerald-600" />
+            <span>Exportar XLS</span>
+          </button>
+
           <button
             onClick={carregarBordero}
             disabled={loading}

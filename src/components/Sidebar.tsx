@@ -14,6 +14,7 @@ import {
   QrCode,
   Users,
   LogOut,
+  BarChart3,
 } from 'lucide-react';
 
 const navItems = [
@@ -42,6 +43,13 @@ const navItems = [
     icon: FileSpreadsheet,
     badge: 'Sexta VIP',
     badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  },
+  {
+    name: 'Relatórios & Exportações',
+    href: '/relatorios',
+    icon: BarChart3,
+    badge: 'XLS',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
   },
   {
     name: 'Configuração do Bot (WhatsApp)',
