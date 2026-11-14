@@ -37,10 +37,39 @@ export function gerarPayloadPix({
   descricao = '',
   identificador = '***',
 }: PixPayloadOptions): string {
-  // Limpar e formatar campos
-  const cleanChave = chavePix.trim();
-  const cleanNome = nomeRecebedor.trim().slice(0, 25).toUpperCase();
-  const cleanCidade = cidadeRecebedor.trim().slice(0, 15).toUpperCase();
+  // 1. Sanitização inteligente da chave PIX:
+  // Se for telefone com formatação (11) 9.... ou CPF com pontos/traço, remove caracteres especiais.
+  // Se for e-mail ou chave aleatória, preserva minúsculas e hífens.
+  let cleanChave = chavePix.trim();
+  const apenasNumeros = cleanChave.replace(/\D/g, '');
+
+  if (cleanChave.includes('@')) {
+    // E-mail
+    cleanChave = cleanChave.toLowerCase();
+  } else if (apenasNumeros.length === 11 || apenasNumeros.length === 14) {
+    // CPF ou CNPJ
+    cleanChave = apenasNumeros;
+  } else if (apenasNumeros.length === 10 || apenasNumeros.length === 11) {
+    // Telefone celular com DDD (adiciona prefixo +55 padrão BACEN se ausente)
+    cleanChave = `+55${apenasNumeros}`;
+  } else if (apenasNumeros.length === 13 && apenasNumeros.startsWith('55')) {
+    cleanChave = `+${apenasNumeros}`;
+  }
+
+  const cleanNome = nomeRecebedor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .slice(0, 25)
+    .toUpperCase();
+
+  const cleanCidade = cidadeRecebedor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .slice(0, 15)
+    .toUpperCase();
+
   const formattedValor = valor > 0 ? valor.toFixed(2) : '0.00';
 
   // Sub-campos Merchant Account Information (ID 26)
