@@ -96,6 +96,24 @@ export interface WhatsAppGrupoMonitorado {
   created_at: string;
 }
 
+export interface ObraFoto {
+  id: string;
+  tenant_id: string;
+  obra_id?: string | null;
+  autor_telefone?: string | null;
+  autor_nome?: string | null;
+  url_original: string;
+  url_estampada: string;
+  descricao?: string | null;
+  etapa_obra: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  clima_resumo?: string | null;
+  sha256_hash?: string | null;
+  data_foto: string;
+  created_at: string;
+}
+
 export interface NLPObraExtracao {
   nome_obra: string;
   apontamentos: Array<{

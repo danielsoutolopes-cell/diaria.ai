@@ -242,7 +242,38 @@ CREATE POLICY "Tenant isolation for whatsapp_grupos_monitorados" ON whatsapp_gru
     );
 
 -- --------------------------------------------------------
--- 6. SEED DE SUPER USUÁRIOS (RBAC MASTER)
+-- 6. GESTÃO FOTOGRÁFICA DE OBRAS & DATE STAMP
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS obras_fotos (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    obra_id UUID REFERENCES obras_config(id) ON DELETE SET NULL,
+    autor_telefone VARCHAR(50),
+    autor_nome VARCHAR(255),
+    url_original TEXT NOT NULL,
+    url_estampada TEXT NOT NULL,
+    descricao TEXT,
+    etapa_obra VARCHAR(100) DEFAULT 'GERAL',
+    latitude NUMERIC(10, 8),
+    longitude NUMERIC(11, 8),
+    clima_resumo VARCHAR(255),
+    sha256_hash VARCHAR(64),
+    data_foto TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE obras_fotos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant isolation for obras_fotos" ON obras_fotos
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
+
+-- --------------------------------------------------------
+-- 7. SEED DE SUPER USUÁRIOS (RBAC MASTER)
 -- --------------------------------------------------------
 -- Inserção dos 3 Super Usuários Globais na tabela encarregados_obras
 INSERT INTO encarregados_obras (
