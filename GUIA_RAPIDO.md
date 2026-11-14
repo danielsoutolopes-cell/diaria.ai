@@ -39,3 +39,4 @@
 2. Escolha o período: **Semanal**, **Quinzenal** ou **Mensal**.
 3. Clique em **"Exportar Excel (.xlsx)"** para baixar a planilha para o seu computador.
 4. Clique em **"Enviar no WhatsApp"** para disparar o resumo executivo formatado no WhatsApp da diretoria ou dos colaboradores.
+

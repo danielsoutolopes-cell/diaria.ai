@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080C16" />
+      <stop offset="50%" stop-color="#0B132B" />
+      <stop offset="100%" stop-color="#050811" />
+    </linearGradient>
+
+    <!-- Cyan Electric Glow Gradient -->
+    <linearGradient id="cyanGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22D3EE" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+
+    <!-- Gold Metallic Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+
+    <!-- Subtle Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Deep Navy Slate Background -->
+  <rect width="100%" height="100%" rx="32" fill="url(#bgGrad)" />
+
+  <!-- Background Tech Grid Lines (Subtle) -->
+  <g opacity="0.08" stroke="#06B6D4" stroke-width="1">
+    <line x1="50" y1="50" x2="450" y2="450" />
+    <line x1="450" y1="50" x2="50" y2="450" />
+    <circle cx="250" cy="210" r="140" fill="none" stroke-dasharray="4 8" />
+  </g>
+
+  <!-- THE SHIELD (Gada & Digital Protection Outer Hexagonal Hull) -->
+  <polygon points="250,55 375,120 375,260 250,345 125,260 125,120"
+           fill="none"
+           stroke="url(#cyanGlow)"
+           stroke-width="5"
+           stroke-linejoin="round"
+           filter="url(#glow)" />
+
+  <polygon points="250,68 360,128 360,252 250,330 140,252 140,128"
+           fill="#0A1124"
+           fill-opacity="0.8"
+           stroke="#1E293B"
+           stroke-width="2"
+           stroke-linejoin="round" />
+
+  <!-- STYLIZED GEOMETRIC BULLDOG GUARDIAN (Honor, Strength, Adab) -->
+  <!-- Forehead / Brow Hex / Crown -->
+  <polygon points="215,115 285,115 310,145 250,175 190,145"
+           fill="none"
+           stroke="url(#goldGrad)"
+           stroke-width="4"
+           stroke-linejoin="round" />
+
+  <!-- Ears (Alert, Symmetrical) -->
+  <!-- Left Ear -->
+  <polygon points="185,110 215,115 190,145 160,140"
+           fill="#101D38"
+           stroke="url(#cyanGlow)"
+           stroke-width="3"
+           stroke-linejoin="round" />
+  <!-- Right Ear -->
+  <polygon points="315,110 285,115 310,145 340,140"
+           fill="#101D38"
+           stroke="url(#cyanGlow)"
+           stroke-width="3"
+           stroke-linejoin="round" />
+
+  <!-- Eyes (Geometric, Focused, Cyan) -->
+  <polygon points="205,160 230,165 220,175 198,170" fill="url(#cyanGlow)" />
+  <polygon points="295,160 270,165 280,175 302,170" fill="url(#cyanGlow)" />
+
+  <!-- Cheeks / Sturdy Bulldog Jowls (Muzzle Shield) -->
+  <polygon points="175,185 220,180 250,215 210,250 165,225"
+           fill="#0D1B36"
+           stroke="url(#cyanGlow)"
+           stroke-width="3"
+           stroke-linejoin="round" />
+
+  <polygon points="325,185 280,180 250,215 290,250 335,225"
+           fill="#0D1B36"
+           stroke="url(#cyanGlow)"
+           stroke-width="3"
+           stroke-linejoin="round" />
+
+  <!-- Bulldog Nose & Muzzle (Solid Gold & Cyan Interlock) -->
+  <polygon points="230,205 270,205 260,225 240,225"
+           fill="url(#goldGrad)" />
+
+  <!-- Sturdy Jaw / Chin Node -->
+  <polygon points="215,250 285,250 270,285 250,295 230,285"
+           fill="#132347"
+           stroke="url(#goldGrad)"
+           stroke-width="3.5"
+           stroke-linejoin="round" />
+
+  <!-- Tech Nodes (Connection Points - Adaptability) -->
+  <circle cx="250" cy="55" r="5" fill="#22D3EE" />
+  <circle cx="375" cy="120" r="4.5" fill="#F59E0B" />
+  <circle cx="375" cy="260" r="4.5" fill="#22D3EE" />
+  <circle cx="250" cy="345" r="6" fill="#F59E0B" />
+  <circle cx="125" cy="260" r="4.5" fill="#22D3EE" />
+  <circle cx="125" cy="120" r="4.5" fill="#F59E0B" />
+
+  <circle cx="250" cy="295" r="4" fill="#22D3EE" />
+
+  <!-- TYPOGRAPHY: GADAP -->
+  <g id="brand-text">
+    <text x="250" y="415"
+          font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"
+          font-size="44"
+          font-weight="900"
+          letter-spacing="14"
+          text-anchor="middle"
+          fill="#FFFFFF">
+      GADAP
+    </text>
+    <text x="250" y="445"
+          font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+          font-size="11"
+          font-weight="700"
+          letter-spacing="5"
+          text-anchor="middle"
+          fill="#06B6D4">
+      ADAPTABILITY • ETHICS • STRENGTH
+    </text>
+  </g>
+</svg>
+

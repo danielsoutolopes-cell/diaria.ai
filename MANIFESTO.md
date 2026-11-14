@@ -40,3 +40,4 @@ Em obras, a memória falha e os contratos são questionados. O Ponto Patrícia e
 Quem trabalha na diária conta com o dinheiro na sexta-feira para sustentar sua família.
 - O fechamento da folha não pode ser uma via-sacrária de cálculos demorados.
 - Com o PIX dinâmico Copia & Cola e QR Code gerados em 1 clique, o pagamento é feito com rapidez, dignidade e precisão matemática.
+

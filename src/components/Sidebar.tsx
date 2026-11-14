@@ -16,6 +16,7 @@ import {
   LogOut,
   BarChart3,
   HelpCircle,
+  Shield,
 } from 'lucide-react';
 
 const navItems = [
@@ -71,6 +72,13 @@ const navItems = [
     icon: HelpCircle,
     badge: 'Guia',
     badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+  },
+  {
+    name: 'Sobre a GADAP',
+    href: '/gadap',
+    icon: Shield,
+    badge: 'Marca',
+    badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
   },
 ];
 

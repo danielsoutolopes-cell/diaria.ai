@@ -51,3 +51,4 @@ flowchart LR
 - **Eliminação de Vales Esquecidos**: Economia estimada de 5% a 12% da folha de pagamento de canteiro.
 - **Tempo Administrativo**: Economia de ~15 horas mensais dedicadas a consolidação de planilhas.
 - **Transparência com a Equipe**: Envio do comprovante individual de fechamento no WhatsApp do próprio trabalhador, acabando com dúvidas e desconfianças.
+
