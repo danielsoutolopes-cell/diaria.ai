@@ -24,6 +24,7 @@ interface ObraItem {
   nome: string;
   local: string;
   tipo_obra: TipoObra;
+  valor_diaria_padrao?: number;
   ativo: boolean;
 }
 
@@ -49,6 +50,7 @@ export default function SetupPage() {
   const [nomeObra, setNomeObra] = useState('');
   const [localObra, setLocalObra] = useState('');
   const [tipoObra, setTipoObra] = useState<TipoObra>('PISCINA');
+  const [valorDiariaObra, setValorDiariaObra] = useState<string>('150');
   const [salvoObra, setSalvoObra] = useState(false);
 
   // Funcionários (Apenas Nome e Chave PIX obrigatórios)
@@ -121,6 +123,8 @@ export default function SetupPage() {
 
     setCadastrandoObra(true);
     try {
+      const valorFinal = Number(valorDiariaObra) || (tipoObra === 'PISCINA' ? 150 : 180);
+
       const { data } = await supabase
         .from('obras_config')
         .insert({
@@ -128,6 +132,7 @@ export default function SetupPage() {
           nome: nomeObra.trim().toUpperCase(),
           local: localObra.trim() || 'Canteiro Volante',
           tipo_obra: tipoObra,
+          valor_diaria_padrao: valorFinal,
         })
         .select()
         .single();
@@ -474,11 +479,14 @@ export default function SetupPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700">Tipo da Obra (Diária Padrão)</label>
+                <label className="text-xs font-bold text-slate-700">Tipo da Obra</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setTipoObra('PISCINA')}
+                    onClick={() => {
+                      setTipoObra('PISCINA');
+                      setValorDiariaObra('150');
+                    }}
                     className={`p-3.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-2 transition-all ${
                       tipoObra === 'PISCINA'
                         ? 'border-sky-500 bg-sky-50/80 text-sky-900 shadow-sm ring-2 ring-sky-500/20'
@@ -486,12 +494,15 @@ export default function SetupPage() {
                     }`}
                   >
                     <Waves className="w-5 h-5 text-sky-500" />
-                    <span>Piscina (R$ 150)</span>
+                    <span>Piscina</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setTipoObra('OBRA_CIVIL')}
+                    onClick={() => {
+                      setTipoObra('OBRA_CIVIL');
+                      setValorDiariaObra('180');
+                    }}
                     className={`p-3.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-2 transition-all ${
                       tipoObra === 'OBRA_CIVIL'
                         ? 'border-amber-500 bg-amber-50/80 text-amber-900 shadow-sm ring-2 ring-amber-500/20'
@@ -499,9 +510,33 @@ export default function SetupPage() {
                     }`}
                   >
                     <Building2 className="w-5 h-5 text-amber-500" />
-                    <span>Obra Civil (R$ 180)</span>
+                    <span>Obra Civil</span>
                   </button>
                 </div>
+              </div>
+
+              {/* Campo Editável de Diária Padrão */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <label className="font-bold text-slate-700">Valor da Diária Padrão (R$)</label>
+                  <span className="text-[11px] text-slate-400 font-medium">Editável</span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-3 text-xs font-bold text-slate-400">R$</span>
+                  <input
+                    type="number"
+                    step="5"
+                    min="50"
+                    required
+                    value={valorDiariaObra}
+                    onChange={(e) => setValorDiariaObra(e.target.value)}
+                    placeholder="150"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-bold focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Defina o valor base para este canteiro (sugestão: R$ 150 para Piscina e R$ 180 para Civil).
+                </p>
               </div>
 
               <button
@@ -594,7 +629,7 @@ export default function SetupPage() {
                     <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                       <span className="text-slate-500 font-medium">Diária Padrão:</span>
                       <span className="font-black text-slate-950 text-xs">
-                        {o.tipo_obra === 'PISCINA' ? 'R$ 150,00' : 'R$ 180,00'}
+                        R$ {Number(o.valor_diaria_padrao || (o.tipo_obra === 'PISCINA' ? 150 : 180)).toFixed(2)}
                       </span>
                     </div>
                   </div>

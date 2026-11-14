@@ -10,6 +10,7 @@ export interface ObraConfig {
   nome: string;
   local: string;
   tipo_obra: TipoObra;
+  valor_diaria_padrao?: number;
   ativo: boolean;
   created_at: string;
   updated_at: string;

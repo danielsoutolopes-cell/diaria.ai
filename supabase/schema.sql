@@ -50,10 +50,14 @@ CREATE TABLE IF NOT EXISTS obras_config (
     nome VARCHAR(255) NOT NULL,
     local VARCHAR(255) NOT NULL,
     tipo_obra tipo_obra_enum NOT NULL DEFAULT 'PISCINA',
+    valor_diaria_padrao NUMERIC(10, 2) NOT NULL DEFAULT 150.00,
     ativo BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Migração retroativa caso a tabela já exista
+ALTER TABLE obras_config ADD COLUMN IF NOT EXISTS valor_diaria_padrao NUMERIC(10, 2) NOT NULL DEFAULT 150.00;
 
 -- Tabela: funcionarios_obra
 CREATE TABLE IF NOT EXISTS funcionarios_obra (
