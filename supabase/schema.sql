@@ -211,3 +211,29 @@ CREATE POLICY "Tenant isolation for lancamentos_financeiros" ON lancamentos_fina
         OR auth.uid() IS NOT NULL
     );
 
+-- --------------------------------------------------------
+-- 5. WHATSAPP BOT: SESSÃO & GRUPOS MONITORADOS
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS whatsapp_grupos_monitorados (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    group_jid VARCHAR(255) NOT NULL,
+    nome_grupo VARCHAR(255) NOT NULL,
+    obra_id UUID REFERENCES obras_config(id) ON DELETE SET NULL,
+    monitorar BOOLEAN NOT NULL DEFAULT TRUE,
+    total_mensagens_processadas INT NOT NULL DEFAULT 0,
+    ultima_sincronizacao TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(tenant_id, group_jid)
+);
+
+ALTER TABLE whatsapp_grupos_monitorados ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant isolation for whatsapp_grupos_monitorados" ON whatsapp_grupos_monitorados
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
+

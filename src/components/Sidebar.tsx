@@ -13,6 +13,7 @@ import {
   Sparkles,
   ChevronRight,
   TrendingUp,
+  QrCode,
 } from 'lucide-react';
 
 const navItems = [
@@ -23,10 +24,17 @@ const navItems = [
     badge: null,
   },
   {
+    name: 'Conexão WhatsApp',
+    href: '/whatsapp',
+    icon: QrCode,
+    badge: 'QR Code',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  },
+  {
     name: 'Aprovações Pendentes',
     href: '/validacoes',
     icon: CalendarCheck2,
-    badge: '3 novas',
+    badge: null,
     badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
   },
   {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CalendarCheck2,
   CheckCircle,
@@ -8,14 +8,14 @@ import {
   Clock,
   Sparkles,
   CloudRain,
-  ChevronRight,
-  Sun,
   User,
   Check,
+  RefreshCw,
 } from 'lucide-react';
 
-interface MockItem {
+interface PendenteItem {
   id: string;
+  loteId: string;
   obra: string;
   data: string;
   trabalhador: string;
@@ -26,41 +26,28 @@ interface MockItem {
 }
 
 export default function ValidacoesPage() {
-  const [itens, setItens] = useState<MockItem[]>([
-    {
-      id: 'val-1',
-      obra: 'OBRA BAHIA (PISCINA)',
-      data: 'Hoje, 13:45',
-      trabalhador: 'Pedro Souza',
-      fracao: 0.5,
-      motivo: 'Choveu na parte da tarde, dispensados às 13h',
-      origem: 'WhatsApp • Encarregado Carlos',
-      valorDiariaBase: 160,
-    },
-    {
-      id: 'val-2',
-      obra: 'OBRA BAHIA (PISCINA)',
-      data: 'Hoje, 13:45',
-      trabalhador: 'José Silva',
-      fracao: 1.0,
-      motivo: 'Ficou no acabamento interno protegido da chuva',
-      origem: 'WhatsApp • Encarregado Carlos',
-      valorDiariaBase: 180,
-    },
-    {
-      id: 'val-3',
-      obra: 'JABAQUARA (OBRA CIVIL)',
-      data: 'Hoje, 12:10',
-      trabalhador: 'Miguel Santos',
-      fracao: 1.0,
-      motivo: 'Dia integral de alvenaria estrutural',
-      origem: 'WhatsApp • Encarregado Fábio',
-      valorDiariaBase: 150,
-    },
-  ]);
-
+  const [itens, setItens] = useState<PendenteItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [validando, setValidando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
-  const [loading, setLoading] = useState(false);
+
+  async function carregarPendentes() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/pendentes');
+      const data = await res.json();
+      setItens(data.pendentes || []);
+    } catch (e) {
+      console.error(e);
+      setItens([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    carregarPendentes();
+  }, []);
 
   function handleFracaoChange(id: string, novaFracao: number) {
     setItens((prev) =>
@@ -69,15 +56,17 @@ export default function ValidacoesPage() {
   }
 
   async function handleValidarTudo() {
-    setLoading(true);
+    if (itens.length === 0) return;
+    setValidando(true);
     try {
+      const primeiroLoteId = itens[0]?.loteId;
       await fetch('/api/validar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          loteId: 'lote-demo-001',
+          loteId: primeiroLoteId,
           ajustes: itens.map((item) => ({
-            lancamentoId: item.id,
+            detalheId: item.id,
             fracao_dia: item.fracao,
             valor_diaria: item.valorDiariaBase,
           })),
@@ -92,7 +81,7 @@ export default function ValidacoesPage() {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      setValidando(false);
     }
   }
 
@@ -118,43 +107,59 @@ export default function ValidacoesPage() {
           </p>
         </div>
 
-        {itens.length > 0 && (
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <span className="text-[11px] text-slate-400 font-medium block">Total deste lote</span>
-              <span className="text-lg font-black text-emerald-700">
-                R$ {totalCalculado.toFixed(2)}
-              </span>
-            </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={carregarPendentes}
+            disabled={loading}
+            className="p-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl transition-all shadow-sm"
+            title="Atualizar fila"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
 
-            <button
-              onClick={handleValidarTudo}
-              disabled={loading}
-              className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-emerald-700/25 flex items-center gap-2 active:scale-95"
-            >
-              <Check className="w-4 h-4 stroke-[3]" />
-              <span>{loading ? 'Validando...' : 'Aprovar Todos (3)'}</span>
-            </button>
-          </div>
-        )}
+          {itens.length > 0 && (
+            <>
+              <div className="text-right hidden sm:block">
+                <span className="text-[11px] text-slate-400 font-medium block">Total deste lote</span>
+                <span className="text-lg font-black text-emerald-700">
+                  R$ {totalCalculado.toFixed(2)}
+                </span>
+              </div>
+
+              <button
+                onClick={handleValidarTudo}
+                disabled={validando}
+                className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-emerald-700/25 flex items-center gap-2 active:scale-95"
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>{validando ? 'Validando...' : `Aprovar Todos (${itens.length})`}</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Feedback Banner */}
       {sucesso && (
-        <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl flex items-center gap-3.5 text-emerald-900 shadow-md animate-fade-in">
+        <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl flex items-center gap-3.5 text-emerald-900 shadow-md">
           <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
             <Check className="w-5 h-5 stroke-[3]" />
           </div>
           <div>
             <h4 className="font-bold text-sm">Apontamentos Aprovados com Sucesso!</h4>
             <p className="text-xs text-emerald-800">
-              O status foi atualizado para VALIDADO no banco e os recibos de confirmação foram disparados nos grupos oficiais.
+              O status foi atualizado para VALIDADO no banco e os recibos de confirmação foram registrados.
             </p>
           </div>
         </div>
       )}
 
-      {itens.length === 0 ? (
+      {loading ? (
+        <div className="bg-white p-14 text-center rounded-3xl border border-slate-200/90 shadow-sm space-y-3">
+          <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin mx-auto" />
+          <p className="text-sm text-slate-500">Buscando pendências reais no banco de dados...</p>
+        </div>
+      ) : itens.length === 0 ? (
         <div className="bg-white p-14 text-center rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
           <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
             <CheckCircle className="w-8 h-8 stroke-[2.5]" />
@@ -162,7 +167,7 @@ export default function ValidacoesPage() {
           <div className="space-y-1">
             <h3 className="text-xl font-bold text-slate-900">Nenhuma pendência no momento!</h3>
             <p className="text-sm text-slate-500 max-w-md mx-auto">
-              Todas as mensagens dos mestres e encarregados foram revisadas. Novos lotes aparecerão aqui assim que chegarem no WhatsApp.
+              Todas as mensagens dos mestres e encarregados foram revisadas. Novos lotes aparecerão aqui assim que mensagens forem enviadas no WhatsApp monitorado ou no Terminal de IA.
             </p>
           </div>
         </div>
@@ -176,7 +181,6 @@ export default function ValidacoesPage() {
                 key={item.id}
                 className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
               >
-                {/* Left: Info */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-lg">
@@ -206,7 +210,6 @@ export default function ValidacoesPage() {
                   <div className="text-[11px] text-slate-400">{item.origem}</div>
                 </div>
 
-                {/* Right: Segmented Control & Price Display */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 self-end md:self-center">
                   <div className="text-right sm:pr-2">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
@@ -220,7 +223,6 @@ export default function ValidacoesPage() {
                     </span>
                   </div>
 
-                  {/* Segmented Pill Selector */}
                   <div className="flex items-center p-1.5 bg-slate-100 rounded-2xl border border-slate-200/70 gap-1">
                     <button
                       type="button"
@@ -243,7 +245,7 @@ export default function ValidacoesPage() {
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      ½ Meio Dia / Chuva
+                      ½ Chuva
                     </button>
 
                     <button

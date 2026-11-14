@@ -83,6 +83,18 @@ export interface LancamentoFinanceiro {
   updated_at: string;
 }
 
+export interface WhatsAppGrupoMonitorado {
+  id: string;
+  tenant_id: string;
+  group_jid: string;
+  nome_grupo: string;
+  obra_id?: string | null;
+  monitorar: boolean;
+  total_mensagens_processadas: number;
+  ultima_sincronizacao: string;
+  created_at: string;
+}
+
 export interface NLPObraExtracao {
   nome_obra: string;
   apontamentos: Array<{
