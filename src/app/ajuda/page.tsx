@@ -1,0 +1,350 @@
+'use client';
+
+import React, { useState } from 'react';
+import {
+  HelpCircle,
+  BookOpen,
+  QrCode,
+  Smartphone,
+  ShieldCheck,
+  CreditCard,
+  FileSpreadsheet,
+  Camera,
+  Share2,
+  ChevronDown,
+  ChevronRight,
+  Sparkles,
+  Users,
+  HardHat,
+  MessageCircle,
+  Download,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react';
+import Link from 'next/link';
+
+interface SecaoAjuda {
+  id: string;
+  titulo: string;
+  icone: any;
+  descricao: string;
+  conteudo: React.ReactNode;
+}
+
+export default function AjudaPage() {
+  const [secaoAberta, setSecaoAberta] = useState<string>('geral');
+
+  const secoes: SecaoAjuda[] = [
+    {
+      id: 'geral',
+      titulo: '1. O que é o Ponto Patrícia (Diária.AI)?',
+      icone: Sparkles,
+      descricao: 'Visão geral da solução, canteiros de obra, piscinas e inteligência artificial',
+      conteudo: (
+        <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
+          <p>
+            O <strong>Ponto Patrícia (Diária.AI)</strong> é um Micro-ERP de campo desenhado sob medida para
+            gestão de obras civis e instalação de piscinas.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
+              <span className="font-bold text-slate-900 block text-xs">Apontamentos por WhatsApp</span>
+              <p className="text-[11px] text-slate-500">
+                O encarregado manda mensagens em linguagem natural no grupo. A IA extrai diárias e vales automaticamente.
+              </p>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
+              <span className="font-bold text-slate-900 block text-xs">Human-in-the-Loop</span>
+              <p className="text-[11px] text-slate-500">
+                A IA nunca liquida dinheiro sozinha. Todos os lançamentos dependem de aprovação expressa da Patrícia.
+              </p>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
+              <span className="font-bold text-slate-900 block text-xs">PIX Dinâmico Instantâneo</span>
+              <p className="text-[11px] text-slate-500">
+                Fechamento de folha em 1 clique com QR Code e Copia e Cola com o valor líquido exato descontado dos vales.
+              </p>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'pwa',
+      titulo: '2. Como Instalar o App no Celular (PWA) e Usar Biometria',
+      icone: Smartphone,
+      descricao: 'Instalação rápida no iPhone e Android sem precisar de loja de aplicativos',
+      conteudo: (
+        <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+              <h4 className="font-bold text-slate-900 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-slate-900" />
+                No iPhone (iOS / Safari)
+              </h4>
+              <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-500">
+                <li>Abra o link do sistema no <strong>Safari</strong>.</li>
+                <li>Toque no botão de <strong>Compartilhar</strong> (quadrado com seta).</li>
+                <li>Role a lista e clique em <strong>Adicionar à Tela de Início</strong>.</li>
+                <li>O ícone aparecerá como um app nativo na sua tela principal.</li>
+              </ol>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+              <h4 className="font-bold text-slate-900 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                No Android (Chrome)
+              </h4>
+              <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-500">
+                <li>Abra o link do sistema no <strong>Google Chrome</strong>.</li>
+                <li>Toque nos <strong>3 pontinhos</strong> no canto superior direito.</li>
+                <li>Selecione <strong>Instalar Aplicativo</strong> ou <strong>Adicionar à tela inicial</strong>.</li>
+                <li>Pronto! O app abre em tela cheia com alta velocidade.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 space-y-1.5">
+            <h4 className="font-bold flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              Acesso por Biometria (Face ID / Digital)
+            </h4>
+            <p className="text-[11px] text-emerald-800">
+              Após fazer o primeiro login com seu celular e senha autorizada, você pode ativar a biometria. No próximo acesso, basta tocar em <strong>"Acessar com Biometria"</strong> e desbloquear o sistema instantaneamente com seu rosto ou digital.
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'whatsapp',
+      titulo: '3. Como Enviar Mensagens no WhatsApp para a IA Entender',
+      icone: MessageCircle,
+      descricao: 'Exemplos práticos de áudios, textos e comprovantes de fotos enviados de campo',
+      conteudo: (
+        <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
+          <p>
+            O robô monitora os grupos oficiais dos canteiros configurados na tela <strong>Configuração do Bot (WhatsApp)</strong>. O encarregado pode escrever normalmente:
+          </p>
+
+          <div className="space-y-2">
+            <div className="p-3 bg-slate-100 rounded-2xl font-mono text-[11px] text-slate-800 border border-slate-200">
+              💬 <em>"Hoje na Obra Alphaville: Tião trabalhou o dia todo, Zé Pedreiro meio dia e o Maranhão faltou."</em>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              👉 <strong>Resultado:</strong> A IA lança 1 diária para Tião, 0.5 diária para Zé, marca falta para Maranhão e joga para a tela de Validações Pendentes com status PENDENTE.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="p-3 bg-slate-100 rounded-2xl font-mono text-[11px] text-slate-800 border border-slate-200">
+              💬 <em>"Manda 100 de vale pro Tião almoço com foto do comprovante."</em> (acompanhado de imagem)
+            </div>
+            <p className="text-[11px] text-slate-500">
+              👉 <strong>Resultado:</strong> O bot faz download automático da imagem do WhatsApp, salva com segurança no Cloudflare R2 e cria o vale de R$ 100,00 vinculado à foto do recibo.
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'validacoes',
+      titulo: '4. Validação Human-in-the-Loop (Aprovação da Patrícia)',
+      icone: CheckCircle2,
+      descricao: 'Como revisar, editar frações de diária e aprovar lançamentos',
+      conteudo: (
+        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <p>
+            A tela de <Link href="/validacoes" className="text-emerald-600 font-bold underline">Validações Pendentes</Link> é a central de controle da Administradora.
+          </p>
+          <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
+            <li><strong>Revisão de Fração</strong>: Confira se a IA classificou 1x diária ou meio período (0.5x).</li>
+            <li><strong>Recibos em Lightbox</strong>: Na coluna Anexo/Recibo, clique no clipe de papel para ampliar a foto do comprovante e baixar localmente.</li>
+            <li><strong>Aprovação em Lote</strong>: Selecione os pontos confirmados e clique em <strong>"Aprovar Selecionados"</strong>. Eles mudarão para o status <code>VALIDADO</code> e ficarão prontos para pagamento no Borderô.</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: 'bordero',
+      titulo: '5. Borderô de Pagamento (Sexta VIP) e PIX Dinâmico',
+      icone: CreditCard,
+      descricao: 'Liquidação seletiva, cópia de PIX e QR Code para fechamento da folha',
+      conteudo: (
+        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <p>
+            Na tela de <Link href="/bordero" className="text-emerald-600 font-bold underline">Fechamento (Borderô)</Link>, o sistema consolida o extrato semanal de cada trabalhador:
+          </p>
+          <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-950 font-semibold text-[11px]">
+            Líquido a Pagar = (Soma das Diárias Validadas) - (Vales Descontados)
+          </div>
+          <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
+            <li><strong>Liquidação Parcial / Seletiva</strong>: Se você desmarcar a caixinha de um vale ou diária, essa linha <em>não é excluída</em>: ela continua salva no banco para a próxima semana.</li>
+            <li><strong>Copiar PIX Copia e Cola</strong>: Gera o código padrão do Banco Central com valor exato, pronto para colar no aplicativo do seu banco.</li>
+            <li><strong>Ver QR Code PIX</strong>: Exibe o código na tela para leitura direta pelo app do banco no celular.</li>
+            <li><strong>Exportar XLS</strong>: Gera instantaneamente a planilha de fechamento do dia.</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: 'date-stamp',
+      titulo: '6. Auditoria Fotográfica & Date Stamp Indelével',
+      icone: Camera,
+      descricao: 'Carimbo automático de data, hora de Brasília, clima e hash SHA-256 nas fotos de canteiro',
+      conteudo: (
+        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <p>
+            Para comprovação jurídica e pericial de evolução de obra contra contestações de clientes ou empreiteiros, toda foto de obra processada pelo sistema recebe uma estampa permanente via motor <strong>Sharp</strong>:
+          </p>
+          <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-[11px] space-y-1">
+            <p className="text-emerald-400 font-bold">OBRA: RESIDENCIAL ALPHAVILLE | ETAPA: PISCINA</p>
+            <p className="text-slate-300">DATA/HORA: 14/11/2026 17:15 (Horário de Brasília) | CLIMA: Céu Limpo 27°C</p>
+            <p className="text-slate-400 text-[10px]">Ponto Patrícia (Diária.AI) • Registro de Campo | GPS: -23.5505, -46.6333</p>
+          </div>
+          <p className="text-[11px] text-slate-500">
+            Além do carimbo visual, cada foto possui um <strong>Hash SHA-256</strong> gravado no banco de dados, provando que o arquivo não foi alterado ou adulterado posteriormente.
+          </p>
+        </div>
+      ),
+    },
+    {
+      id: 'relatorios',
+      titulo: '7. Relatórios & Disparos via WhatsApp',
+      icone: FileSpreadsheet,
+      descricao: 'Demonstrativos semanais, quinzenais e mensais com envio direto no WhatsApp',
+      conteudo: (
+        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <p>
+            Na aba <Link href="/relatorios" className="text-emerald-600 font-bold underline">Relatórios & Exportações</Link>, você tem visão executiva completa:
+          </p>
+          <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
+            <li><strong>Seletor de Período</strong>: Alterne entre <em>Semanal</em>, <em>Quinzenal</em> e <em>Mensal</em>.</li>
+            <li><strong>Borderô Consolidado</strong>: Planilha completa para conciliação bancária.</li>
+            <li><strong>Custo por Canteiro</strong>: Total investido em mão de obra por obra (Piscina x Obra Civil).</li>
+            <li><strong>Disparo para Diretoria</strong>: Botão verde superior envia o resumo financeiro formatado para a Patrícia ou sócios no WhatsApp.</li>
+            <li><strong>Disparo para o Trabalhador</strong>: Botão em cada linha envia o comprovante individual direto no WhatsApp do funcionário.</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: 'setup',
+      titulo: '8. Cadastro Expresso de Funcionários e Obras',
+      icone: Users,
+      descricao: 'Como cadastrar trabalhadores com apenas Nome e Chave PIX obrigatórios',
+      conteudo: (
+        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <p>
+            Para agilidade de campo na tela de <Link href="/setup" className="text-emerald-600 font-bold underline">Setup</Link>:
+          </p>
+          <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
+            <li><strong>Obrigatório</strong>: Apenas <strong>Nome do Trabalhador</strong> e <strong>Chave PIX</strong>.</li>
+            <li><strong>Opcional</strong>: Telefone, Canteiro de Obra e Valor da Diária. Se deixar a diária em branco, o sistema assume automaticamente a diária padrão da obra (R$ 150 para Piscina ou R$ 180 para Obra Civil).</li>
+          </ul>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="p-8 max-w-5xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+              <BookOpen className="w-5 h-5" />
+            </span>
+            <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
+              Central de Conhecimento
+            </span>
+          </div>
+          <h1 className="text-2xl font-black text-slate-950 mt-1">Manual de Operação & Ajuda</h1>
+          <p className="text-sm text-slate-600 mt-0.5">
+            Guia completo de uso do Ponto Patrícia (Diária.AI), rotinas de campo, regras da IA e atalhos de fechamento.
+          </p>
+        </div>
+
+        {/* Link para baixar manual completo */}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/MANUAL_DO_SISTEMA.md"
+            target="_blank"
+            className="px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 active:scale-95"
+          >
+            <Download className="w-4 h-4 text-emerald-600" />
+            <span>Documento MD</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Accordion Interativo de Tópicos de Ajuda */}
+      <div className="space-y-4">
+        {secoes.map((secao) => {
+          const Aberto = secaoAberta === secao.id;
+          const Icone = secao.icone;
+
+          return (
+            <div
+              key={secao.id}
+              className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden transition-all"
+            >
+              <button
+                onClick={() => setSecaoAberta(Aberto ? '' : secao.id)}
+                className="w-full p-6 text-left flex items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <span
+                    className={`p-3 rounded-2xl transition-colors ${
+                      Aberto ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/20' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    <Icone className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h3 className="font-black text-slate-950 text-sm md:text-base">{secao.titulo}</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">{secao.descricao}</p>
+                  </div>
+                </div>
+
+                <span className="p-2 text-slate-400">
+                  {Aberto ? <ChevronDown className="w-5 h-5 text-emerald-600" /> : <ChevronRight className="w-5 h-5" />}
+                </span>
+              </button>
+
+              {Aberto && (
+                <div className="p-6 pt-0 border-t border-slate-100 mt-2 bg-slate-50/40">
+                  {secao.conteudo}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Card de Suporte & Super Usuários */}
+      <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-950 to-slate-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/30">
+              SUPORTE MASTER
+            </span>
+          </div>
+          <h3 className="text-base font-black text-white">Precisa de suporte operacional na folha?</h3>
+          <p className="text-xs text-slate-400">
+            Os Super Administradores (Patrícia Grubel, Daniel Lopes e Joabson Nascimento) possuem acesso total de auditoria e parametrização.
+          </p>
+        </div>
+
+        <Link
+          href="/configuracoes"
+          className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition-all shadow-lg shadow-emerald-950/40 text-center shrink-0"
+        >
+          Ver Controle de Acessos (RBAC)
+        </Link>
+      </div>
+    </div>
+  );
+}
+

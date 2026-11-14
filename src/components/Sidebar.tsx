@@ -15,6 +15,7 @@ import {
   Users,
   LogOut,
   BarChart3,
+  HelpCircle,
 } from 'lucide-react';
 
 const navItems = [
@@ -63,6 +64,13 @@ const navItems = [
     href: '/configuracoes',
     icon: Users,
     badge: null,
+  },
+  {
+    name: 'Manual & Ajuda',
+    href: '/ajuda',
+    icon: HelpCircle,
+    badge: 'Guia',
+    badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
   },
 ];
 
