@@ -80,6 +80,13 @@ const navItems = [
     badge: 'Marca',
     badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
   },
+  {
+    name: 'Nossos Produtos',
+    href: '/produtos',
+    icon: Layers,
+    badge: 'Hub',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  },
 ];
 
 export default function Sidebar() {
