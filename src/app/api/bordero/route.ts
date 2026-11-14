@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
-    const { data: lancamentos, error } = await supabaseAdmin
+    let lancamentos: any[] | null = null;
+    let queryError: any = null;
+
+    const resComprovante = await supabaseAdmin
       .from('lancamentos_financeiros')
       .select(`
         id,
@@ -27,8 +32,39 @@ export async function GET() {
       .eq('status', 'VALIDADO')
       .order('data_referencia', { ascending: true });
 
-    if (error) {
-      console.error('Erro ao buscar borderô:', error);
+    if (resComprovante.error) {
+      // Fallback defensivo se a coluna comprovante_url não existir na instância remota
+      const resFallback = await supabaseAdmin
+        .from('lancamentos_financeiros')
+        .select(`
+          id,
+          nome_trabalhador,
+          tipo_lancamento,
+          fracao_dia,
+          valor_monetario,
+          data_referencia,
+          observacao,
+          status,
+          obras_config (
+            nome,
+            tipo_obra
+          ),
+          funcionarios_obra (
+            chave_pix,
+            valor_diaria
+          )
+        `)
+        .eq('status', 'VALIDADO')
+        .order('data_referencia', { ascending: true });
+
+      lancamentos = resFallback.data;
+      queryError = resFallback.error;
+    } else {
+      lancamentos = resComprovante.data;
+    }
+
+    if (queryError) {
+      console.error('Erro ao buscar borderô:', queryError);
       return NextResponse.json({ funcionarios: [] });
     }
 

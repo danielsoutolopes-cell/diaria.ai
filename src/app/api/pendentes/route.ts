@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
-    const { data: lotes, error } = await supabaseAdmin
+    // 1. Tentar selecionar com comprovante_url
+    let lotes: any[] | null = null;
+    let queryError: any = null;
+
+    const resComprovante = await supabaseAdmin
       .from('ponto_lote')
       .select(`
         id,
@@ -31,8 +37,43 @@ export async function GET() {
       .eq('status_validacao', 'PENDENTE')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Erro ao buscar pendentes:', error);
+    if (resComprovante.error) {
+      // Fallback defensivo para instâncias de banco que ainda não migraram a coluna comprovante_url
+      const resFallback = await supabaseAdmin
+        .from('ponto_lote')
+        .select(`
+          id,
+          obra_id,
+          data_referencia,
+          texto_original,
+          status_validacao,
+          token_aprovacao,
+          obras_config (
+            nome,
+            tipo_obra
+          ),
+          ponto_detalhe (
+            id,
+            nome_trabalhador,
+            fracao_dia,
+            motivo_excecao
+          ),
+          lancamentos_financeiros (
+            id,
+            nome_trabalhador
+          )
+        `)
+        .eq('status_validacao', 'PENDENTE')
+        .order('created_at', { ascending: false });
+
+      lotes = resFallback.data;
+      queryError = resFallback.error;
+    } else {
+      lotes = resComprovante.data;
+    }
+
+    if (queryError) {
+      console.error('Erro ao buscar pendentes:', queryError);
       return NextResponse.json({ pendentes: [] });
     }
 
