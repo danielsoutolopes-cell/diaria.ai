@@ -42,7 +42,7 @@ export default function RbacPage() {
     {
       id: 'super-2',
       nome: 'Daniel Lopes',
-      telefone: '(11) 91319-2704',
+      telefone: '(11) 91319-2703',
       nivel: 'MASTER',
       obraVinculada: 'Super Admin Global',
       ativo: true,
