@@ -81,7 +81,7 @@ export default function Sidebar() {
           P
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-xs font-bold text-slate-200 truncate">Patrícia Souto Lopes</h4>
+          <h4 className="text-xs font-bold text-slate-200 truncate">Patrícia Grubel</h4>
           <span className="text-[11px] text-emerald-400/90 font-medium flex items-center gap-1">
             <ShieldCheck className="w-3 h-3" /> Administradora Central
           </span>

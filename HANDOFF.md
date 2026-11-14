@@ -11,7 +11,7 @@
    - Glassmorphism nativo (`backdrop-blur-xl`, bordas translúcidas de luxo e micro-sombras suaves).
    - Tipografia premium com espaçamento refinado e hierarquia visual de alta legibilidade.
 2. **Sidebar Executiva (`Sidebar.tsx`)**:
-   - Card de perfil VIP dedicado: "Patrícia Souto Lopes • Administradora Central".
+   - Card de perfil VIP dedicado: "Patrícia Grubel • Administradora Central".
    - Badges luminosos de notificação ("3 novas", "Sexta VIP").
    - Indicador dinâmico de status com efeito pulsante em tempo real para o WhatsApp Bot e IA.
 3. **Hero Card "Cofre Executivo" (`page.tsx`)**:
