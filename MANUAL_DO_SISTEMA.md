@@ -6,7 +6,11 @@
 ## 🏗️ 1. Visão Geral da Solução
 O **Ponto Patrícia (Diária.AI)** foi arquitetado especialmente para resolver as maiores dores de gestão de campo na construção civil e instalação de piscinas:
 1. **Descentralização de Apontamentos**: Fim das anotações em papel molhado, cadernos rasurados ou mensagens perdidas no WhatsApp.
-2. **Controle Rigoroso de Vales & Adiantamentos**: Cada vale solicitado no canteiro é registrado com foto do recibo físico e abatido automaticamente da folha de pagamento.
+2. **Controle Rigoroso de Vales & Saldos Devedores (Decisão 100% Humana)**:
+   - Cada vale solicitado no canteiro é registrado com foto do recibo físico e entra como pendência.
+   - **O vale NÃO é descontado compulsoriamente ou de forma cega pela IA.**
+   - A Administradora (Patrícia) decide no Borderô se desconta naquele pagamento ou se o colaborador precisa receber o valor cheio.
+   - **Se o vale for desmarcado pela administradora, ele NÃO é liquidado**: o sistema preserva o lançamento no banco de dados e ele **continua como saldo a dever** para os fechamentos futuros até que haja autorização explícita de abatimento.
 3. **Auditoria Fotográfica com Prova Temporal (Date Stamp)**: Registro de evolução de obra com carimbo indelével contendo obra, data/hora oficial de Brasília, coordenadas GPS, clima em tempo real e hash criptográfico SHA-256.
 4. **Fechamento de Folha em 1 Clique (Borderô com PIX Dinâmico)**: Geração instantânea do payload PIX Copia & Cola e QR Code para pagamento de diárias parciais ou integrais na sexta-feira.
 
@@ -69,10 +73,12 @@ Dentro do painel web, você conta com um chat interno que executa as mesmas regr
 
 Na tela de **Fechamento (Borderô)**:
 1. O sistema agrupa todos os lançamentos validados por colaborador.
-2. **Cálculo Automático**:
-   $$\text{Líquido a Pagar} = \sum (\text{Diárias}) - \sum (\text{Vales})$$
-3. **Liquidação Seletiva (Parcial)**:
-   - Se a administradora desmarcar a caixa de um vale ou diária, essa linha **não é perdida**: ela continua guardada no banco para a folha da semana seguinte.
+2. **Cálculo Sob Demanda (Human-in-the-Loop)**:
+   $$\text{Líquido a Pagar} = \sum (\text{Diárias Marcadas}) - \sum (\text{Vales Marcados})$$
+3. **Liquidação Seletiva e Manutenção do Saldo a Dever**:
+   - **Toda decisão final de desconto é humana**: se a administradora desmarcar a caixa de um vale, ele **NÃO** é descontado da folha atual e **NÃO** é liquidado.
+   - O vale desmarcado permanece gravado com segurança no banco de dados e **continua ativo como saldo a dever** para os fechamentos futuros.
+   - Isso permite, por exemplo, que a empresa parcele o desconto de um vale alto ou poupe o trabalhador em semanas de poucas diárias.
 4. **PIX Dinâmico com 1 Clique**:
    - Clique em **"Copiar PIX Copia e Cola"** para colar direto no aplicativo do banco.
    - Ou clique em **"Ver QR Code PIX"** para ler o código na tela do computador com o celular do banco.

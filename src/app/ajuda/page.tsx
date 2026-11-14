@@ -167,20 +167,21 @@ export default function AjudaPage() {
     },
     {
       id: 'bordero',
-      titulo: '5. Borderô de Pagamento (Sexta VIP) e PIX Dinâmico',
+      titulo: '5. Borderô de Pagamento (Sexta VIP) e Saldo Devedor de Vales',
       icone: CreditCard,
-      descricao: 'Liquidação seletiva, cópia de PIX e QR Code para fechamento da folha',
+      descricao: 'Decisão 100% humana: abater hoje ou manter como saldo a dever',
       conteudo: (
         <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
           <p>
-            Na tela de <Link href="/bordero" className="text-emerald-600 font-bold underline">Fechamento (Borderô)</Link>, o sistema consolida o extrato semanal de cada trabalhador:
+            Na tela de <Link href="/bordero" className="text-emerald-600 font-bold underline">Fechamento (Borderô)</Link>, o sistema consolida o extrato de cada trabalhador, mas <strong>a decisão de descontar ou não o vale é estritamente humana</strong>:
           </p>
           <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-950 font-semibold text-[11px]">
-            Líquido a Pagar = (Soma das Diárias Validadas) - (Vales Descontados)
+            Líquido a Pagar = (Soma das Diárias Marcadas) - (Vales Marcados para Desconto Hoje)
           </div>
           <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
-            <li><strong>Liquidação Parcial / Seletiva</strong>: Se você desmarcar a caixinha de um vale ou diária, essa linha <em>não é excluída</em>: ela continua salva no banco para a próxima semana.</li>
-            <li><strong>Copiar PIX Copia e Cola</strong>: Gera o código padrão do Banco Central com valor exato, pronto para colar no aplicativo do seu banco.</li>
+            <li><strong>Desconto Opcional & Saldo a Dever</strong>: Se a Administradora desmarcar a caixa de um vale, ele <strong>não é descontado da folha atual</strong> e <strong>não é liquidado</strong>. O sistema preserva o registro no banco de dados e ele <strong>permanece ativo como saldo a dever</strong> para as semanas seguintes até autorização expressa.</li>
+            <li><strong>Visualização em Linha</strong>: Ao desmarcar um vale, a linha fica riscada levemente e um aviso exibe o <em>Saldo a dever postergado</em>.</li>
+            <li><strong>Copiar PIX Copia e Cola</strong>: Gera o código padrão do Banco Central com valor exato ajustado na hora, pronto para colar no aplicativo do seu banco.</li>
             <li><strong>Ver QR Code PIX</strong>: Exibe o código na tela para leitura direta pelo app do banco no celular.</li>
             <li><strong>Exportar XLS</strong>: Gera instantaneamente a planilha de fechamento do dia.</li>
           </ul>

@@ -1,11 +1,20 @@
 # Diário de Bordo & Transição de Contexto (HANDOFF.md)
 
 ## Estado Atual
-- **Configuração Cloudflare R2**:
+- **Regra Central de Negócio - Human-in-the-Loop & Gestão de Vales**:
+  - Toda decisão de abatimento financeiro é 100% humana.
+  - Vales registrados no canteiro **não são abatidos compulsoriamente**. Na tela de Borderô, a Administradora (Patrícia Grubel) tem total liberdade para marcar ou desmarcar cada vale.
+  - Vales desmarcados **não são liquidados** e **permanecem ativos no banco de dados como saldo a dever** para as semanas subsequentes até autorização expressa de liquidação.
+- **Configuração Cloudflare R2 & Date Stamp Pericial**:
   - Armazenamento em bucket `diaria-ai` com endpoint S3 compatível.
-  - Credenciais e chaves de acesso alocadas de forma segura no arquivo local `.env` (nunca expostas no controle de versão).
-- **Módulo de Upload R2 Implementado**:
-  - `src/lib/r2.ts` e `src/services/r2Storage.ts` integrados com `@aws-sdk/client-s3` para uploads e exclusão de fotos de comprovantes de vales e relatórios.
+  - Motor `sharp` aplicando carimbo indelével em fotos de canteiro (Obra, Etapa, Data/Hora de Brasília, Clima em tempo real via OpenWeather, GPS e hash SHA-256).
+- **Exportações XLS & Relatórios**:
+  - Biblioteca `xlsx` integrada com relatórios Semanal, Quinzenal e Mensal.
+  - Disparos automáticos de resumos executivos e extratos individuais via WhatsApp.
+- **Cadastro Expresso de Colaboradores**:
+  - Na tela de Setup, apenas Nome e Chave PIX são obrigatórios.
+- **Documentação & Ajuda**:
+  - `MANUAL_DO_SISTEMA.md` completo e tela interativa `/ajuda` no menu lateral.
 - **Build de Produção**: 100% aprovado (`npm run build`).
 
 ## Últimas Ações
