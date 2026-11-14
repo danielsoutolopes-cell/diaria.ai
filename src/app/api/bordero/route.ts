@@ -14,6 +14,7 @@ export async function GET() {
         data_referencia,
         observacao,
         status,
+        comprovante_url,
         obras_config (
           nome,
           tipo_obra
@@ -59,6 +60,7 @@ export async function GET() {
         tipo: l.tipo_lancamento,
         fracao: Number(l.fracao_dia) || (l.tipo_lancamento === 'PONTO' ? 1.0 : 0),
         valor: Number(l.valor_monetario) || 0,
+        comprovanteUrl: l.comprovante_url || null,
         selecionado: true,
       });
     });

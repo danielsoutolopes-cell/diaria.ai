@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extrairDadosMensagem } from '@/lib/gemini';
 import { supabaseAdmin } from '@/lib/supabase';
+import { uploadToR2 } from '@/services/r2Storage';
 import crypto from 'crypto';
 
 // Mutex em memória para evitar concorrência e mensagens duplicadas do WhatsApp
@@ -15,15 +16,65 @@ export async function POST(req: NextRequest) {
     const messageId = body?.data?.key?.id || body?.messageId || body?.id || `msg-${Date.now()}`;
     const remoteJid = body?.data?.key?.remoteJid || body?.from || '';
     const senderNumber = remoteJid.replace(/[^0-9]/g, '');
+
+    // Detecção de foto / recibo (imageMessage)
+    const imageMessage =
+      body?.data?.message?.imageMessage ||
+      body?.message?.imageMessage ||
+      body?.imageMessage;
+
+    const base64Image =
+      body?.data?.base64 ||
+      body?.base64 ||
+      body?.data?.message?.imageMessage?.jpegThumbnail;
+
+    const imageMediaUrl =
+      body?.data?.mediaUrl ||
+      body?.mediaUrl ||
+      body?.url;
+
+    let comprovanteUrl: string | null = null;
+
+    // Se a mensagem contiver foto, faz upload para o Cloudflare R2
+    if (imageMessage || base64Image || imageMediaUrl) {
+      try {
+        let buffer: Buffer | null = null;
+
+        if (base64Image) {
+          const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, '');
+          buffer = Buffer.from(cleanBase64, 'base64');
+        } else if (imageMediaUrl) {
+          const imgRes = await fetch(imageMediaUrl);
+          const arrayBuf = await imgRes.arrayBuffer();
+          buffer = Buffer.from(arrayBuf);
+        }
+
+        if (buffer) {
+          const uploadResult = await uploadToR2(
+            buffer,
+            `recibo-whatsapp-${senderNumber}-${Date.now()}.jpg`,
+            'image/jpeg'
+          );
+          if (uploadResult.success) {
+            comprovanteUrl = uploadResult.url;
+          }
+        }
+      } catch (errUpload) {
+        console.error('Erro ao processar imagem para o Cloudflare R2:', errUpload);
+      }
+    }
+
+    // Texto da mensagem (ou legenda da foto)
     const messageText =
       body?.data?.message?.conversation ||
       body?.data?.message?.extendedTextMessage?.text ||
+      imageMessage?.caption ||
       body?.text ||
       body?.message ||
-      '';
+      (comprovanteUrl ? 'Comprovante de vale anexado' : '');
 
-    if (!messageText) {
-      return NextResponse.json({ status: 'ignored', reason: 'Mensagem sem texto.' });
+    if (!messageText && !comprovanteUrl) {
+      return NextResponse.json({ status: 'ignored', reason: 'Mensagem sem texto ou anexo.' });
     }
 
     // Trava de deduplicação (Mutex)
@@ -34,7 +85,6 @@ export async function POST(req: NextRequest) {
     const now = Date.now();
     const lockTime = processingLocks.get(remoteJid);
     if (lockTime && now - lockTime < 3000) {
-      // Bloqueia mensagens com intervalo menor que 3s para evitar flooding do mesmo remetente
       return NextResponse.json({ status: 'locked', reason: 'Aguarde processamento anterior.' }, { status: 429 });
     }
 
@@ -112,23 +162,23 @@ export async function POST(req: NextRequest) {
             motivo_excecao: ap.motivo || null,
           });
 
-          // Também cria lançamento financeiro como PENDENTE
           await supabaseAdmin.from('lancamentos_financeiros').insert({
             tenant_id: tenantId,
             obra_id: obraId,
             nome_trabalhador: ap.nome,
             tipo_lancamento: 'PONTO',
             fracao_dia: ap.fracao,
-            valor_monetario: 0.0, // Será calculado na validação com o valor_diaria do funcionário
+            valor_monetario: 0.0,
             status: 'PENDENTE',
             data_referencia: new Date().toISOString().split('T')[0],
             observacao: ap.motivo || 'Apontamento via WhatsApp Bot',
             ponto_lote_id: loteId,
+            comprovante_url: null,
           });
         }
       }
 
-      // 4. Registrar vales
+      // 4. Registrar vales com o comprovante_url do Cloudflare R2
       if (obra.vales?.length) {
         for (const vale of obra.vales) {
           await supabaseAdmin.from('lancamentos_financeiros').insert({
@@ -142,8 +192,24 @@ export async function POST(req: NextRequest) {
             data_referencia: new Date().toISOString().split('T')[0],
             observacao: 'Adiantamento de Vale via WhatsApp Bot',
             ponto_lote_id: loteId,
+            comprovante_url: comprovanteUrl,
           });
         }
+      } else if (comprovanteUrl) {
+        // Se enviou foto de recibo sem o NLP extrair valor explícito, registra lançamento pendente com o comprovante
+        await supabaseAdmin.from('lancamentos_financeiros').insert({
+          tenant_id: tenantId,
+          obra_id: obraId,
+          nome_trabalhador: 'A Identificar (Foto de Recibo)',
+          tipo_lancamento: 'VALE',
+          fracao_dia: 0,
+          valor_monetario: 0.0,
+          status: 'PENDENTE',
+          data_referencia: new Date().toISOString().split('T')[0],
+          observacao: 'Comprovante/Recibo enviado via WhatsApp',
+          ponto_lote_id: loteId,
+          comprovante_url: comprovanteUrl,
+        });
       }
     }
 
@@ -154,10 +220,11 @@ export async function POST(req: NextRequest) {
       status: 'success',
       messageId,
       extracao,
+      comprovanteUrl,
       validationUrl,
       whatsappNotification: {
         destinatario: 'Patrícia (Admin)',
-        mensagem: `🚨 *Novo Apontamento Pendente*\nRecebido de: ${senderNumber}\nLink de Validação Rápida: ${validationUrl}`,
+        mensagem: `🚨 *Novo Apontamento Pendente*\nRecebido de: ${senderNumber}\n${comprovanteUrl ? `📎 Recibo Anexado: ${comprovanteUrl}\n` : ''}Link de Validação: ${validationUrl}`,
       },
     });
   } catch (error) {

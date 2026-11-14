@@ -78,6 +78,7 @@ export interface LancamentoFinanceiro {
   data_referencia: string;
   observacao?: string | null;
   ponto_lote_id?: string | null;
+  comprovante_url?: string | null;
   liquidado_em?: string | null;
   created_at: string;
   updated_at: string;

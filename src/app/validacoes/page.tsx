@@ -12,6 +12,7 @@ import {
   Check,
   RefreshCw,
 } from 'lucide-react';
+import { ReceiptLightbox } from '@/components/ReceiptLightbox';
 
 interface PendenteItem {
   id: string;
@@ -23,6 +24,7 @@ interface PendenteItem {
   motivo: string;
   origem: string;
   valorDiariaBase: number;
+  comprovanteUrl?: string | null;
 }
 
 export default function ValidacoesPage() {
@@ -207,7 +209,16 @@ export default function ValidacoesPage() {
                     <span>{item.motivo}</span>
                   </div>
 
-                  <div className="text-[11px] text-slate-400">{item.origem}</div>
+                  <div className="flex items-center gap-3 pt-1">
+                    <div className="text-[11px] text-slate-400">{item.origem}</div>
+                    {item.comprovanteUrl && (
+                      <ReceiptLightbox
+                        comprovanteUrl={item.comprovanteUrl}
+                        nomeFuncionario={item.trabalhador}
+                        dataReferencia={item.data}
+                      />
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 self-end md:self-center">

@@ -13,6 +13,7 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import { gerarPayloadPix } from '@/lib/pix';
+import { ReceiptLightbox } from '@/components/ReceiptLightbox';
 
 interface LinhaLancamento {
   id: string;
@@ -22,6 +23,7 @@ interface LinhaLancamento {
   fracao: number;
   valor: number;
   selecionado: boolean;
+  comprovanteUrl?: string | null;
 }
 
 interface ExtratoFuncionario {
@@ -312,6 +314,7 @@ export default function BorderoPage() {
                         <th className="p-4">Data</th>
                         <th className="p-4">Descrição do Lançamento</th>
                         <th className="p-4">Tipo</th>
+                        <th className="p-4 text-center">Anexo/Recibo</th>
                         <th className="p-4 text-right">Fração</th>
                         <th className="p-4 text-right">Valor</th>
                       </tr>
@@ -320,14 +323,16 @@ export default function BorderoPage() {
                       {f.lancamentos.map((l) => (
                         <tr
                           key={l.id}
-                          onClick={() => toggleItem(f.id, l.id)}
-                          className={`cursor-pointer transition-colors ${
+                          className={`transition-colors ${
                             l.selecionado
                               ? 'bg-white hover:bg-slate-50/80'
                               : 'bg-slate-100/50 text-slate-400 line-through hover:bg-slate-100'
                           }`}
                         >
-                          <td className="p-4 text-center">
+                          <td
+                            className="p-4 text-center cursor-pointer"
+                            onClick={() => toggleItem(f.id, l.id)}
+                          >
                             <input
                               type="checkbox"
                               checked={l.selecionado}
@@ -335,9 +340,22 @@ export default function BorderoPage() {
                               className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                             />
                           </td>
-                          <td className="p-4 font-semibold text-slate-700">{l.data}</td>
-                          <td className="p-4 font-bold text-slate-900">{l.descricao}</td>
-                          <td className="p-4">
+                          <td
+                            className="p-4 font-semibold text-slate-700 cursor-pointer"
+                            onClick={() => toggleItem(f.id, l.id)}
+                          >
+                            {l.data}
+                          </td>
+                          <td
+                            className="p-4 font-bold text-slate-900 cursor-pointer"
+                            onClick={() => toggleItem(f.id, l.id)}
+                          >
+                            {l.descricao}
+                          </td>
+                          <td
+                            className="p-4 cursor-pointer"
+                            onClick={() => toggleItem(f.id, l.id)}
+                          >
                             <span
                               className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
                                 l.tipo === 'PONTO'
@@ -348,13 +366,24 @@ export default function BorderoPage() {
                               {l.tipo === 'PONTO' ? 'DIÁRIA' : 'VALE DEDUZIDO'}
                             </span>
                           </td>
-                          <td className="p-4 text-right font-medium text-slate-600">
+                          <td className="p-4 text-center">
+                            <ReceiptLightbox
+                              comprovanteUrl={l.comprovanteUrl}
+                              nomeFuncionario={f.nome}
+                              dataReferencia={l.data}
+                            />
+                          </td>
+                          <td
+                            className="p-4 text-right font-medium text-slate-600 cursor-pointer"
+                            onClick={() => toggleItem(f.id, l.id)}
+                          >
                             {l.tipo === 'PONTO' ? `${l.fracao}x` : '—'}
                           </td>
                           <td
-                            className={`p-4 text-right font-black text-sm ${
+                            className={`p-4 text-right font-black text-sm cursor-pointer ${
                               l.tipo === 'PONTO' ? 'text-emerald-700' : 'text-rose-600'
                             }`}
+                            onClick={() => toggleItem(f.id, l.id)}
                           >
                             {l.tipo === 'PONTO' ? `+ R$ ${l.valor.toFixed(2)}` : `- R$ ${l.valor.toFixed(2)}`}
                           </td>

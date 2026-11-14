@@ -123,10 +123,14 @@ CREATE TABLE IF NOT EXISTS lancamentos_financeiros (
     data_referencia DATE NOT NULL DEFAULT CURRENT_DATE,
     observacao TEXT,
     ponto_lote_id UUID REFERENCES ponto_lote(id) ON DELETE SET NULL,
+    comprovante_url TEXT,
     liquidado_em TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Garantir adição de comprovante_url caso a tabela já exista
+ALTER TABLE lancamentos_financeiros ADD COLUMN IF NOT EXISTS comprovante_url TEXT;
 
 -- --------------------------------------------------------
 -- 3. ÍNDICES DE PERFORMANCE

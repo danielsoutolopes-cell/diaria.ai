@@ -21,6 +21,11 @@ export async function GET() {
           nome_trabalhador,
           fracao_dia,
           motivo_excecao
+        ),
+        lancamentos_financeiros (
+          id,
+          nome_trabalhador,
+          comprovante_url
         )
       `)
       .eq('status_validacao', 'PENDENTE')
@@ -31,13 +36,17 @@ export async function GET() {
       return NextResponse.json({ pendentes: [] });
     }
 
-    // Aplanar itens para apresentação na tela de validação
     const itens: any[] = [];
     (lotes || []).forEach((lote) => {
       const obraNome = (lote as any).obras_config?.nome || 'CANTEIRO VOLANTE';
       const detalhes = (lote as any).ponto_detalhe || [];
+      const lancamentos = (lote as any).lancamentos_financeiros || [];
 
       detalhes.forEach((d: any) => {
+        const lancCorrespondente = lancamentos.find(
+          (l: any) => l.nome_trabalhador?.toLowerCase() === d.nome_trabalhador?.toLowerCase() && l.comprovante_url
+        ) || lancamentos.find((l: any) => l.comprovante_url);
+
         itens.push({
           id: d.id,
           loteId: lote.id,
@@ -48,6 +57,7 @@ export async function GET() {
           motivo: d.motivo_excecao || 'Apontamento via WhatsApp',
           origem: 'WhatsApp Oficial',
           valorDiariaBase: (lote as any).obras_config?.tipo_obra === 'OBRA_CIVIL' ? 180 : 150,
+          comprovanteUrl: lancCorrespondente?.comprovante_url || null,
         });
       });
     });
@@ -58,4 +68,3 @@ export async function GET() {
     return NextResponse.json({ pendentes: [] });
   }
 }
-
