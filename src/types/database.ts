@@ -100,3 +100,4 @@ export interface NLPObraExtracao {
 export interface NLPExtracaoResponse {
   obras: NLPObraExtracao[];
 }
+

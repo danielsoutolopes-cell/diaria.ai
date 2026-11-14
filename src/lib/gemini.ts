@@ -86,3 +86,4 @@ export async function extrairDadosMensagem(textoMensagem: string): Promise<NLPEx
     };
   }
 }
+

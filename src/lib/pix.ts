@@ -72,3 +72,4 @@ export function gerarPayloadPix({
   const crc = calculateCRC16(payload);
   return `${payload}${crc}`;
 }
+

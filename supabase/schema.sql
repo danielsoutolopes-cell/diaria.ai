@@ -210,3 +210,4 @@ CREATE POLICY "Tenant isolation for lancamentos_financeiros" ON lancamentos_fina
         OR auth.role() = 'service_role'
         OR auth.uid() IS NOT NULL
     );
+

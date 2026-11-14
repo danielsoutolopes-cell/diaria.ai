@@ -21,3 +21,4 @@ Este documento estabelece os padrões e regras estritas de desenvolvimento para 
 
 ## 3. Segurança de Segredos e Credenciais
 - Nenhuma chave secreta (`SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, senhas de banco) deve ser comitada no repositório Git. Todas devem permanecer no `.env` local e configuradas nas variáveis de ambiente do Render/Vercel.
+
