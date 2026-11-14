@@ -68,3 +68,4 @@ export async function autenticarComBiometria(userName: string = 'Patrícia Grube
     return false;
   }
 }
+

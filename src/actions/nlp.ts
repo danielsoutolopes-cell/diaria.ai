@@ -28,3 +28,4 @@ export async function processarMensagemNLP(mensagem: string): Promise<ActionResu
     };
   }
 }
+
