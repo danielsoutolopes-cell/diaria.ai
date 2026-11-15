@@ -34,6 +34,7 @@ REGRAS RÍGIDAS:
   "obras": [
     {
       "nome_obra": "string",
+      "data_referencia": "YYYY-MM-DD",
       "apontamentos": [
         {
           "nome": "string",
@@ -51,6 +52,9 @@ REGRAS RÍGIDAS:
     }
   ]
 }
+IMPORTANTE SOBRE FRAÇÕES:
+- fracao DEVE ser um número float puro: 1.0 para dia inteiro/viagem/chuva, 0.5 para meio período, 0.0 para falta. NUNCA use strings como "1/4" ou "1/2".
+- Cada pessoa presente recebe sua própria diária individual inteira (1.0) ou meia diária (0.5).
 `;
 
 export async function extrairDadosMensagem(textoMensagem: string): Promise<NLPExtracaoResponse> {
@@ -59,13 +63,51 @@ export async function extrairDadosMensagem(textoMensagem: string): Promise<NLPEx
   }
 
   try {
+    // 1. Injeção Dinâmica da Tabela de Apelidos de Obras e Colaboradores
+    let instrucoesAdicionais = '';
+    try {
+      const { obterApelidosSistema } = await import('@/services/apelidosStorage');
+      const { supabaseAdmin } = await import('@/lib/supabase');
+
+      const [mapaApelidos, { data: obrasDB }, { data: funcsDB }] = await Promise.all([
+        obterApelidosSistema(),
+        supabaseAdmin.from('obras_config').select('id, nome'),
+        supabaseAdmin.from('funcionarios_obra').select('id, nome_trabalhador'),
+      ]);
+
+      const listaDeParaObras: string[] = [];
+      (obrasDB || []).forEach((o) => {
+        const apelidos = mapaApelidos.obras[o.id] || [];
+        if (apelidos.length > 0) {
+          listaDeParaObras.push(`• "${o.nome}" responde também por: ${apelidos.map((a) => `"${a}"`).join(', ')}`);
+        }
+      });
+
+      const listaDeParaFuncs: string[] = [];
+      (funcsDB || []).forEach((f) => {
+        const apelidos = mapaApelidos.funcionarios[f.id] || [];
+        if (apelidos.length > 0) {
+          listaDeParaFuncs.push(`• "${f.nome_trabalhador}" responde também por: ${apelidos.map((a) => `"${a}"`).join(', ')}`);
+        }
+      });
+
+      if (listaDeParaObras.length > 0 || listaDeParaFuncs.length > 0) {
+        instrucoesAdicionais = `\n\nTABELA OFICIAL DE DE-PARA / APELIDOS CADASTRADOS NO SISTEMA:\n` +
+          `OBRAS:\n${listaDeParaObras.join('\n')}\n\n` +
+          `COLABORADORES:\n${listaDeParaFuncs.join('\n')}\n` +
+          `Use OBRIGATORIAMENTE o nome oficial do cadastro sempre que encontrar um desses apelidos na mensagem!`;
+      }
+    } catch (errAlias) {
+      console.warn('Não foi possível carregar tabela dinâmica de apelidos:', errAlias);
+    }
+
     const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.1,
       },
-      systemInstruction: SYSTEM_INSTRUCTION,
+      systemInstruction: SYSTEM_INSTRUCTION + instrucoesAdicionais,
     });
 
     const result = await model.generateContent(textoMensagem);

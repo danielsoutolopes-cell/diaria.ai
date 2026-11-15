@@ -12,6 +12,7 @@ import {
   Check,
   RefreshCw,
   Car,
+  Building2,
 } from 'lucide-react';
 import { ReceiptLightbox } from '@/components/ReceiptLightbox';
 
@@ -36,6 +37,7 @@ export default function ValidacoesPage() {
   const [validando, setValidando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [usuarioAtual, setUsuarioAtual] = useState<string>('Patrícia Grubel');
+  const [obrasCadastradas, setObrasCadastradas] = useState<{ id: string; nome: string }[]>([]);
   
   // Modal de confirmação de conflito de validação
   const [conflitoModal, setConflitoModal] = useState<{
@@ -45,6 +47,14 @@ export default function ValidacoesPage() {
     mensagem: string;
     onConfirmar: () => void;
   } | null>(null);
+
+  useEffect(() => {
+    // Busca lista de obras para conferência de segurança
+    fetch('/api/obras')
+      .then((res) => res.json())
+      .then((d) => setObrasCadastradas(d.obras || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Detecta usuário ativo a partir do cookie
@@ -250,10 +260,32 @@ export default function ValidacoesPage() {
                 className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
               >
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-lg">
-                      {item.obra}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Badge da Obra com Confirmação e Edição de Segurança */}
+                    <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1 rounded-xl border border-slate-200/70 transition-all">
+                      <Building2 className="w-3.5 h-3.5 text-slate-600" />
+                      <select
+                        value={item.obra}
+                        onChange={(e) => {
+                          const novaObra = e.target.value;
+                          setItens((prev) =>
+                            prev.map((it) => (it.id === item.id ? { ...it, obra: novaObra } : it))
+                          );
+                        }}
+                        className="bg-transparent text-[11px] font-black text-slate-800 cursor-pointer focus:outline-none"
+                        title="Confirmar ou alterar a obra deste apontamento por segurança"
+                      >
+                        <option value={item.obra}>{item.obra} (Confirmada)</option>
+                        {obrasCadastradas
+                          .filter((o) => o.nome !== item.obra)
+                          .map((o) => (
+                            <option key={o.id} value={o.nome}>
+                              {o.nome}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
                     <span className="text-xs text-slate-400 font-medium">• {item.data}</span>
                   </div>
 

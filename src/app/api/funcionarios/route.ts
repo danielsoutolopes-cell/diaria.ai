@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       obra_id,
       valor_diaria,
       funcao = 'OPERACIONAL',
+      apelidos,
       tenant_id = '00000000-0000-0000-0000-000000000001',
     } = body;
 
@@ -83,6 +84,14 @@ export async function POST(req: NextRequest) {
     if (res.error) {
       console.error('Erro ao inserir funcionário:', res.error);
       return NextResponse.json({ error: res.error.message }, { status: 500 });
+    }
+
+    // Se informou apelidos, salva no storage
+    if (res.data?.id && Array.isArray(apelidos) && apelidos.length > 0) {
+      const { obterApelidosSistema, salvarApelidosSistema } = await import('@/services/apelidosStorage');
+      const mapa = await obterApelidosSistema();
+      mapa.funcionarios[res.data.id] = apelidos.map((a: string) => String(a).trim()).filter(Boolean);
+      await salvarApelidosSistema(mapa);
     }
 
     return NextResponse.json({ success: true, funcionario: res.data });

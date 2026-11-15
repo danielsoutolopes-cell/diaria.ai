@@ -49,6 +49,7 @@ export default function SetupPage() {
   const [cadastrandoObra, setCadastrandoObra] = useState(false);
   const [nomeObra, setNomeObra] = useState('');
   const [localObra, setLocalObra] = useState('');
+  const [apelidosObra, setApelidosObra] = useState('');
   const [tipoObra, setTipoObra] = useState<TipoObra>('PISCINA');
   const [valorDiariaObra, setValorDiariaObra] = useState<string>('150');
   const [salvoObra, setSalvoObra] = useState(false);
@@ -59,10 +60,29 @@ export default function SetupPage() {
   const [cadastrandoFunc, setCadastrandoFunc] = useState(false);
   const [nomeFuncionario, setNomeFuncionario] = useState('');
   const [chavePix, setChavePix] = useState('');
+  const [apelidosFuncionario, setApelidosFuncionario] = useState('');
   const [telefoneFunc, setTelefoneFunc] = useState('');
   const [obraFuncId, setObraFuncId] = useState('');
   const [valorDiariaCustom, setValorDiariaCustom] = useState('');
   const [salvoFunc, setSalvoFunc] = useState(false);
+
+  // Mapa de Apelidos Carregados
+  const [mapaApelidos, setMapaApelidos] = useState<{
+    obras: Record<string, string[]>;
+    funcionarios: Record<string, string[]>;
+  }>({ obras: {}, funcionarios: {} });
+
+  async function carregarApelidos() {
+    try {
+      const res = await fetch('/api/apelidos');
+      const data = await res.json();
+      if (data && data.apelidos) {
+        setMapaApelidos(data.apelidos);
+      }
+    } catch (e) {
+      console.error('Erro ao buscar apelidos:', e);
+    }
+  }
 
   async function carregarObras() {
     setLoadingObras(true);
@@ -97,6 +117,7 @@ export default function SetupPage() {
   useEffect(() => {
     carregarObras();
     carregarFuncionarios();
+    carregarApelidos();
   }, []);
 
   async function handleAddObra(e: React.FormEvent) {
@@ -106,6 +127,10 @@ export default function SetupPage() {
     setCadastrandoObra(true);
     try {
       const valorFinal = Number(valorDiariaObra) || (tipoObra === 'PISCINA' ? 150 : 180);
+      const listaApelidos = apelidosObra
+        .split(/[,;\n]/)
+        .map((a) => a.trim())
+        .filter(Boolean);
 
       const res = await fetch('/api/obras', {
         method: 'POST',
@@ -115,6 +140,7 @@ export default function SetupPage() {
           local: localObra.trim() || 'Canteiro Volante',
           tipo_obra: tipoObra,
           valor_diaria_padrao: valorFinal,
+          apelidos: listaApelidos,
         }),
       });
       const data = await res.json();
@@ -123,7 +149,9 @@ export default function SetupPage() {
         setObras((prev) => [data.obra as ObraItem, ...prev]);
         setNomeObra('');
         setLocalObra('');
+        setApelidosObra('');
         setSalvoObra(true);
+        carregarApelidos();
         setTimeout(() => setSalvoObra(false), 2500);
       }
     } catch (err) {
@@ -153,6 +181,11 @@ export default function SetupPage() {
         }
       }
 
+      const listaApelidos = apelidosFuncionario
+        .split(/[,;\n]/)
+        .map((a) => a.trim())
+        .filter(Boolean);
+
       const res = await fetch('/api/funcionarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -163,6 +196,7 @@ export default function SetupPage() {
           obra_id: obraFuncId || null,
           valor_diaria: valorFinal,
           funcao: 'OPERACIONAL',
+          apelidos: listaApelidos,
         }),
       });
       const data = await res.json();
@@ -171,9 +205,11 @@ export default function SetupPage() {
         setFuncionarios((prev) => [data.funcionario as unknown as FuncionarioItem, ...prev]);
         setNomeFuncionario('');
         setChavePix('');
+        setApelidosFuncionario('');
         setTelefoneFunc('');
         setValorDiariaCustom('');
         setSalvoFunc(true);
+        carregarApelidos();
         setTimeout(() => setSalvoFunc(false), 2500);
       }
     } catch (err) {
@@ -277,6 +313,24 @@ export default function SetupPage() {
                     className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
                   />
                 </div>
+              </div>
+
+              {/* Campo de Apelidos do Colaborador */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <label className="font-bold text-slate-700">Apelidos / Como é chamado no WhatsApp</label>
+                  <span className="text-[11px] text-emerald-600 font-bold">1 ou mais (separe por vírgula)</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Ex: Peu, Peuzinho, Zé baiano, Wender 22"
+                  value={apelidosFuncionario}
+                  onChange={(e) => setApelidosFuncionario(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
+                />
+                <p className="text-[11px] text-slate-400">
+                  A IA usará esses apelidos para identificar este colaborador nas mensagens dos grupos.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -399,6 +453,21 @@ export default function SetupPage() {
                           <span className="text-[11px]">{f.telefone}</span>
                         </div>
                       )}
+
+                      {/* Exibição dos Apelidos Cadastrados */}
+                      {mapaApelidos.funcionarios[f.id] && mapaApelidos.funcionarios[f.id].length > 0 && (
+                        <div className="pt-1.5 flex flex-wrap items-center gap-1">
+                          <span className="text-[10px] text-slate-400 font-bold">Apelidos:</span>
+                          {mapaApelidos.funcionarios[f.id].map((ap, idx) => (
+                            <span
+                              key={idx}
+                              className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200/60"
+                            >
+                              {ap}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -446,6 +515,24 @@ export default function SetupPage() {
                   onChange={(e) => setLocalObra(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
                 />
+              </div>
+
+              {/* Campo de Apelidos da Obra */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <label className="font-bold text-slate-700">Apelidos / Como chamam no WhatsApp</label>
+                  <span className="text-[11px] text-emerald-600 font-bold">1 ou mais (separe por vírgula)</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Ex: Bahia, Porto Seguro, Piscina Porto Seguro, Alphaville"
+                  value={apelidosObra}
+                  onChange={(e) => setApelidosObra(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
+                />
+                <p className="text-[11px] text-slate-400">
+                  A IA usará esses termos para vincular automaticamente as mensagens a esta obra.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -596,11 +683,28 @@ export default function SetupPage() {
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                      <span className="text-slate-500 font-medium">Diária Padrão:</span>
-                      <span className="font-black text-slate-950 text-xs">
-                        R$ {Number(o.valor_diaria_padrao || (o.tipo_obra === 'PISCINA' ? 150 : 180)).toFixed(2)}
-                      </span>
+                    <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Diária Padrão:</span>
+                        <span className="font-black text-slate-950 text-xs">
+                          R$ {Number(o.valor_diaria_padrao || (o.tipo_obra === 'PISCINA' ? 150 : 180)).toFixed(2)}
+                        </span>
+                      </div>
+
+                      {/* Exibição dos Apelidos da Obra */}
+                      {mapaApelidos.obras[o.id] && mapaApelidos.obras[o.id].length > 0 && (
+                        <div className="pt-1 flex flex-wrap items-center gap-1 border-t border-slate-100/70">
+                          <span className="text-[10px] text-slate-400 font-bold">Apelidos no Zap:</span>
+                          {mapaApelidos.obras[o.id].map((ap, idx) => (
+                            <span
+                              key={idx}
+                              className="text-[10px] font-bold bg-sky-50 text-sky-800 px-2 py-0.5 rounded-lg border border-sky-200/60"
+                            >
+                              {ap}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
