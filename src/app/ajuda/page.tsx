@@ -144,6 +144,18 @@ export default function AjudaPage() {
               👉 <strong>Resultado:</strong> O bot faz download automático da imagem do WhatsApp, salva com segurança no Cloudflare R2 e cria o vale de R$ 100,00 vinculado à foto do recibo.
             </p>
           </div>
+
+          <div className="space-y-2 pt-2 border-t border-slate-200/80">
+            <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">
+              Regras Especiais de Diárias de Campo:
+            </span>
+            <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-500">
+              <li><strong>Dia de Viagem</strong>: R$ 120,00 para os trabalhadores em trânsito; motorista que dirigiu recebe diária integral.</li>
+              <li><strong>Dia de Chuva</strong>: R$ 120,00 quando as chuvas impedem a execução dos trabalhos.</li>
+              <li><strong>Dia Parado</strong>: R$ 120,00 quando o condomínio não autoriza a entrada ou a portaria trava o acesso.</li>
+              <li><em>(Todos esses valores podem ser editados na tela de Configurações)</em>.</li>
+            </ul>
+          </div>
         </div>
       ),
     },

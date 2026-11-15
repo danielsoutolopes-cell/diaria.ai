@@ -85,7 +85,7 @@ export async function GET() {
       .maybeSingle();
 
     const regras = {
-      dia_viagem_padrao: 12.0,
+      dia_viagem_padrao: 120.0,
       dia_chuva_padrao: 120.0,
       dia_parado_padrao: 120.0,
       diaria_piscina_padrao: 150.0,
@@ -116,7 +116,7 @@ export async function GET() {
 
         // Aplicação das regras de negócio especiais
         if (motivo.includes('VIAGEM_PASSAGEIRO') || (motivo.includes('VIAGEM') && !motivo.includes('MOTORISTA'))) {
-          valorCalculado = regras.dia_viagem_padrao; // R$ 12,00
+          valorCalculado = regras.dia_viagem_padrao; // R$ 120,00
         } else if (motivo.includes('CHUVA')) {
           valorCalculado = regras.dia_chuva_padrao; // R$ 120,00
         } else if (motivo.includes('PARADO') || motivo.includes('SEM ACESSO') || motivo.includes('CONDOMINIO')) {

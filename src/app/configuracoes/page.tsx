@@ -40,7 +40,7 @@ export default function ConfiguracoesPage() {
   const [tabAtiva, setTabAtiva] = useState<'REGRAS' | 'RBAC'>('REGRAS');
 
   // Estado das Regras de Diárias
-  const [diaViagem, setDiaViagem] = useState('12');
+  const [diaViagem, setDiaViagem] = useState('120');
   const [diaChuva, setDiaChuva] = useState('120');
   const [diaParado, setDiaParado] = useState('120');
   const [diariaPiscina, setDiariaPiscina] = useState('150');
@@ -88,7 +88,7 @@ export default function ConfiguracoesPage() {
       const res = await fetch('/api/regras-diarias');
       const data = await res.json();
       if (data?.regras) {
-        setDiaViagem(String(data.regras.dia_viagem_padrao ?? 12));
+        setDiaViagem(String(data.regras.dia_viagem_padrao ?? 120));
         setDiaChuva(String(data.regras.dia_chuva_padrao ?? 120));
         setDiaParado(String(data.regras.dia_parado_padrao ?? 120));
         setDiariaPiscina(String(data.regras.diaria_piscina_padrao ?? 150));

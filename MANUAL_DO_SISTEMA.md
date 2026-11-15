@@ -54,7 +54,14 @@ O encarregado ou mestre de obras não precisa preencher planilhas. Basta mandar 
   > *"Manda 100 de vale pro Tião pegar material no depósito."*
   - Se acompanhado de foto, o sistema intercepta a imagem, envia para o Cloudflare R2 com link permanente e cria o registro com a foto anexada.
 
-### 3.3 Terminal de IA (Dashboard)
+### 3.3 Regras de Diárias & Exceções Automáticas
+O robô interpreta automaticamente as situações de canteiro:
+- **Dia de Viagem**: R$ 120,00 para os passageiros da equipe. Se for indicado quem dirigiu (*motorista*), ele recebe a **diária integral**.
+- **Dia de Chuva**: R$ 120,00 quando o tempo impede os serviços de alvenaria ou piscina.
+- **Dia Parado (Sem Acesso)**: R$ 120,00 quando a portaria do condomínio barra a entrada ou há impedimentos externos.
+- **Valores Editáveis**: Todos esses valores podem ser reajustados pela Administradora na tela de **Configurações do Sistema**.
+
+### 3.4 Terminal de IA (Dashboard)
 Dentro do painel web, você conta com um chat interno que executa as mesmas regras de inteligência artificial. Digite qualquer comando e o robô interpreta e organiza os lançamentos automaticamente.
 
 ---

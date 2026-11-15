@@ -1,6 +1,13 @@
 # Diário de Bordo & Transição de Contexto (HANDOFF.md)
 
 ## Estado Atual
+- **Regras Operacionais de Diárias Parametrizáveis**:
+  - **Dia de Viagem**: R$ 120,00 para passageiros da equipe; diária integral para o motorista que conduz o veículo.
+  - **Dia de Chuva**: R$ 120,00 quando as condições meteorológicas inviabilizam o trabalho.
+  - **Dia Parado**: R$ 120,00 quando o condomínio barra o acesso à obra ou há impedimento por terceiros.
+  - **Configurável**: Todos os valores são gerenciáveis dinamicamente pela Administradora na tela de Configurações (`/configuracoes`) via tabela `parametros_sistema`.
+- **Notificações Espelhadas (Patrícia Grubel & Daniel Lopes)**:
+  - Todo alerta de novo apontamento, lote pendente, aprovação e fechamento é duplicado simultaneamente para o WhatsApp da Patrícia (`5511978543369`) e do Daniel (`5511913192703`).
 - **Regra Central de Negócio - Human-in-the-Loop & Gestão de Vales**:
   - Toda decisão de abatimento financeiro é 100% humana.
   - Vales registrados no canteiro **não são abatidos compulsoriamente**. Na tela de Borderô, a Administradora (Patrícia Grubel) tem total liberdade para marcar ou desmarcar cada vale.

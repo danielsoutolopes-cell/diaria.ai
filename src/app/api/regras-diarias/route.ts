@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 
 export interface RegrasDiariasConfig {
-  dia_viagem_padrao: number;     // R$ 12.00
+  dia_viagem_padrao: number;     // R$ 120.00
   dia_chuva_padrao: number;      // R$ 120.00
   dia_parado_padrao: number;     // R$ 120.00 (sem acesso / condomínio travado)
   diaria_piscina_padrao: number; // R$ 150.00
@@ -12,7 +12,7 @@ export interface RegrasDiariasConfig {
 }
 
 const DEFAULT_REGRAS: RegrasDiariasConfig = {
-  dia_viagem_padrao: 12.0,
+  dia_viagem_padrao: 120.0,
   dia_chuva_padrao: 120.0,
   dia_parado_padrao: 120.0,
   diaria_piscina_padrao: 150.0,
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     const configuracoesAtualizadas: RegrasDiariasConfig = {
-      dia_viagem_padrao: Number(regras.dia_viagem_padrao) || 12.0,
+      dia_viagem_padrao: Number(regras.dia_viagem_padrao) || 120.0,
       dia_chuva_padrao: Number(regras.dia_chuva_padrao) || 120.0,
       dia_parado_padrao: Number(regras.dia_parado_padrao) || 120.0,
       diaria_piscina_padrao: Number(regras.diaria_piscina_padrao) || 150.0,

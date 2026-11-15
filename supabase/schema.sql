@@ -283,7 +283,7 @@ CREATE TABLE IF NOT EXISTS parametros_sistema (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id UUID NOT NULL UNIQUE REFERENCES tenants(id) ON DELETE CASCADE,
     configuracoes JSONB NOT NULL DEFAULT '{
-        "dia_viagem_padrao": 12.00,
+        "dia_viagem_padrao": 120.00,
         "dia_chuva_padrao": 120.00,
         "dia_parado_padrao": 120.00,
         "diaria_piscina_padrao": 150.00,
