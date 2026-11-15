@@ -118,13 +118,23 @@ export default function AjudaPage() {
     },
     {
       id: 'whatsapp',
-      titulo: '3. Como Enviar Mensagens no WhatsApp para a IA Entender',
+      titulo: '3. Integração Baileys e Mensagens no WhatsApp de Campo',
       icone: MessageCircle,
-      descricao: 'Exemplos práticos de áudios, textos e comprovantes de fotos enviados de campo',
+      descricao: 'Motor oficial Baileys por QR Code, monitoramento de grupos de canteiro e envio de comprovantes',
       conteudo: (
         <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
+          <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-[11px] text-emerald-900 space-y-1">
+            <span className="font-bold flex items-center gap-1.5 text-emerald-950">
+              <QrCode className="w-4 h-4 text-emerald-700" />
+              Motor Oficial WhatsApp: Baileys Open-Source
+            </span>
+            <p>
+              O sistema utiliza a biblioteca <strong>Baileys</strong> conectada diretamente via QR Code na aba <strong>Configuração do Bot (WhatsApp)</strong>. Não há custo de mensagens por conversa e funciona perfeitamente em grupos de obras e piscinas (<code>@g.us</code>).
+            </p>
+          </div>
+
           <p>
-            O robô monitora os grupos oficiais dos canteiros configurados na tela <strong>Configuração do Bot (WhatsApp)</strong>. O encarregado pode escrever normalmente:
+            O robô monitora os grupos oficiais dos canteiros configurados. O encarregado pode escrever normalmente:
           </p>
 
           <div className="space-y-2">

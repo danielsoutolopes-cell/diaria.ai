@@ -150,6 +150,26 @@ export default function MensageriaPage() {
     setTimeout(() => setPromptCopiado(false), 2500);
   }
 
+  const isDanielOrPatricia =
+    usuarioAtual.toLowerCase().includes('patr') ||
+    usuarioAtual.toLowerCase().includes('daniel') ||
+    usuarioAtual.includes('11978543369') ||
+    usuarioAtual.includes('11913192703');
+
+  if (!isDanielOrPatricia) {
+    return (
+      <div className="p-12 max-w-xl mx-auto text-center space-y-4">
+        <div className="w-16 h-16 rounded-3xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto shadow-sm">
+          <Lock className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-black text-slate-950">Acesso Restrito</h2>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          A Central de Mensageria & Solicitações está disponível exclusivamente para a Administradora Central (<strong>Patrícia Grubel</strong>) e para o Arquiteto Responsável (<strong>Daniel Lopes</strong>).
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       {/* Header */}
@@ -208,7 +228,27 @@ export default function MensageriaPage() {
           <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/60">
             {chatMensagens.map((msg, i) => {
               const isUser = msg.remetente === 'USUARIO';
-              return (
+              const isDanielOrPatricia =
+    usuarioAtual.toLowerCase().includes('patr') ||
+    usuarioAtual.toLowerCase().includes('daniel') ||
+    usuarioAtual.includes('11978543369') ||
+    usuarioAtual.includes('11913192703');
+
+  if (!isDanielOrPatricia) {
+    return (
+      <div className="p-12 max-w-xl mx-auto text-center space-y-4">
+        <div className="w-16 h-16 rounded-3xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto shadow-sm">
+          <Lock className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-black text-slate-950">Acesso Restrito</h2>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          A Central de Mensageria & Solicitações está disponível exclusivamente para a Administradora Central (<strong>Patrícia Grubel</strong>) e para o Arquiteto Responsável (<strong>Daniel Lopes</strong>).
+        </p>
+      </div>
+    );
+  }
+
+  return (
                 <div
                   key={i}
                   className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}

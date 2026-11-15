@@ -35,15 +35,23 @@ O sistema é uma **Aplicação Web Progressiva (PWA)** e não precisa ser baixad
 
 ---
 
-## 💬 3. O Bot de WhatsApp e o Terminal de IA (NLP)
+## 💬 3. O Bot de WhatsApp (Baileys) e o Terminal de IA (NLP)
 
-### 3.1 Conexão com o WhatsApp
-Na aba **Configuração do Bot (WhatsApp)**:
-1. O sistema exibe um **QR Code** de emparelhamento direto com a API Baileys/Evolution.
-2. Com o celular do encarregado ou do número oficial da empresa, acesse **Aparelhos Conectados** no WhatsApp e aponte a câmera.
-3. Após sincronizado, o bot monitora os grupos oficiais dos canteiros selecionados.
+### 3.1 Motor Oficial Baileys & Conexão por QR Code
+O sistema utiliza a biblioteca open-source **Baileys** como motor oficial e exclusivo de integração com o WhatsApp:
+- **Zero Custo por Conversa**: Não depende da API paga do WhatsApp Cloud/Meta, nem exige aprovação prévia de templates.
+- **Suporte Nativo a Grupos de Canteiro (`@g.us`)**: O Baileys lê mensagens e mídias de grupos fechados de obras e canteiros.
+- **Emparelhamento Direto**:
+  1. Acesse a aba **Configuração do Bot (WhatsApp)** (`/whatsapp`).
+  2. O sistema gera o QR Code do Baileys para leitura direta.
+  3. No aparelho com o WhatsApp da empresa ou da Patrícia, vá em **Aparelhos Conectados** e aponte a câmera.
+  4. A sessão sincroniza os grupos ativos, permitindo marcar quais canteiros serão monitorados.
 
-### 3.2 Como Enviar Mensagens de Campo (Linguagem Natural)
+### 3.2 Interceptação Pericial e Mídias no Baileys
+- **Estrutura das Mensagens**: O Baileys intercepta os objetos nativos `data.key.id`, `data.key.remoteJid` (grupo da obra) e `data.key.participant` (telefone remetente pericial).
+- **Recibos de Vales (`imageMessage`)**: Quando o encarregado envia foto de um recibo no grupo, o Baileys captura os bytes JPEG e envia automaticamente ao Cloudflare R2 com hash criptográfico SHA-256.
+
+### 3.3 Como Enviar Mensagens de Campo (Linguagem Natural)
 O encarregado ou mestre de obras não precisa preencher planilhas. Basta mandar mensagens naturais no grupo da obra:
 
 - **Exemplo de Ponto Coletivo**:
@@ -144,6 +152,9 @@ Na aba **Lançamentos em Lote (Setup)**:
 ---
 
 ## 💬 9. Central de Mensageria & Solicitação de Relatórios (IA)
+
+> [!NOTE]
+> **Acesso Exclusivo**: Neste primeiro momento, a Central de Mensageria está habilitada exclusivamente para a Administradora Central (**Patrícia Grubel**) e para o Desenvolvedor/Arquiteto (**Daniel Lopes**). Demais perfis não visualizam o atalho nem acessam a tela.
 
 Na aba **Mensageria & Pedidos IA** (`/mensageria`):
 1. **Chat com o Arquiteto de Software Gemini**:

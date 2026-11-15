@@ -100,6 +100,29 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [currentUser, setCurrentUser] = React.useState<string>('Patrícia Grubel');
+
+  React.useEffect(() => {
+    const cookies = document.cookie.split('; ');
+    const userCookie = cookies.find((c) => c.startsWith('diaria_user='));
+    if (userCookie) {
+      const nome = decodeURIComponent(userCookie.split('=')[1]);
+      if (nome) setCurrentUser(nome);
+    }
+  }, []);
+
+  const isDanielOrPatricia =
+    currentUser.toLowerCase().includes('patr') ||
+    currentUser.toLowerCase().includes('daniel') ||
+    currentUser.includes('11978543369') ||
+    currentUser.includes('11913192703');
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.href === '/mensageria') {
+      return isDanielOrPatricia;
+    }
+    return true;
+  });
 
   function handleLogout() {
     document.cookie = 'diaria_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -143,9 +166,9 @@ export default function Sidebar() {
             P
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="text-xs font-bold text-slate-200 truncate">Patrícia Grubel</h4>
+            <h4 className="text-xs font-bold text-slate-200 truncate">{currentUser}</h4>
             <span className="text-[11px] text-emerald-400/90 font-medium flex items-center gap-1 truncate">
-              <ShieldCheck className="w-3 h-3 shrink-0" /> Administradora Central
+              <ShieldCheck className="w-3 h-3 shrink-0" /> Administrador
             </span>
           </div>
         </div>
@@ -166,7 +189,7 @@ export default function Sidebar() {
           <TrendingUp className="w-3 h-3 text-slate-400" />
         </div>
 
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
           return (

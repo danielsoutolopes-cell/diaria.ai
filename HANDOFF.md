@@ -1,6 +1,11 @@
 # Diário de Bordo & Transição de Contexto (HANDOFF.md)
 
 ## Estado Atual
+- **Motor Oficial WhatsApp (Baileys Open-Source)**:
+  - O sistema opera exclusivamente sob a biblioteca open-source **Baileys** para conexão e automação do WhatsApp.
+  - Vantagens arquiteturais: isenção de custos por mensagem (zero taxas da Meta/Cloud API) e suporte nativo a leitura/envio em grupos fechados de canteiro (`@g.us`).
+  - O webhook (`src/app/api/webhook/whatsapp/route.ts`) extrai dados periciais nativos do Baileys (`data.key.id`, `data.key.remoteJid`, `data.key.participant`) e mídias de comprovantes (`data.message.imageMessage`).
+  - Emparelhamento por QR Code direto implementado em `src/lib/whatsapp.ts` e exposto na interface `/whatsapp`.
 - **Prevenção de Conflito Multi-Admin (Patrícia Grubel & Daniel Lopes)**:
   - Como agora ambos os administradores recebem notificações do sistema, foi implementada a trava de confirmação prévia:
   - Se um lote ou lançamento financeiro já foi confirmado ou validado por um dos gestores, qualquer tentativa de revalidação ou reedição exibe o diálogo de guarda:
@@ -41,6 +46,7 @@
 
 ## Últimas Ações (Ciclo Atual)
 - **Central de Mensageria & Solicitação de Features/Relatórios (`/mensageria`)**:
+  - Restrição de Acesso Exclusivo: Disponível neste primeiro momento apenas para **Patrícia Grubel** e **Daniel Lopes** (oculto no menu lateral e com guarda de tela contra outros usuários).
   - Implementado chat interativo no frontend (`src/app/mensageria/page.tsx`) com a IA Gemini (`gemini-3.5-flash-lite`).
   - A IA atua como arquiteto de software, alinhando necessidades com Patrícia Grubel e gerando automaticamente um **Prompt Técnico para a IDE**.
   - O prompt conta com botão de cópia de 1 clique (`Copiar Prompt para a IDE`).
