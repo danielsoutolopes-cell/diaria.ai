@@ -137,13 +137,26 @@ export async function POST(req: NextRequest) {
         obraId = novaObra?.id || null;
       }
 
-      // 2. Criar lote de ponto
+      // 2. Criar lote de ponto com Carimbo Temporal & Metadados Periciais (Telefone, Grupo, Data/Hora e Hash)
+      const agoraBrasilia = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const sha256Pericial = crypto
+        .createHash('sha256')
+        .update(`${senderNumber}|${remoteJid}|${messageText}|${agoraBrasilia}`)
+        .digest('hex');
+
+      const cabecalhoPericial = `[ORIGEM_WHATSAPP]\n` +
+        `Remetente: ${senderNumber}\n` +
+        `Grupo/JID: ${remoteJid}\n` +
+        `Timestamp: ${agoraBrasilia}\n` +
+        `SHA256: ${sha256Pericial}\n` +
+        `[MENSAGEM_ORIGINAL]\n${messageText}`;
+
       const { data: lote } = await supabaseAdmin
         .from('ponto_lote')
         .insert({
           tenant_id: tenantId,
           obra_id: obraId,
-          texto_original: messageText,
+          texto_original: cabecalhoPericial,
           status_validacao: 'PENDENTE',
           token_aprovacao: tokenAprovacao,
         })

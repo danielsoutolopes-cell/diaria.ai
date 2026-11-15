@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { formatarAlertaEdicaoPatricia } from '@/services/notificacoesAdmin';
+import { formatarTicketPontoWhatsApp } from '@/services/ticketPonto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -87,10 +88,49 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', lote.id);
 
-    // 6. REGRA CRÍTICA INVIOLÁVEL: Se foi uma reedição/alteração, SEMPRE notificar Patrícia Grubel
+    // 6. GERAÇÃO DO TICKET DE MARCAÇÃO DE PONTO HOMOLOGADO (SEM VALORES EM R$)
+    const obraNome = (lote as any).obras_config?.nome || 'CANTEIRO DE OBRAS';
+    const textoOriginal = lote.texto_original || '';
+    let remetenteTel = 'Encarregado de Campo';
+    let timestampEnvio = 'Hoje';
+    let sha256Original: string | undefined = undefined;
+
+    if (textoOriginal.includes('[ORIGEM_WHATSAPP]')) {
+      const matchRem = textoOriginal.match(/Remetente:\s*([^\n]+)/);
+      const matchTime = textoOriginal.match(/Timestamp:\s*([^\n]+)/);
+      const matchHash = textoOriginal.match(/SHA256:\s*([^\n]+)/);
+      if (matchRem) remetenteTel = matchRem[1].trim();
+      if (matchTime) timestampEnvio = matchTime[1].trim();
+      if (matchHash) sha256Original = matchHash[1].trim();
+    }
+
+    const { data: detalhesLote } = await supabaseAdmin
+      .from('ponto_detalhe')
+      .select('nome_trabalhador, fracao_dia, motivo_excecao')
+      .eq('ponto_lote_id', lote.id);
+
+    const ticketTexto = formatarTicketPontoWhatsApp({
+      loteId: lote.id,
+      obraNome: obraNome,
+      dataReferencia: lote.data_referencia,
+      apontadoPorTelefone: remetenteTel,
+      dataHoraEnvioOriginal: timestampEnvio,
+      homologadoPor: usuarioLogado,
+      dataHoraHomologacao: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      apontamentos: (detalhesLote || []).map((d) => ({
+        nome: d.nome_trabalhador,
+        fracao: Number(d.fracao_dia) || 1.0,
+        motivo: d.motivo_excecao || 'Integral',
+      })),
+      totalColaboradores: detalhesLote?.length || 0,
+      sha256Hash: sha256Original,
+    });
+
+    console.log(`[TICKET DE PONTO GERADO]: Lote #${lote.id.slice(0, 8)} homologado por ${usuarioLogado}. Ticket pronto para envio ao grupo.`);
+
+    // 7. REGRA CRÍTICA INVIOLÁVEL: Se foi uma reedição/alteração, SEMPRE notificar Patrícia Grubel
     let alertaPatriciaPayload = null;
     if (jaValidado) {
-      const obraNome = (lote as any).obras_config?.nome || 'Canteiro de Obras';
       alertaPatriciaPayload = formatarAlertaEdicaoPatricia({
         trabalhador: alteracoesRealizadas.length > 0 ? alteracoesRealizadas.join(', ') : 'Colaboradores do Lote',
         obra: obraNome,
@@ -112,6 +152,7 @@ export async function POST(req: NextRequest) {
       validadoPor: usuarioLogado,
       reeditado: jaValidado,
       alertaPatriciaEnviado: jaValidado,
+      ticketPontoWhatsApp: ticketTexto,
       notificacaoDuplicada: {
         enviadoPara: [
           { nome: 'Patrícia Grubel', telefone: '5511978543369' },

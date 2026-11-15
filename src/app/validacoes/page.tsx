@@ -25,6 +25,8 @@ interface PendenteItem {
   fracao: number;
   motivo: string;
   origem: string;
+  timestampOriginal?: string | null;
+  sha256Hash?: string | null;
   valorDiariaBase: number;
   comprovanteUrl?: string | null;
   validadoPor?: string | null;
@@ -332,8 +334,15 @@ export default function ValidacoesPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3 pt-1">
-                    <div className="text-[11px] text-slate-400">{item.origem}</div>
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <div className="text-[11px] font-semibold text-slate-500 bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/50">
+                      📱 {item.origem}
+                    </div>
+                    {item.timestampOriginal && (
+                      <div className="text-[11px] text-slate-400 font-medium">
+                        ⏰ {item.timestampOriginal}
+                      </div>
+                    )}
                     {item.comprovanteUrl && (
                       <ReceiptLightbox
                         comprovanteUrl={item.comprovanteUrl}

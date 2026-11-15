@@ -125,6 +125,21 @@ export async function GET() {
           valorCalculado = valorBasePadrao; // Diária integral
         }
 
+        // Extrai metadados periciais do texto_original se existirem
+        const textoOriginal = lote.texto_original || '';
+        let remetenteInfo = 'WhatsApp Oficial';
+        let timestampInfo: string | null = null;
+        let hashInfo: string | null = null;
+
+        if (textoOriginal.includes('[ORIGEM_WHATSAPP]')) {
+          const matchRem = textoOriginal.match(/Remetente:\s*([^\n]+)/);
+          const matchTime = textoOriginal.match(/Timestamp:\s*([^\n]+)/);
+          const matchHash = textoOriginal.match(/SHA256:\s*([^\n]+)/);
+          if (matchRem) remetenteInfo = `Zap: ${matchRem[1].trim()}`;
+          if (matchTime) timestampInfo = matchTime[1].trim();
+          if (matchHash) hashInfo = matchHash[1].trim();
+        }
+
         itens.push({
           id: d.id,
           loteId: lote.id,
@@ -133,7 +148,9 @@ export async function GET() {
           trabalhador: d.nome_trabalhador,
           fracao: Number(d.fracao_dia) || 1.0,
           motivo: d.motivo_excecao || 'Apontamento via WhatsApp',
-          origem: 'WhatsApp Oficial',
+          origem: remetenteInfo,
+          timestampOriginal: timestampInfo,
+          sha256Hash: hashInfo,
           valorDiariaBase: valorCalculado,
           comprovanteUrl: lancCorrespondente?.comprovante_url || null,
         });
