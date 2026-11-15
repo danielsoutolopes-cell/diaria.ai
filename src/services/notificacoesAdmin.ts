@@ -75,7 +75,7 @@ export function formatarMensagemNotificacaoDupla(
   texto += `--------------------------------------\n`;
   texto += `${detalhes}\n`;
   if (linkAcao) {
-    texto += `\n🔗 *Link de Ação Imediata:* ${linkAcao}\n`;
+    texto += `\n🔗 *Link Direto de Validação & Ajuste:* ${linkAcao}\n`;
   }
   texto += `\n_Notificação espelhada enviada para Patrícia Grubel e Daniel Lopes._`;
 
@@ -83,6 +83,39 @@ export function formatarMensagemNotificacaoDupla(
     destinatarios: ADMINISTRADORES_PADRAO,
     texto,
   };
+}
+
+/**
+ * Formata notificação específica de novo lote para WhatsApp (Patrícia e Daniel)
+ * com detalhamento de evento (Viagem, Chuva, Meio Dia) e link direto para aprovação
+ */
+export function formatarAlertaNovoLoteWhatsApp(item: {
+  obra: string;
+  dataReferencia: string;
+  tipoEvento: 'VIAGEM' | 'CHUVA' | 'MEIO_PERIODO' | 'NORMAL';
+  colaboradores: string[];
+  totalColaboradores: number;
+  possuiViagemSemMotorista?: boolean;
+  linkAcao: string;
+}): { destinatarios: DestinatarioAviso[]; texto: string } {
+  let tituloEvento = 'Apontamento de Campo Recebido';
+  if (item.tipoEvento === 'VIAGEM') tituloEvento = '🚗 Apontamento de Viagem (Equipe em Trânsito)';
+  if (item.tipoEvento === 'CHUVA') tituloEvento = '🌧️ Diárias de Chuva Registradas';
+  if (item.tipoEvento === 'MEIO_PERIODO') tituloEvento = '⏱️ Apontamento de Meio Período (0.5x)';
+
+  let detalhes = `🏗️ *Canteiro / Obra:* ${item.obra}\n`;
+  detalhes += `📅 *Data de Referência:* ${item.dataReferencia}\n`;
+  detalhes += `👥 *Equipe (${item.totalColaboradores}):* ${item.colaboradores.slice(0, 7).join(', ')}${item.colaboradores.length > 7 ? '...' : ''}\n`;
+
+  if (item.possuiViagemSemMotorista) {
+    detalhes += `\n⚠️ *Ação Necessária no Link:* Selecione quem foi o motorista para que a diária dele se torne integral (passageiros recebem R$ 120,00).\n`;
+  } else if (item.tipoEvento === 'CHUVA') {
+    detalhes += `\n💧 *Regra Aplicada:* R$ 120,00 por colaborador para o dia de chuva.\n`;
+  } else if (item.tipoEvento === 'MEIO_PERIODO') {
+    detalhes += `\n⏱️ *Regra Aplicada:* 0.5x (meia diária calculada automaticamente).\n`;
+  }
+
+  return formatarMensagemNotificacaoDupla(tituloEvento, detalhes, item.linkAcao);
 }
 
 /**

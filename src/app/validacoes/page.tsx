@@ -11,6 +11,7 @@ import {
   User,
   Check,
   RefreshCw,
+  Car,
 } from 'lucide-react';
 import { ReceiptLightbox } from '@/components/ReceiptLightbox';
 
@@ -76,6 +77,23 @@ export default function ValidacoesPage() {
   function handleFracaoChange(id: string, novaFracao: number) {
     setItens((prev) =>
       prev.map((item) => (item.id === id ? { ...item, fracao: novaFracao } : item))
+    );
+  }
+
+  function handleDefinirMotorista(itemId: string) {
+    setItens((prev) =>
+      prev.map((item) => {
+        if (item.id === itemId) {
+          // Torna este o motorista (diária cheia)
+          return {
+            ...item,
+            fracao: 1.0,
+            motivo: 'VIAGEM_MOTORISTA (Condutor)',
+            valorDiariaBase: item.valorDiariaBase === 120 ? 150 : item.valorDiariaBase,
+          };
+        }
+        return item;
+      })
     );
   }
 
@@ -248,13 +266,38 @@ export default function ValidacoesPage() {
                     </h3>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/60 w-fit">
-                    {item.motivo.toLowerCase().includes('chuva') ? (
-                      <CloudRain className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/60 w-fit">
+                      {item.motivo.toLowerCase().includes('chuva') ? (
+                        <CloudRain className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                      ) : item.motivo.toLowerCase().includes('viagem') ? (
+                        <Car className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      )}
+                      <span>{item.motivo}</span>
+                    </div>
+
+                    {/* Botão de indicação rápida de condutor/motorista em dia de viagem */}
+                    {item.motivo.toLowerCase().includes('viagem') && (
+                      <button
+                        type="button"
+                        onClick={() => handleDefinirMotorista(item.id)}
+                        className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                          item.motivo.includes('VIAGEM_MOTORISTA')
+                            ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400'
+                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200/70'
+                        }`}
+                        title="Marcar este colaborador como quem dirigiu o veículo"
+                      >
+                        <Car className="w-3 h-3" />
+                        <span>
+                          {item.motivo.includes('VIAGEM_MOTORISTA')
+                            ? '✓ Motorista Oficial'
+                            : 'Definir como Motorista'}
+                        </span>
+                      </button>
                     )}
-                    <span>{item.motivo}</span>
                   </div>
 
                   <div className="flex items-center gap-3 pt-1">

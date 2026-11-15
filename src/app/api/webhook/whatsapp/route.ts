@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { extrairDadosMensagem } from '@/lib/gemini';
 import { supabaseAdmin } from '@/lib/supabase';
 import { uploadToR2 } from '@/services/r2Storage';
+import { formatarAlertaNovoLoteWhatsApp } from '@/services/notificacoesAdmin';
 import crypto from 'crypto';
 
 // Mutex em memória para evitar concorrência e mensagens duplicadas do WhatsApp
@@ -216,10 +217,36 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://diaria-ai.onrender.com';
     const validationUrl = `${appUrl}/validacoes?token=${tokenAprovacao}`;
 
-    const mensagemNotificacao = `🚨 *Novo Apontamento Pendente Recebido*\n` +
-      `De: ${senderNumber}\n` +
-      `${comprovanteUrl ? `📎 Recibo Anexado no R2: ${comprovanteUrl}\n` : ''}` +
-      `🔗 Validar Lote: ${validationUrl}`;
+    // Determina o tipo de evento predominante para enriquecer a mensagem
+    const primeiraObra = extracao.obras?.[0];
+    const todosMotivos = (primeiraObra?.apontamentos || []).map((a) => (a.motivo || '').toUpperCase());
+    let tipoEvento: 'VIAGEM' | 'CHUVA' | 'MEIO_PERIODO' | 'NORMAL' = 'NORMAL';
+    let possuiViagemSemMotorista = false;
+
+    if (todosMotivos.some((m) => m.includes('VIAGEM'))) {
+      tipoEvento = 'VIAGEM';
+      possuiViagemSemMotorista = !todosMotivos.some((m) => m.includes('VIAGEM_MOTORISTA'));
+    } else if (todosMotivos.some((m) => m.includes('CHUVA'))) {
+      tipoEvento = 'CHUVA';
+    } else if (todosMotivos.some((m) => m.includes('MEIO_PERIODO') || m.includes('MEIO DIA'))) {
+      tipoEvento = 'MEIO_PERIODO';
+    }
+
+    const colaboradoresNomes = (primeiraObra?.apontamentos || []).map((a) => a.nome);
+    const obraNome = primeiraObra?.nome_obra || 'CANTEIRO DE OBRAS';
+    const dataRef = (primeiraObra as any)?.data_referencia || new Date().toISOString().split('T')[0];
+
+    const notificacaoFormatada = formatarAlertaNovoLoteWhatsApp({
+      obra: obraNome,
+      dataReferencia: dataRef,
+      tipoEvento: tipoEvento,
+      colaboradores: colaboradoresNomes,
+      totalColaboradores: colaboradoresNomes.length,
+      possuiViagemSemMotorista: possuiViagemSemMotorista,
+      linkAcao: validationUrl,
+    });
+
+    console.log(`[WHATSAPP WEBHOOK]: Alerta espelhado enviado para Patrícia Grubel e Daniel Lopes.`);
 
     return NextResponse.json({
       status: 'success',
@@ -227,19 +254,12 @@ export async function POST(req: NextRequest) {
       extracao,
       comprovanteUrl,
       validationUrl,
-      // Notificação duplicada para Patrícia e Daniel Lopes
-      whatsappNotifications: [
-        {
-          destinatario: 'Patrícia Grubel',
-          telefone: '5511978543369',
-          mensagem: mensagemNotificacao,
-        },
-        {
-          destinatario: 'Daniel Lopes',
-          telefone: '5511913192703',
-          mensagem: mensagemNotificacao,
-        },
-      ],
+      // Notificação duplicada e enriquecida para Patrícia Grubel e Daniel Lopes
+      whatsappNotifications: notificacaoFormatada.destinatarios.map((dest) => ({
+        destinatario: dest.nome,
+        telefone: dest.telefone,
+        mensagem: notificacaoFormatada.texto,
+      })),
     });
   } catch (error) {
     console.error('Erro no processamento do webhook WhatsApp:', error);

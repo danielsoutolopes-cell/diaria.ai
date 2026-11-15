@@ -206,13 +206,13 @@ export default function BorderoPage() {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full w-fit mb-2 border border-amber-200/80 shadow-sm">
             <Calendar className="w-3.5 h-3.5 text-amber-600" />
-            <span>Fechamento Semanal de Sexta • Borderô Executivo</span>
+            <span>Fechamento Quinzenal • Rotina Semanal Sexta a Sexta</span>
           </div>
           <h1 className="text-3xl font-black text-slate-950 tracking-tight">
             Borderô e Pagamento da Folha
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Selecione as diárias e vales a liquidar hoje. As caixas desmarcadas permanecem salvas para a próxima semana.
+            Consolidação semanal para o fechamento quinzenal sem acúmulo de papéis. Os vales desmarcados são preservados para a próxima quinzena.
           </p>
         </div>
 

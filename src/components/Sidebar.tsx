@@ -43,7 +43,7 @@ const navItems = [
     name: 'Fechamento (Borderô)',
     href: '/bordero',
     icon: FileSpreadsheet,
-    badge: 'Sexta VIP',
+    badge: 'Quinzenal',
     badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   },
   {

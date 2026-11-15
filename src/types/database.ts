@@ -125,6 +125,7 @@ export interface ObraFoto {
 
 export interface NLPObraExtracao {
   nome_obra: string;
+  data_referencia?: string;
   apontamentos: Array<{
     nome: string;
     fracao: number;
