@@ -277,7 +277,39 @@ CREATE POLICY "Tenant isolation for obras_fotos" ON obras_fotos
     );
 
 -- --------------------------------------------------------
--- 7. SEED DE SUPER USUÁRIOS (RBAC MASTER)
+-- 7. PARÂMETROS DO SISTEMA & REGRAS DE DIÁRIAS (CHUVA, VIAGEM, PARADO)
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS parametros_sistema (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL UNIQUE REFERENCES tenants(id) ON DELETE CASCADE,
+    configuracoes JSONB NOT NULL DEFAULT '{
+        "dia_viagem_padrao": 12.00,
+        "dia_chuva_padrao": 120.00,
+        "dia_parado_padrao": 120.00,
+        "diaria_piscina_padrao": 150.00,
+        "diaria_civil_padrao": 180.00
+    }'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE parametros_sistema ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant isolation for parametros_sistema" ON parametros_sistema
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
+
+-- Inserir default para o tenant padrão
+INSERT INTO parametros_sistema (tenant_id)
+VALUES ('00000000-0000-0000-0000-000000000001')
+ON CONFLICT (tenant_id) DO NOTHING;
+
+-- --------------------------------------------------------
+-- 8. SEED DE SUPER USUÁRIOS (RBAC MASTER)
 -- --------------------------------------------------------
 -- Inserção dos 3 Super Usuários Globais na tabela encarregados_obras
 INSERT INTO encarregados_obras (

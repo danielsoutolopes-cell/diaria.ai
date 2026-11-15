@@ -4,6 +4,14 @@ export type TipoLancamento = 'PONTO' | 'VALE' | 'LIQUIDACAO';
 export type StatusLancamento = 'PENDENTE' | 'VALIDADO' | 'LIQUIDADO';
 export type StatusValidacao = 'PENDENTE' | 'VALIDADO';
 
+export interface ParametrosSistemaConfig {
+  dia_viagem_padrao: number;
+  dia_chuva_padrao: number;
+  dia_parado_padrao: number;
+  diaria_piscina_padrao: number;
+  diaria_civil_padrao: number;
+}
+
 export interface ObraConfig {
   id: string;
   tenant_id: string;
