@@ -39,13 +39,26 @@
   - `MANUAL_DO_SISTEMA.md` completo e tela interativa `/ajuda` no menu lateral.
 - **Build de Produção**: 100% aprovado (`npm run build`).
 
-## Últimas Ações
-- Atualização do [.env](file:///c:/diaria/.env) com as credenciais S3/R2 completas.
-- Atualização do [.env.example](file:///c:/diaria/.env.example).
-- Criação de `src/lib/r2.ts` e `src/services/r2Storage.ts` com `@aws-sdk/client-s3` (`PutObjectCommand` e `DeleteObjectCommand`).
-- Atualização de `supabase/schema.sql` e `src/types/database.ts` com o campo `comprovante_url`.
-- Atualização do webhook Baileys (`src/app/api/webhook/whatsapp/route.ts`) para interceptação de fotos de comprovantes de vales e envio automático ao Cloudflare R2 com UUID.
-- Criação de `src/components/ReceiptLightbox.tsx` com visualização modal e download local forçado com convenção de nome `recibo-[nome]-[data].jpg`.
-- Integração da coluna "Anexo/Recibo" e Lightbox nas telas de Validações Pendentes (`src/app/validacoes/page.tsx`) e Borderô Semanal (`src/app/bordero/page.tsx`).
-- Criação do endpoint de exclusão de lançamentos (`src/app/api/lancamentos/excluir/route.ts`) com limpeza física e preventiva de arquivos órfãos no Cloudflare R2.
-- Compilação de produção com 0 erros de tipagem TypeScript e Next.js (`npm run build`).
+## Últimas Ações (Ciclo Atual)
+- **Central de Mensageria & Solicitação de Features/Relatórios (`/mensageria`)**:
+  - Implementado chat interativo no frontend (`src/app/mensageria/page.tsx`) com a IA Gemini (`gemini-3.5-flash-lite`).
+  - A IA atua como arquiteto de software, alinhando necessidades com Patrícia Grubel e gerando automaticamente um **Prompt Técnico para a IDE**.
+  - O prompt conta com botão de cópia de 1 clique (`Copiar Prompt para a IDE`).
+  - Alerta automático enviado para o WhatsApp de Daniel Lopes (`5511913192703`) com o resumo e link da solicitação.
+  - Implementada a ação de **"Fechar Pedido"** para Daniel Lopes concluir e arquivar as demandas entregues.
+  - Armazenamento resiliente e persistente implementado em `src/services/mensageriaStorage.ts` via chaves de metadados no Supabase.
+- **Rastreabilidade e Carimbo Pericial de Apontamentos (TimeStamp & SHA-256)**:
+  - Captura do telefone remetente, ID do grupo do WhatsApp e carimbo temporal oficial de Brasília com hash SHA-256 na criação de cada lote em `src/app/api/webhook/whatsapp/route.ts`.
+  - Exibição do remetente e data/hora do disparo na tela de Validações Pendentes (`src/app/validacoes/page.tsx`).
+- **Ticket de Marcação de Ponto sem Valores para Grupos de WhatsApp**:
+  - Geração de ticket de ponto (`src/services/ticketPonto.ts`) sem exibição de valores em R$, com carimbo pericial e hash SHA-256, disparado de volta para o grupo de campo após aprovação de Patrícia.
+- **Sistema de Múltiplos Apelidos de Obras e Funcionários**:
+  - Interface de cadastro e gestão de apelidos na tela de Setup (`/setup`).
+  - Injeção dinâmica de apelidos nas diretrizes do modelo de NLP Gemini (`src/lib/gemini.ts`), garantindo reconhecimento instantâneo de gírias e apelidos usuais de canteiro.
+  - Confirmação de segurança da obra na tela de validação.
+- **Fechamento Quinzenal com Rotina de Sexta-feira**:
+  - Adicionado badge "Quinzenal" na navegação e ajustada a semântica do borderô para pagamento quinzenal com fechamento e conferência operacional semanal.
+- **Atualização de Modelos Gemini**:
+  - Migração de modelos descontinuados para o modelo ativo e rápido `gemini-3.5-flash-lite`.
+- **Documentação & Navegação**:
+  - Atualizados `Sidebar.tsx`, `MANUAL_DO_SISTEMA.md`, tela interativa `/ajuda` e este `HANDOFF.md`.

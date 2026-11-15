@@ -247,7 +247,7 @@ export default function AjudaPage() {
       id: 'setup',
       titulo: '8. Cadastro Expresso de Funcionários e Obras',
       icone: Users,
-      descricao: 'Como cadastrar trabalhadores com apenas Nome e Chave PIX obrigatórios',
+      descricao: 'Como cadastrar trabalhadores com apenas Nome e Chave PIX obrigatórios e múltiplos apelidos',
       conteudo: (
         <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
           <p>
@@ -255,7 +255,27 @@ export default function AjudaPage() {
           </p>
           <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
             <li><strong>Obrigatório</strong>: Apenas <strong>Nome do Trabalhador</strong> e <strong>Chave PIX</strong>.</li>
-            <li><strong>Opcional</strong>: Telefone, Canteiro de Obra e Valor da Diária. Se deixar a diária em branco, o sistema assume automaticamente a diária padrão da obra (R$ 150 para Piscina ou R$ 180 para Obra Civil).</li>
+            <li><strong>Múltiplos Apelidos</strong>: Você pode cadastrar apelidos alternativos (ex: &quot;Wender 22&quot;, &quot;Zé baiano&quot;, &quot;Mauro obra&quot;) e apelidos para obras (ex: &quot;Piscina porto seguro&quot; mapeado para a obra oficial &quot;Bahia&quot;). A IA reconhece esses apelidos automaticamente nas mensagens do WhatsApp.</li>
+            <li><strong>Opcional</strong>: Telefone, Canteiro de Obra e Valor da Diária. Se deixar a diária em branco, o sistema assume automaticamente a diária padrão da obra.</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      id: 'mensageria',
+      titulo: '9. Central de Mensageria & Solicitação de Relatórios (IA)',
+      icone: MessageCircle,
+      descricao: 'Como solicitar novos relatórios ou ajustes ao Arquiteto Gemini e repassar para Daniel Lopes',
+      conteudo: (
+        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <p>
+            Na tela de <Link href="/mensageria" className="text-emerald-600 font-bold underline">Mensageria & Pedidos IA</Link>, a Patrícia pode conversar em linguagem natural com a IA para pedir qualquer novo relatório, filtro ou melhoria:
+          </p>
+          <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
+            <li><strong>Chat Inteligente com Gemini</strong>: A IA conversa, faz perguntas de alinhamento (quais colunas, filtros, periodicidade) até entender perfeitamente a necessidade.</li>
+            <li><strong>Geração do Prompt para a IDE</strong>: Assim que tudo é alinhado, o sistema sintetiza um prompt técnico de engenharia de software pronto para copiar em 1 clique.</li>
+            <li><strong>Aviso no WhatsApp do Daniel Lopes</strong>: Um alerta com o link direto da solicitação é enviado para o Daniel Lopes (5511913192703) para execução na IDE.</li>
+            <li><strong>Fechamento do Pedido</strong>: Daniel acessa a tela, copia o prompt para o ambiente de desenvolvimento e clica em <strong>&quot;Fechar Pedido&quot;</strong> assim que a entrega for concluída.</li>
           </ul>
         </div>
       ),

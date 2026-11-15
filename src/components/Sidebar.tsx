@@ -17,6 +17,7 @@ import {
   BarChart3,
   HelpCircle,
   Shield,
+  MessageSquare,
 } from 'lucide-react';
 
 const navItems = [
@@ -52,6 +53,13 @@ const navItems = [
     icon: BarChart3,
     badge: 'XLS',
     badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  },
+  {
+    name: 'Mensageria & Pedidos IA',
+    href: '/mensageria',
+    icon: MessageSquare,
+    badge: 'Novo',
+    badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
   },
   {
     name: 'Configuração do Bot (WhatsApp)',

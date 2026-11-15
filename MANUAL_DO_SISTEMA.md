@@ -130,18 +130,36 @@ Na aba **Relatórios & Exportações**:
 
 ---
 
-## 👥 8. Cadastro Expresso de Colaboradores e Obras (Setup)
+## 👥 8. Cadastro Expresso de Colaboradores e Obras (Setup) & Múltiplos Apelidos
 
 Na aba **Lançamentos em Lote (Setup)**:
 - **Cadastro de Colaborador (Rápido)**:
   - **Campos Obrigatórios**: Apenas **Nome** e **Chave PIX**.
   - **Campos Automáticos**: Valor da diária (assume R$ 150 para Piscina ou R$ 180 para Civil) e Canteiro Vinculado.
-- **Cadastro de Obras**:
-  - Defina o nome do canteiro, localização e o tipo padrão (Piscina ou Obra Civil).
+  - **Mapeamento de Apelidos**: Cadastre apelidos de campo (ex: *"Wender 22"*, *"Zé baiano"*, *"Mauro obra"*, *"Peu"*). A IA cruza esses apelidos nas mensagens do WhatsApp e localiza o colaborador correspondente com precisão.
+- **Cadastro e Apelidos de Obras**:
+  - Defina o nome oficial da obra (ex: *"Bahia"*), tipo de canteiro e adicione apelidos usuais (ex: *"Piscina porto seguro"*, *"Porto Seguro"*, *"Quase Tudo"*).
+- **Confirmação de Segurança**: Quando a Patrícia abre o link de validação, o sistema confirma explicitamente a obra vinculada para garantir total acurácia contábil.
 
 ---
 
-## 🔒 9. Níveis de Acesso e Perfis (RBAC)
+## 💬 9. Central de Mensageria & Solicitação de Relatórios (IA)
+
+Na aba **Mensageria & Pedidos IA** (`/mensageria`):
+1. **Chat com o Arquiteto de Software Gemini**:
+   - A Patrícia descreve em português simples qualquer necessidade de relatório, gráfico ou melhoria no sistema.
+   - A IA conversa de forma humanizada, esclarecendo colunas necessárias, formatos de exportação, agrupamentos e periodicidade.
+2. **Geração Instantânea do Prompt Técnico para a IDE**:
+   - Assim que o escopo fica claro, a IA compila um **Prompt Técnico Estruturado** detalhando requisitos, rotas, tipos TypeScript e componentes a serem alterados.
+   - O prompt fica disponível na tela com botão de **"Copiar Prompt para a IDE"**.
+3. **Notificação ao Desenvolvedor (Daniel Lopes)**:
+   - Um alerta é disparado automaticamente para o WhatsApp pessoal de **Daniel Lopes** (`5511913192703`) com o resumo da solicitação e o link direto para acesso.
+4. **Fechamento do Pedido pelo Desenvolvedor**:
+   - Daniel abre o pedido, cola o prompt no Antigravity/Cursor para implementação e clica em **"Fechar Pedido"** após a entrega, registrando a data e o responsável pela conclusão.
+
+---
+
+## 🔒 10. Níveis de Acesso e Perfis (RBAC)
 
 1. **MASTER (Patrícia Grubel, Daniel Lopes, Joabson Nascimento)**:
    - Acesso irrestrito a todas as obras, aprovação de pagamentos, liquidação de borderô, cadastro de usuários e configurações globais.
@@ -152,7 +170,7 @@ Na aba **Lançamentos em Lote (Setup)**:
 
 ---
 
-## ❓ 10. Perguntas Frequentes & Suporte Rápido
+## ❓ 11. Perguntas Frequentes & Suporte Rápido
 
 - **E se a internet cair no canteiro?**
   - As mensagens do WhatsApp ficam enfileiradas e a IA processa assim que a conexão retornar.
