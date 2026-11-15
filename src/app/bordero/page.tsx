@@ -12,6 +12,8 @@ import {
   RefreshCw,
   TrendingDown,
   Download,
+  Edit2,
+  AlertCircle,
 } from 'lucide-react';
 import { gerarPayloadPix } from '@/lib/pix';
 import { ReceiptLightbox } from '@/components/ReceiptLightbox';
@@ -44,6 +46,33 @@ export default function BorderoPage() {
   const [modalPix, setModalPix] = useState<{ nome: string; valor: number; payload: string; chave: string } | null>(null);
   const [liquidando, setLiquidando] = useState(false);
   const [liquidadoSucesso, setLiquidadoSucesso] = useState(false);
+  const [usuarioAtual, setUsuarioAtual] = useState<string>('Patrícia Grubel');
+
+  // Modal para Edição de Lançamento Já Confirmado
+  const [edicaoModal, setEdicaoModal] = useState<{
+    aberto: boolean;
+    lancamentoId: string;
+    funcionarioNome: string;
+    data: string;
+    tipo: 'PONTO' | 'VALE';
+    fracao: number;
+    valor: number;
+    descricao: string;
+    salvando: boolean;
+    confirmarSobrescrita: boolean;
+    conflitoDetectado: boolean;
+    mensagemConflito?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    // Detecta usuário logado
+    const cookies = document.cookie.split('; ');
+    const userCookie = cookies.find((c) => c.startsWith('diaria_user='));
+    if (userCookie) {
+      const nome = decodeURIComponent(userCookie.split('=')[1]);
+      if (nome) setUsuarioAtual(nome);
+    }
+  }, []);
 
   async function carregarBordero() {
     setLoading(true);
@@ -344,6 +373,7 @@ export default function BorderoPage() {
                         <th className="p-4 text-center">Anexo/Recibo</th>
                         <th className="p-4 text-right">Fração</th>
                         <th className="p-4 text-right">Valor</th>
+                        <th className="p-4 text-center">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -411,6 +441,31 @@ export default function BorderoPage() {
                           >
                             {l.tipo === 'PONTO' ? `+ R$ ${l.valor.toFixed(2)}` : `- R$ ${l.valor.toFixed(2)}`}
                           </td>
+                          <td className="p-4 text-center">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEdicaoModal({
+                                  aberto: true,
+                                  lancamentoId: l.id,
+                                  funcionarioNome: f.nome,
+                                  data: l.data,
+                                  tipo: l.tipo,
+                                  fracao: l.fracao,
+                                  valor: l.valor,
+                                  descricao: l.descricao,
+                                  salvando: false,
+                                  confirmarSobrescrita: false,
+                                  conflitoDetectado: false,
+                                });
+                              }}
+                              className="p-2 rounded-xl text-slate-500 hover:text-emerald-700 hover:bg-slate-100 transition-all"
+                              title="Editar este registro confirmado"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -475,6 +530,182 @@ export default function BorderoPage() {
               <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
               <span>{liquidando ? 'Liquidando no Banco...' : 'Liquidar e Encerrar Semana'}</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição com Verificação de Conflito e Alerta Patrícia */}
+      {edicaoModal && edicaoModal.aberto && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-5 shadow-2xl border border-slate-100 animate-scale-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-black text-base text-slate-900">Editar Registro Confirmado</h3>
+              </div>
+              <button
+                onClick={() => setEdicaoModal(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Aviso se já foi confirmado */}
+            {edicaoModal.conflitoDetectado ? (
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+                <div className="flex items-center gap-2 text-amber-800 font-bold text-xs">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Confirmação Prévia Existente</span>
+                </div>
+                <p className="text-xs text-amber-900 font-semibold leading-relaxed">
+                  {edicaoModal.mensagemConflito || 'Este registro já foi confirmado anteriormente. Quer continuar e alterar?'}
+                </p>
+                <p className="text-[11px] text-amber-800/90 pt-1 border-t border-amber-200/60">
+                  ⚠️ <strong>Regra de Governança:</strong> Ao prosseguir, <strong>Patrícia Grubel</strong> receberá imediatamente um alerta com os detalhes da modificação.
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/70 text-xs text-slate-600 space-y-1">
+                <div className="font-bold text-slate-900">
+                  {edicaoModal.funcionarioNome} • {edicaoModal.data}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Tipo: {edicaoModal.tipo === 'PONTO' ? 'Diária de Campo' : 'Vale Adiantado'}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {edicaoModal.tipo === 'PONTO' && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Fração do Dia</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[1.0, 0.5, 0.0].map((fr) => (
+                      <button
+                        key={fr}
+                        type="button"
+                        onClick={() => {
+                          const base = edicaoModal.valor / (edicaoModal.fracao || 1);
+                          setEdicaoModal({
+                            ...edicaoModal,
+                            fracao: fr,
+                            valor: base * fr,
+                          });
+                        }}
+                        className={`py-2 rounded-xl text-xs font-bold border transition-all ${
+                          edicaoModal.fracao === fr
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {fr === 1 ? '1.0 Integral' : fr === 0.5 ? '0.5 Chuva' : '0.0 Falta'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Valor Monetário (R$)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={edicaoModal.valor}
+                  onChange={(e) =>
+                    setEdicaoModal({ ...edicaoModal, valor: Number(e.target.value) || 0 })
+                  }
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Motivo / Descrição do Ajuste</label>
+                <input
+                  type="text"
+                  value={edicaoModal.descricao}
+                  onChange={(e) =>
+                    setEdicaoModal({ ...edicaoModal, descricao: e.target.value })
+                  }
+                  placeholder="Ex: Ajuste acordado após conferência de chuva"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEdicaoModal(null)}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={edicaoModal.salvando}
+                onClick={async () => {
+                  setEdicaoModal((prev) => (prev ? { ...prev, salvando: true } : null));
+                  try {
+                    const res = await fetch('/api/lancamentos/editar', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        lancamentoId: edicaoModal.lancamentoId,
+                        novaFracao: edicaoModal.fracao,
+                        novoValor: edicaoModal.valor,
+                        novaObservacao: edicaoModal.descricao,
+                        usuarioLogado: usuarioAtual,
+                        confirmarSobrescrita: edicaoModal.confirmarSobrescrita,
+                      }),
+                    });
+
+                    const data = await res.json();
+
+                    // Se detectou conflito e ainda não havia confirmado
+                    if (res.status === 409 && data.conflito) {
+                      setEdicaoModal((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              salvando: false,
+                              conflitoDetectado: true,
+                              confirmarSobrescrita: true,
+                              mensagemConflito: data.mensagem,
+                            }
+                          : null
+                      );
+                      return;
+                    }
+
+                    if (data.success) {
+                      setEdicaoModal(null);
+                      carregarBordero();
+                    } else {
+                      alert(data.error || 'Erro ao editar lançamento');
+                      setEdicaoModal((prev) => (prev ? { ...prev, salvando: false } : null));
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    setEdicaoModal((prev) => (prev ? { ...prev, salvando: false } : null));
+                  }
+                }}
+                className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all shadow-md active:scale-95 flex items-center gap-2 ${
+                  edicaoModal.conflitoDetectado
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+              >
+                <span>
+                  {edicaoModal.salvando
+                    ? 'Salvando...'
+                    : edicaoModal.conflitoDetectado
+                    ? 'Confirmar e Notificar Patrícia'
+                    : 'Salvar Alteração'}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

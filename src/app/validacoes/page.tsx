@@ -25,6 +25,8 @@ interface PendenteItem {
   origem: string;
   valorDiariaBase: number;
   comprovanteUrl?: string | null;
+  validadoPor?: string | null;
+  validadoEm?: string | null;
 }
 
 export default function ValidacoesPage() {
@@ -32,6 +34,26 @@ export default function ValidacoesPage() {
   const [loading, setLoading] = useState(true);
   const [validando, setValidando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
+  const [usuarioAtual, setUsuarioAtual] = useState<string>('Patrícia Grubel');
+  
+  // Modal de confirmação de conflito de validação
+  const [conflitoModal, setConflitoModal] = useState<{
+    aberto: boolean;
+    validadoPor: string;
+    validadoEm?: string;
+    mensagem: string;
+    onConfirmar: () => void;
+  } | null>(null);
+
+  useEffect(() => {
+    // Detecta usuário ativo a partir do cookie
+    const cookies = document.cookie.split('; ');
+    const userCookie = cookies.find((c) => c.startsWith('diaria_user='));
+    if (userCookie) {
+      const nome = decodeURIComponent(userCookie.split('=')[1]);
+      if (nome) setUsuarioAtual(nome);
+    }
+  }, []);
 
   async function carregarPendentes() {
     setLoading(true);
@@ -57,23 +79,45 @@ export default function ValidacoesPage() {
     );
   }
 
-  async function handleValidarTudo() {
+  async function executarValidacao(confirmarSobrescrita = false) {
     if (itens.length === 0) return;
     setValidando(true);
     try {
       const primeiroLoteId = itens[0]?.loteId;
-      await fetch('/api/validar', {
+      const res = await fetch('/api/validar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           loteId: primeiroLoteId,
+          usuarioLogado: usuarioAtual,
+          confirmarSobrescrita: confirmarSobrescrita,
           ajustes: itens.map((item) => ({
             detalheId: item.id,
+            trabalhador: item.trabalhador,
+            obra: item.obra,
             fracao_dia: item.fracao,
             valor_diaria: item.valorDiariaBase,
           })),
         }),
       });
+
+      const data = await res.json();
+
+      // Caso haja detecção de confirmação prévia por outro admin
+      if (res.status === 409 && data.conflito) {
+        setConflitoModal({
+          aberto: true,
+          validadoPor: data.validadoPor,
+          validadoEm: data.validadoEm,
+          mensagem: data.mensagem || `O registro já foi confirmado por ${data.validadoPor}. Quer continuar?`,
+          onConfirmar: () => {
+            setConflitoModal(null);
+            executarValidacao(true);
+          },
+        });
+        setValidando(false);
+        return;
+      }
 
       setSucesso(true);
       setTimeout(() => {
@@ -85,6 +129,10 @@ export default function ValidacoesPage() {
     } finally {
       setValidando(false);
     }
+  }
+
+  async function handleValidarTudo() {
+    executarValidacao(false);
   }
 
   const totalCalculado = itens.reduce(
@@ -275,6 +323,59 @@ export default function ValidacoesPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal de Conflito de Confirmação entre Múltiplos Administradores */}
+      {conflitoModal && conflitoModal.aberto && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-200 space-y-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-6 h-6 stroke-[2.5]" />
+              </div>
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                  Atenção • Registro Já Validado
+                </span>
+                <h3 className="text-lg font-black text-slate-950 mt-1">
+                  Confirmação Prévia Detectada
+                </h3>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+              <p className="text-sm font-semibold text-slate-800 leading-relaxed">
+                {conflitoModal.mensagem}
+              </p>
+              {conflitoModal.validadoEm && (
+                <p className="text-xs text-slate-500">
+                  Data da aprovação: {new Date(conflitoModal.validadoEm).toLocaleString('pt-BR')}
+                </p>
+              )}
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 leading-relaxed">
+              ⚠️ <strong>Regra de Governança:</strong> Se você continuar e alterar este lote, a Administradora Central <strong>Patrícia Grubel</strong> receberá um aviso imediato com todos os detalhes da edição.
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConflitoModal(null)}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={conflitoModal.onConfirmar}
+                className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black transition-all shadow-md active:scale-95 flex items-center gap-2"
+              >
+                <span>Sim, Quero Continuar e Editar</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

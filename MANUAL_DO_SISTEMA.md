@@ -66,13 +66,18 @@ Dentro do painel web, você conta com um chat interno que executa as mesmas regr
 
 ---
 
-## 🛡️ 4. Regra Human-in-the-Loop (Validações Pendentes)
+## 🛡️ 4. Regra Human-in-the-Loop & Governança Multi-Admin (Patrícia & Daniel)
 **Regra Fundamental de Engenharia**: A IA nunca lança dinheiro como pago diretamente.
 
 1. Todas as mensagens recebidas via WhatsApp ou Terminal de IA entram na tela **Validações Pendentes** com status `PENDENTE`.
-2. A Administradora (Patrícia Grubel) revisa as caixas de seleção, nomes, obras e valores.
-3. Se houver divergência, pode editar ou recusar.
-4. Ao clicar em **"Aprovar Selecionados"**, os lançamentos passam para o status `VALIDADO` e ficam liberados para pagamento no Borderô.
+2. A Administradora (Patrícia Grubel) ou a Diretoria revisam as caixas de seleção, nomes, obras e valores.
+3. Se houver divergência, podem editar frações ou valores.
+4. **Prevenção de Conflito Multi-Admin ("Já Confirmado")**:
+   - Como agora dois gestores (Patrícia Grubel e Daniel Lopes) recebem os avisos e têm acesso ao sistema, se um lote já foi validado anteriormente por um deles, qualquer tentativa de revalidação ou alteração exibe uma tela de guarda:
+     > *"O registro já foi confirmado por [NOME]. Quer continuar e alterar?"*
+5. **Alerta Obrigatório & Exclusivo para Patrícia Grubel**:
+   - **REGRA CRÍTICA INVIOLÁVEL**: Sempre que qualquer registro já confirmado for editado ou alterado por qualquer usuário (seja Daniel Lopes ou outro operador), a Administradora Central **Patrícia Grubel** recebe imediatamente uma notificação exclusiva no WhatsApp contendo o autor da edição, colaborador, canteiro, motivo da alteração e o ajuste de valor (antes vs depois).
+6. Ao clicar em **"Aprovar Selecionados"**, os lançamentos passam para o status `VALIDADO` e ficam liberados para pagamento no Borderô.
 
 ---
 

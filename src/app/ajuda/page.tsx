@@ -161,17 +161,19 @@ export default function AjudaPage() {
     },
     {
       id: 'validacoes',
-      titulo: '4. Validação Human-in-the-Loop (Aprovação da Patrícia)',
+      titulo: '4. Validação Human-in-the-Loop & Governança Multi-Admin (Patrícia & Daniel)',
       icone: CheckCircle2,
-      descricao: 'Como revisar, editar frações de diária e aprovar lançamentos',
+      descricao: 'Como revisar, travas de registro já confirmado e alerta obrigatório para Patrícia',
       conteudo: (
         <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
           <p>
-            A tela de <Link href="/validacoes" className="text-emerald-600 font-bold underline">Validações Pendentes</Link> é a central de controle da Administradora.
+            A tela de <Link href="/validacoes" className="text-emerald-600 font-bold underline">Validações Pendentes</Link> é a central de controle e segurança da folha de pagamento.
           </p>
           <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
             <li><strong>Revisão de Fração</strong>: Confira se a IA classificou 1x diária ou meio período (0.5x).</li>
             <li><strong>Recibos em Lightbox</strong>: Na coluna Anexo/Recibo, clique no clipe de papel para ampliar a foto do comprovante e baixar localmente.</li>
+            <li><strong>Trava de Confirmação Prévia ("Já Confirmado")</strong>: Como agora Patrícia e Daniel recebem avisos e operam o sistema, se um lote já foi aprovado por um deles, qualquer tentativa de revalidação exibe o alerta: <em>"O registro já foi confirmado por [Nome]. Quer continuar?"</em></li>
+            <li><strong>Alerta Obrigatório para Patrícia</strong>: Sempre que qualquer registro for alterado por outro usuário (como Daniel), a Administradora Patrícia Grubel recebe uma mensagem detalhada no WhatsApp informando quem alterou, colaborador, obra e os novos valores.</li>
             <li><strong>Aprovação em Lote</strong>: Selecione os pontos confirmados e clique em <strong>"Aprovar Selecionados"</strong>. Eles mudarão para o status <code>VALIDADO</code> e ficarão prontos para pagamento no Borderô.</li>
           </ul>
         </div>

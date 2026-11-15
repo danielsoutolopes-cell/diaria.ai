@@ -84,3 +84,48 @@ export function formatarMensagemNotificacaoDupla(
     texto,
   };
 }
+
+/**
+ * REGRA CRÍTICA INVIOLÁVEL: Notificação Exclusiva & Obrigatória para Patrícia Grubel
+ * Sempre que qualquer registro já confirmado ou validado for editado/alterado por qualquer usuário
+ * (seja Daniel Lopes ou outro administrador), um alerta direto e prioritário é enviado para Patrícia.
+ */
+export function formatarAlertaEdicaoPatricia(item: {
+  trabalhador: string;
+  obra: string;
+  dataReferencia: string;
+  autorEdicao: string;
+  confirmadoAnteriormentePor?: string;
+  motivoOuAlteracao: string;
+  valorAnterior?: number;
+  novoValor?: number;
+}): { destinatario: DestinatarioAviso; texto: string } {
+  const patricia = ADMINISTRADORES_PADRAO[0]; // Patrícia Grubel (5511978543369)
+
+  let texto = `⚠️ *AVISO DE EDIÇÃO DE APONTAMENTO*\n`;
+  texto += `*Ponto Patrícia (Diária.AI)*\n`;
+  texto += `--------------------------------------\n`;
+  texto += `Olá *Patrícia*, um lançamento registrado no sistema foi alterado.\n\n`;
+  texto += `👤 *Colaborador:* ${item.trabalhador}\n`;
+  texto += `🏗️ *Obra / Canteiro:* ${item.obra}\n`;
+  texto += `📅 *Data da Diária:* ${item.dataReferencia}\n`;
+  texto += `✏️ *Editado por:* ${item.autorEdicao}\n`;
+
+  if (item.confirmadoAnteriormentePor) {
+    texto += `📌 *Confirmado anteriormente por:* ${item.confirmadoAnteriormentePor}\n`;
+  }
+
+  texto += `📝 *Alteração:* ${item.motivoOuAlteracao}\n`;
+
+  if (item.valorAnterior !== undefined && item.novoValor !== undefined) {
+    texto += `💵 *Ajuste de Valor:* R$ ${item.valorAnterior.toFixed(2)} ➡️ *R$ ${item.novoValor.toFixed(2)}*\n`;
+  }
+
+  texto += `\n⏰ *Data/Hora da Edição:* ${new Date().toLocaleString('pt-BR')}\n`;
+  texto += `\n_Este alerta é enviado obrigatoriamente para seu controle gerencial exclusivo._`;
+
+  return {
+    destinatario: patricia,
+    texto,
+  };
+}

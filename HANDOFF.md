@@ -1,6 +1,21 @@
 # Diário de Bordo & Transição de Contexto (HANDOFF.md)
 
 ## Estado Atual
+- **Prevenção de Conflito Multi-Admin (Patrícia Grubel & Daniel Lopes)**:
+  - Como agora ambos os administradores recebem notificações do sistema, foi implementada a trava de confirmação prévia:
+  - Se um lote ou lançamento financeiro já foi confirmado ou validado por um dos gestores, qualquer tentativa de revalidação ou reedição exibe o diálogo de guarda:
+    *"O registro já foi confirmado por [NOME DO GESTOR]. Quer continuar e alterar?"*
+- **Regra de Notificação Obrigatória para Patrícia Grubel**:
+  - **REGRA CRÍTICA INVIOLÁVEL**: Sempre que qualquer registro (lote ou lançamento financeiro) for editado ou alterado por qualquer usuário (Daniel Lopes ou outro operador), a Administradora Central **Patrícia Grubel** (`5511978543369`) recebe imediatamente uma notificação exclusiva no WhatsApp contendo:
+    - Nome do colaborador e Canteiro/Obra;
+    - Quem realizou a alteração (`autorEdicao`);
+    - Quem havia aprovado antes;
+    - Motivo e descritivo do que foi alterado;
+    - Ajuste de valores (Antes vs Depois) e data/hora exata.
+- **Edição em Linha no Borderô & Validações**:
+  - Novo endpoint `POST /api/lancamentos/editar` permitindo ajustar fração do dia, valor monetário e motivo de qualquer lançamento confirmado.
+  - Endpoints `POST /api/obras` e `POST /api/funcionarios` criados com cliente administrativo de backend seguro (`supabaseAdmin`), garantindo sincronização e persistência mesmo com RLS ativo.
+  - Semente inicial de canteiros e colaboradores cadastrada no banco remoto.
 - **Regras Operacionais de Diárias Parametrizáveis**:
   - **Dia de Viagem**: R$ 120,00 para passageiros da equipe; diária integral para o motorista que conduz o veículo.
   - **Dia de Chuva**: R$ 120,00 quando as condições meteorológicas inviabilizam o trabalho.

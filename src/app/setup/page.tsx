@@ -67,13 +67,10 @@ export default function SetupPage() {
   async function carregarObras() {
     setLoadingObras(true);
     try {
-      const { data } = await supabase
-        .from('obras_config')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (data) {
-        setObras(data as ObraItem[]);
+      const res = await fetch('/api/obras');
+      const data = await res.json();
+      if (data && data.obras) {
+        setObras(data.obras as ObraItem[]);
       }
     } catch (e) {
       console.error(e);
@@ -85,25 +82,10 @@ export default function SetupPage() {
   async function carregarFuncionarios() {
     setLoadingFunc(true);
     try {
-      const { data } = await supabase
-        .from('funcionarios_obra')
-        .select(`
-          id,
-          nome_trabalhador,
-          chave_pix,
-          telefone,
-          obra_id,
-          funcao,
-          valor_diaria,
-          ativo,
-          obras_config (
-            nome
-          )
-        `)
-        .order('nome_trabalhador', { ascending: true });
-
-      if (data) {
-        setFuncionarios(data as unknown as FuncionarioItem[]);
+      const res = await fetch('/api/funcionarios');
+      const data = await res.json();
+      if (data && data.funcionarios) {
+        setFuncionarios(data.funcionarios as unknown as FuncionarioItem[]);
       }
     } catch (e) {
       console.error(e);
@@ -125,20 +107,20 @@ export default function SetupPage() {
     try {
       const valorFinal = Number(valorDiariaObra) || (tipoObra === 'PISCINA' ? 150 : 180);
 
-      const { data } = await supabase
-        .from('obras_config')
-        .insert({
-          tenant_id: '00000000-0000-0000-0000-000000000001',
+      const res = await fetch('/api/obras', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           nome: nomeObra.trim().toUpperCase(),
           local: localObra.trim() || 'Canteiro Volante',
           tipo_obra: tipoObra,
           valor_diaria_padrao: valorFinal,
-        })
-        .select()
-        .single();
+        }),
+      });
+      const data = await res.json();
 
-      if (data) {
-        setObras((prev) => [data as ObraItem, ...prev]);
+      if (data && data.obra) {
+        setObras((prev) => [data.obra as ObraItem, ...prev]);
         setNomeObra('');
         setLocalObra('');
         setSalvoObra(true);
@@ -171,34 +153,22 @@ export default function SetupPage() {
         }
       }
 
-      const { data } = await supabase
-        .from('funcionarios_obra')
-        .insert({
-          tenant_id: '00000000-0000-0000-0000-000000000001',
+      const res = await fetch('/api/funcionarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           nome_trabalhador: nomeFuncionario.trim(),
           chave_pix: chavePix.trim(),
           telefone: telefoneFunc.trim() || null,
           obra_id: obraFuncId || null,
           valor_diaria: valorFinal,
           funcao: 'OPERACIONAL',
-        })
-        .select(`
-          id,
-          nome_trabalhador,
-          chave_pix,
-          telefone,
-          obra_id,
-          funcao,
-          valor_diaria,
-          ativo,
-          obras_config (
-            nome
-          )
-        `)
-        .single();
+        }),
+      });
+      const data = await res.json();
 
-      if (data) {
-        setFuncionarios((prev) => [data as unknown as FuncionarioItem, ...prev]);
+      if (data && data.funcionario) {
+        setFuncionarios((prev) => [data.funcionario as unknown as FuncionarioItem, ...prev]);
         setNomeFuncionario('');
         setChavePix('');
         setTelefoneFunc('');
