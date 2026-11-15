@@ -36,8 +36,22 @@ Em obras, a memória falha e os contratos são questionados. O Ponto Patrícia e
 
 ---
 
-### Princípio 5: Rapidez e Pontualidade no Pagamento (A Sexta VIP)
-Quem trabalha na diária conta com o dinheiro na sexta-feira para sustentar sua família.
-- O fechamento da folha não pode ser uma via-sacrária de cálculos demorados.
+### Princípio 5: Rapidez e Pontualidade no Pagamento (A Sexta VIP & Fechamento Quinzenal)
+Quem trabalha na diária conta com o dinheiro com pontualidade para sustentar sua família.
+- Embora a liquidação financeira seja quinzenal, a conferência é feita toda sexta-feira, eliminando o acúmulo de papéis e cálculos de última hora.
 - Com o PIX dinâmico Copia & Cola e QR Code gerados em 1 clique, o pagamento é feito com rapidez, dignidade e precisão matemática.
+
+---
+
+### Princípio 6: Transparência sem Exposição Financeira (O Ticket de Ponto Baileys)
+A comunicação com a equipe de campo deve ser clara, justa e segura.
+- A validação de cada lote gera imediatamente um **Ticket de Ponto pericial** (com carimbo de data/hora oficial e hash SHA-256) disparado de volta no grupo do WhatsApp via **Baileys**, confirmando presenças, frações e eventos (chuva, viagem, meio-dia).
+- **Valores monetários (R$) jamais são expostos nos grupos abertos**, resguardando a privacidade salarial de cada colaborador e a harmonia do canteiro.
+
+---
+
+### Princípio 7: Evolução Contínua Humanizada (A Central de Mensageria & IA)
+O sistema não é uma caixa preta engessada:
+- A Administradora conversa em linguagem natural com a IA para expressar qualquer necessidade de novos relatórios ou relatórios executivos.
+- A tecnologia compreende, traduz as demandas em especificações técnicas e notifica o desenvolvedor para entrega contínua com controle de encerramento do pedido.
 
