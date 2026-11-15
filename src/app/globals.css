@@ -22,6 +22,19 @@
   }
 }
 
+/* Layout Responsivo Seguro - Evita quebrar telas de Laptop e Computador */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+.app-container {
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
 /* Custom Luxury Glassmorphism & Micro-Interactions */
 .glass-panel {
   background: rgba(255, 255, 255, 0.85);

@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
+import MobileHeader from '@/components/MobileHeader';
 import RegisterServiceWorker from '@/components/RegisterServiceWorker';
+import { DeviceProvider } from '@/contexts/DeviceContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -38,13 +40,18 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className={inter.className}>
-        <RegisterServiceWorker />
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 bg-slate-50 min-h-screen overflow-y-auto">
-            {children}
-          </main>
-        </div>
+        <DeviceProvider>
+          <RegisterServiceWorker />
+          <div className="flex flex-col lg:flex-row min-h-screen max-w-[100vw] overflow-x-hidden">
+            <MobileHeader />
+            <Sidebar />
+            <main className="flex-1 bg-slate-50 min-h-screen overflow-y-auto overflow-x-hidden w-full">
+              <div className="w-full max-w-7xl mx-auto">
+                {children}
+              </div>
+            </main>
+          </div>
+        </DeviceProvider>
       </body>
     </html>
   );
