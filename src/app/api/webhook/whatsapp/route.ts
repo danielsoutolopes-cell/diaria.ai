@@ -216,16 +216,30 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://diaria-ai.onrender.com';
     const validationUrl = `${appUrl}/validacoes?token=${tokenAprovacao}`;
 
+    const mensagemNotificacao = `🚨 *Novo Apontamento Pendente Recebido*\n` +
+      `De: ${senderNumber}\n` +
+      `${comprovanteUrl ? `📎 Recibo Anexado no R2: ${comprovanteUrl}\n` : ''}` +
+      `🔗 Validar Lote: ${validationUrl}`;
+
     return NextResponse.json({
       status: 'success',
       messageId,
       extracao,
       comprovanteUrl,
       validationUrl,
-      whatsappNotification: {
-        destinatario: 'Patrícia (Admin)',
-        mensagem: `🚨 *Novo Apontamento Pendente*\nRecebido de: ${senderNumber}\n${comprovanteUrl ? `📎 Recibo Anexado: ${comprovanteUrl}\n` : ''}Link de Validação: ${validationUrl}`,
-      },
+      // Notificação duplicada para Patrícia e Daniel Lopes
+      whatsappNotifications: [
+        {
+          destinatario: 'Patrícia Grubel',
+          telefone: '5511978543369',
+          mensagem: mensagemNotificacao,
+        },
+        {
+          destinatario: 'Daniel Lopes',
+          telefone: '5511913192703',
+          mensagem: mensagemNotificacao,
+        },
+      ],
     });
   } catch (error) {
     console.error('Erro no processamento do webhook WhatsApp:', error);

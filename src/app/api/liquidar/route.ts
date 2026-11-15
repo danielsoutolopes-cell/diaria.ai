@@ -35,6 +35,18 @@ export async function POST(req: NextRequest) {
       message: `${lancamentosIds.length} lançamento(s) liquidado(s) com sucesso!`,
       liquidadoEm: agora,
       quantidadeLiquidada: lancamentosIds.length,
+      notificacoesEspelho: [
+        {
+          destinatario: 'Patrícia Grubel',
+          telefone: '5511978543369',
+          mensagem: `💰 *Fechamento Financeiro Liquidado!*\n${lancamentosIds.length} lançamento(s) baixado(s) com sucesso na folha de hoje.`,
+        },
+        {
+          destinatario: 'Daniel Lopes',
+          telefone: '5511913192703',
+          mensagem: `💰 *Fechamento Financeiro Liquidado!*\n${lancamentosIds.length} lançamento(s) baixado(s) com sucesso na folha de hoje.`,
+        },
+      ],
     });
   } catch (error) {
     console.error('Erro ao liquidar lançamentos:', error);

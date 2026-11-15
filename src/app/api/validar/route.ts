@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       .from('ponto_lote')
       .update({
         status_validacao: 'VALIDADO',
-        validado_por: 'Patrícia (Admin)',
+        validado_por: 'Patrícia Grubel & Daniel Lopes',
         validado_em: new Date().toISOString(),
       })
       .eq('id', lote.id);
@@ -67,6 +67,13 @@ export async function POST(req: NextRequest) {
       message: 'Ponto validado com sucesso! Folha atualizada.',
       loteId: lote.id,
       status: 'VALIDADO',
+      notificacaoDuplicada: {
+        enviadoPara: [
+          { nome: 'Patrícia Grubel', telefone: '5511978543369' },
+          { nome: 'Daniel Lopes', telefone: '5511913192703' },
+        ],
+        aviso: 'Lote aprovado e disponibilizado para liquidação no Borderô.',
+      },
     });
   } catch (error) {
     console.error('Erro ao validar ponto:', error);
