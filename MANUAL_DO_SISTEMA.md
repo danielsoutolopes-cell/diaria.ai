@@ -62,12 +62,36 @@ O encarregado ou mestre de obras não precisa preencher planilhas. Basta mandar 
   > *"Manda 100 de vale pro Tião pegar material no depósito."*
   - Se acompanhado de foto, o sistema intercepta a imagem, envia para o Cloudflare R2 com link permanente e cria o registro com a foto anexada.
 
-### 3.3 Regras de Diárias & Exceções Automáticas
-O robô interpreta automaticamente as situações de canteiro:
+### 3.3 Regras de Diárias por Canteiro & Exceções Automáticas
+O robô interpreta automaticamente as situações de canteiro e aplica a precificação de forma inteligente:
+- **Diárias Flexíveis por Obra / Canteiro (Tabela Obra x Trabalhador)**:
+  - O sistema suporta remunerações variáveis por local. Exemplo: um mesmo colaborador recebe **R$ 220,00** na obra *"Quase Tudo"* e **R$ 200,00** na obra *"Jabaquara"*.
+  - A IA detecta a obra citada na mensagem, cruza com a tabela de precificação do colaborador naquele canteiro e calcula a remuneração exata sem exigir retrabalho manual.
 - **Dia de Viagem**: R$ 120,00 para os passageiros da equipe. Se for indicado quem dirigiu (*motorista*), ele recebe a **diária integral**.
 - **Dia de Chuva**: R$ 120,00 quando o tempo impede os serviços de alvenaria ou piscina.
 - **Dia Parado (Sem Acesso)**: R$ 120,00 quando a portaria do condomínio barra a entrada ou há impedimentos externos.
+- **Meio Período (0.5x)**: Aplicação automática de metade da diária correspondente ao canteiro.
 - **Valores Editáveis**: Todos esses valores podem ser reajustados pela Administradora na tela de **Configurações do Sistema**.
+
+### 3.4 Gestão de Reembolsos de Despesas de Campo (Alinhamento Patrícia x Joabson)
+- **Zero Poluição de WhatsApp**: Quando o Joabson ou encarregado envia notas de combustível, pedágio, alimentação ou materiais no grupo:
+  - O bot **permanece 100% em silêncio no grupo** da obra.
+  - O bot **NÃO envia mensagens para o Joabson** (WhatsApp dele continua limpo e sem automações).
+  - O recibo é armazenado com segurança no Cloudflare R2 e registrado como `PENDENTE_ANALISE`.
+- **Governança Centrada na Patrícia**:
+  - Apenas a Patrícia Grubel conversa diretamente com o Joabson para aprovar ou rejeitar a despesa.
+  - Daniel Lopes acessa o sistema apenas como suporte técnico e apoio operacional à Patrícia.
+- **Liquidação Flexível (Data Livre & Pagamento Parcial/Total)**:
+  - Reembolsos não ficam presos à quinzena do borderô de diárias. Podem ser pagos a qualquer momento via PIX avulso.
+  - **Suporte a Abatimento Parcial**: Se o valor aprovado for R$ 600,00 e for pago R$ 350,00, o sistema registra a baixa parcial e mantém R$ 250,00 pendentes até a quitação total.
+
+### 3.5 Sigilo Financeiro & Emissão de Tickets Bilaterais
+- **Valores Monetários em R$ (Exclusividade Daniel e Patrícia)**:
+  - **Ninguém além de Daniel Lopes e Patrícia Grubel visualiza valores em R$**.
+- **Comprovante Operacional do Encarregado (Sem Valores)**:
+  - O remetente do ponto recebe no privado dele uma confirmação contendo apenas a lista de nomes e turnos (Integral/Meio/Chuva) e a quantidade de notas anexadas, garantindo sigilo absoluto dos números da empresa.
+- **Ticket Executivo para Patrícia e Daniel**:
+  - Ambos recebem no WhatsApp privado o resumo financeiro completo com valores em R$ detalhados e o link mágico para aprovação em 1 clique.
 
 ### 3.4 Terminal de IA (Dashboard)
 Dentro do painel web, você conta com um chat interno que executa as mesmas regras de inteligência artificial. Digite qualquer comando e o robô interpreta e organiza os lançamentos automaticamente.

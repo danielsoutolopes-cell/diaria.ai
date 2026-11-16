@@ -160,10 +160,23 @@ export default function AjudaPage() {
               Regras Especiais de Diárias de Campo:
             </span>
             <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-500">
+              <li><strong>Diária Variável por Canteiro</strong>: Suporte a valores diferentes para o mesmo funcionário (ex: R$ 220 no <em>Quase Tudo</em> e R$ 200 no <em>Jabaquara</em>).</li>
               <li><strong>Dia de Viagem</strong>: R$ 120,00 para os trabalhadores em trânsito; motorista que dirigiu recebe diária integral.</li>
               <li><strong>Dia de Chuva</strong>: R$ 120,00 quando as chuvas impedem a execução dos trabalhos.</li>
               <li><strong>Dia Parado</strong>: R$ 120,00 quando o condomínio não autoriza a entrada ou a portaria trava o acesso.</li>
               <li><em>(Todos esses valores podem ser editados na tela de Configurações)</em>.</li>
+            </ul>
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-slate-200/80">
+            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+              🔒 Sigilo Financeiro & Emissão de Tickets:
+            </span>
+            <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-600">
+              <li><strong>Valores Monetários</strong>: Visíveis EXCLUSIVAMENTE para <strong>Daniel Lopes</strong> e <strong>Patrícia Grubel</strong>.</li>
+              <li><strong>Sem Ruído no Grupo</strong>: O bot nunca responde nem posta nada no grupo de WhatsApp da obra.</li>
+              <li><strong>Ticket do Encarregado</strong>: Recebe no privado dele confirmação dos nomes e faltas, com <strong>ZERO valores em R$</strong>.</li>
+              <li><strong>Ticket Executivo</strong>: Patrícia e Daniel recebem o resumo financeiro completo com valores e link mágico de validação.</li>
             </ul>
           </div>
         </div>
@@ -213,8 +226,27 @@ export default function AjudaPage() {
       ),
     },
     {
+      id: 'reembolsos',
+      titulo: '6. Módulo de Reembolsos de Despesas (Alinhamento Patrícia x Joabson)',
+      icone: CreditCard,
+      descricao: 'Controle de notas de combustível, pedágio e materiais com liquidação parcial ou total',
+      conteudo: (
+        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <p>
+            O fluxo de reembolsos foi desenhado para manter o WhatsApp do Joabson totalmente despoluído e a tomada de decisão 100% nas mãos da Patrícia:
+          </p>
+          <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
+            <li><strong>Zero Mensagens para o Joabson</strong>: As fotos de notas enviadas no grupo são capturadas silenciosamente. O bot não manda mensagens nem tickets para o Joabson.</li>
+            <li><strong>Alinhamento Exclusivo da Patrícia</strong>: Somente a Patrícia Grubel conversa diretamente com o Joabson para definir se a despesa é elegível.</li>
+            <li><strong>Data Livre para Pagamento</strong>: Não depende da quinzena da folha. A Patrícia pode quitar via Pix em qualquer dia da semana.</li>
+            <li><strong>Baixa Parcial ou Total</strong>: Permite pagar frações do saldo (ex: reembolsar R$ 400 agora e R$ 200 depois). O sistema mantém a conta corrente do saldo aberta até a quitação integral.</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
       id: 'date-stamp',
-      titulo: '6. Auditoria Fotográfica & Date Stamp Indelével',
+      titulo: '7. Auditoria Fotográfica & Date Stamp Indelével',
       icone: Camera,
       descricao: 'Carimbo automático de data, hora de Brasília, clima e hash SHA-256 nas fotos de canteiro',
       conteudo: (
