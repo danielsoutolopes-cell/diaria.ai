@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, session, groups });
     }
 
-    if (action === 'desconectar') {
+    if (action === 'desconectar' || action === 'limpar-sessao') {
       const session = desconectarWhatsApp();
       return NextResponse.json({ success: true, session });
     }

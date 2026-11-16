@@ -37,6 +37,7 @@ declare global {
   var __baileysSocket: WASocket | null | undefined;
   var __baileysState: WhatsAppSessionState | undefined;
   var __baileysGroups: WhatsAppGroupItem[] | undefined;
+  var __baileysStarting: Promise<WhatsAppSessionState> | undefined;
 }
 
 if (!global.__baileysState) {
@@ -57,8 +58,47 @@ if (!global.__baileysGroups) {
 
 const logger = pino({ level: 'silent' });
 
-export async function iniciarOuObterBaileys(numeroPairing?: string): Promise<WhatsAppSessionState> {
-  // Se já está conectado, retorna
+/**
+ * Limpa completamente a sessão e reinicia do zero (clean state)
+ */
+export function limparSessaoLocal(): void {
+  console.log('[BAILEYS] Limpando sessão local e encerrando socket...');
+  if (global.__baileysSocket) {
+    try {
+      global.__baileysSocket.end(undefined);
+    } catch (e) {
+      // ignore
+    }
+    global.__baileysSocket = null;
+  }
+
+  if (fs.existsSync(AUTH_FOLDER)) {
+    try {
+      fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
+      console.log('[BAILEYS] Pasta .baileys_auth apagada com sucesso.');
+    } catch (e) {
+      console.error('[BAILEYS] Erro ao apagar .baileys_auth:', e);
+    }
+  }
+
+  global.__baileysState = {
+    status: 'DISCONNECTED',
+    qrCodeUrl: null,
+    qrCodeRaw: null,
+    pairingCode: null,
+    phoneNumber: null,
+    connectedAt: null,
+    lastSyncAt: new Date().toISOString(),
+  };
+  global.__baileysStarting = undefined;
+}
+
+export async function iniciarOuObterBaileys(numeroPairing?: string, forcarReinicio: boolean = false): Promise<WhatsAppSessionState> {
+  if (forcarReinicio) {
+    limparSessaoLocal();
+  }
+
+  // Se já está conectado, retorna estado
   if (global.__baileysSocket && global.__baileysState?.status === 'CONNECTED') {
     return global.__baileysState;
   }
@@ -70,7 +110,6 @@ export async function iniciarOuObterBaileys(numeroPairing?: string): Promise<Wha
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
   const { version } = await fetchLatestBaileysVersion();
 
-  // Fecha socket anterior se houver
   if (global.__baileysSocket) {
     try {
       global.__baileysSocket.end(undefined);
@@ -80,14 +119,20 @@ export async function iniciarOuObterBaileys(numeroPairing?: string): Promise<Wha
     global.__baileysSocket = null;
   }
 
+  console.log(`[BAILEYS] Inicializando socket com WhatsApp Web v${version.join('.')}`);
+
+  // Browser id reconhecido oficialmente pelo WhatsApp Web (evita rejeição de conexão)
   const sock = makeWASocket({
     version,
     logger,
     printQRInTerminal: false,
     auth: state,
-    browser: Browsers.macOS('Desktop'),
+    browser: Browsers.ubuntu('Chrome'),
     syncFullHistory: false,
     markOnlineOnConnect: true,
+    connectTimeoutMs: 60000,
+    defaultQueryTimeoutMs: 60000,
+    keepAliveIntervalMs: 25000,
   });
 
   global.__baileysSocket = sock;
@@ -106,8 +151,10 @@ export async function iniciarOuObterBaileys(numeroPairing?: string): Promise<Wha
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
+    // Atualização em tempo real do QR Code
     if (qr) {
       try {
+        console.log('[BAILEYS] Novo QR Code dinâmico recebido dos servidores do WhatsApp.');
         const qrUrl = await QRCode.toDataURL(qr, {
           margin: 2,
           width: 320,
@@ -119,7 +166,7 @@ export async function iniciarOuObterBaileys(numeroPairing?: string): Promise<Wha
           global.__baileysState.lastSyncAt = new Date().toISOString();
         }
       } catch (err) {
-        console.error('Erro ao renderizar QR Code do Baileys:', err);
+        console.error('[BAILEYS] Erro ao converter QR para base64:', err);
       }
     }
 
@@ -127,21 +174,19 @@ export async function iniciarOuObterBaileys(numeroPairing?: string): Promise<Wha
       const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
       
-      console.log(`[BAILEYS] Conexão encerrada. Motivo: ${statusCode}. Reconectar? ${shouldReconnect}`);
+      console.log(`[BAILEYS] Conexão fechada. Motivo: ${statusCode}. Reconectar: ${shouldReconnect}`);
 
       if (global.__baileysState) {
         global.__baileysState.status = 'DISCONNECTED';
-        global.__baileysState.qrCodeUrl = null;
-        global.__baileysState.pairingCode = null;
       }
 
       if (shouldReconnect) {
         setTimeout(() => {
           iniciarOuObterBaileys();
-        }, 5000);
+        }, 3000);
       }
     } else if (connection === 'open') {
-      console.log('[BAILEYS] Conectado com sucesso ao WhatsApp!');
+      console.log('[BAILEYS] Conexão estabelecida com sucesso!');
       const phone = sock.user?.id ? sock.user.id.split(':')[0] : 'Conectado';
       
       if (global.__baileysState) {
@@ -153,7 +198,6 @@ export async function iniciarOuObterBaileys(numeroPairing?: string): Promise<Wha
         global.__baileysState.lastSyncAt = new Date().toISOString();
       }
 
-      // Atualiza lista de grupos
       try {
         const groups = await sock.groupFetchAllParticipating();
         const listaGrupos: WhatsAppGroupItem[] = Object.values(groups).map((g) => ({
@@ -165,20 +209,19 @@ export async function iniciarOuObterBaileys(numeroPairing?: string): Promise<Wha
         }));
         global.__baileysGroups = listaGrupos;
       } catch (err) {
-        console.error('Erro ao buscar grupos do WhatsApp:', err);
+        console.error('[BAILEYS] Erro ao sincronizar grupos:', err);
       }
     }
   });
 
-  // Se solicitou Pairing Code (Código de 8 dígitos) e ainda não está registrado
+  // Pairing Code Oficial do WhatsApp (Código de 8 dígitos)
   if (numeroPairing && !sock.authState.creds.registered) {
     try {
       const cleanPhone = numeroPairing.replace(/\D/g, '');
-      // Aguarda 1.5s para o socket estar pronto
-      await new Promise((r) => setTimeout(r, 1500));
-      const code = await sock.requestPairingCode(cleanPhone);
+      // Aguarda 2 segundos para o WebSocket estar aberto com o WhatsApp
+      await new Promise((r) => setTimeout(r, 2000));
       
-      // Formata código no estilo ABCD-1234
+      const code = await sock.requestPairingCode(cleanPhone);
       const formatted = code ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
       
       if (global.__baileysState) {
@@ -186,9 +229,9 @@ export async function iniciarOuObterBaileys(numeroPairing?: string): Promise<Wha
         global.__baileysState.phoneNumber = cleanPhone;
         global.__baileysState.lastSyncAt = new Date().toISOString();
       }
-      console.log(`[BAILEYS] Pairing Code real gerado para ${cleanPhone}: ${formatted}`);
+      console.log(`[BAILEYS] Pairing Code emitido para ${cleanPhone}: ${formatted}`);
     } catch (err) {
-      console.error('[BAILEYS] Erro ao solicitar pairing code:', err);
+      console.error('[BAILEYS] Erro ao requisitar pairing code:', err);
     }
   }
 
@@ -208,11 +251,11 @@ export function getWhatsAppSession(): WhatsAppSessionState {
 }
 
 export async function gerarNovoQrCode(): Promise<WhatsAppSessionState> {
-  return await iniciarOuObterBaileys();
+  return await iniciarOuObterBaileys(undefined, true);
 }
 
 export async function gerarPairingCodePorTelefone(numeroTelefone: string): Promise<WhatsAppSessionState> {
-  return await iniciarOuObterBaileys(numeroTelefone);
+  return await iniciarOuObterBaileys(numeroTelefone, true);
 }
 
 export function simularConexaoSucesso(numeroTelefone: string = '5511978543369'): WhatsAppSessionState {
@@ -229,34 +272,8 @@ export function simularConexaoSucesso(numeroTelefone: string = '5511978543369'):
 }
 
 export function desconectarWhatsApp(): WhatsAppSessionState {
-  if (global.__baileysSocket) {
-    try {
-      global.__baileysSocket.logout();
-    } catch (e) {
-      // ignore
-    }
-    global.__baileysSocket = null;
-  }
-
-  // Limpa pasta auth
-  if (fs.existsSync(AUTH_FOLDER)) {
-    try {
-      fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
-    } catch (e) {
-      // ignore
-    }
-  }
-
-  global.__baileysState = {
-    status: 'DISCONNECTED',
-    qrCodeUrl: null,
-    qrCodeRaw: null,
-    pairingCode: null,
-    phoneNumber: null,
-    connectedAt: null,
-    lastSyncAt: new Date().toISOString(),
-  };
-  return global.__baileysState;
+  limparSessaoLocal();
+  return getWhatsAppSession();
 }
 
 export function getDiscoveredGroups(): WhatsAppGroupItem[] {
