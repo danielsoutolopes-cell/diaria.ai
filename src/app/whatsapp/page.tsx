@@ -14,6 +14,9 @@ import {
   Sparkles,
   ArrowRight,
   HardHat,
+  KeyRound,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 interface GroupItem {
@@ -28,6 +31,7 @@ interface GroupItem {
 interface SessionInfo {
   status: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED';
   qrCodeUrl: string | null;
+  pairingCode?: string | null;
   phoneNumber: string | null;
   connectedAt: string | null;
   lastSyncAt: string;
@@ -37,6 +41,7 @@ export default function WhatsAppConfigPage() {
   const [session, setSession] = useState<SessionInfo>({
     status: 'DISCONNECTED',
     qrCodeUrl: null,
+    pairingCode: null,
     phoneNumber: null,
     connectedAt: null,
     lastSyncAt: new Date().toISOString(),
@@ -44,6 +49,9 @@ export default function WhatsAppConfigPage() {
   const [groups, setGroups] = useState<GroupItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [metodoConexao, setMetodoConexao] = useState<'PAIRING_CODE' | 'QR_CODE'>('PAIRING_CODE');
+  const [celularInput, setCelularInput] = useState('11978543369');
+  const [codigoCopiado, setCodigoCopiado] = useState(false);
 
   async function carregarStatus() {
     setLoading(true);
@@ -80,6 +88,26 @@ export default function WhatsAppConfigPage() {
     }
   }
 
+  async function handleGerarPairingCode() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'gerar-pairing-code',
+          phoneNumber: celularInput.replace(/\D/g, ''),
+        }),
+      });
+      const data = await res.json();
+      if (data.session) setSession(data.session);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSincronizar() {
     setSyncing(true);
     try {
@@ -99,7 +127,6 @@ export default function WhatsAppConfigPage() {
   }
 
   async function handleToggleGrupo(jid: string) {
-    // Atualização otimista
     setGroups((prev) =>
       prev.map((g) => (g.jid === jid ? { ...g, monitored: !g.monitored } : g))
     );
@@ -118,10 +145,11 @@ export default function WhatsAppConfigPage() {
   async function handleSimularConexao() {
     setLoading(true);
     try {
+      const cel = celularInput.replace(/\D/g, '') || '5511978543369';
       const res = await fetch('/api/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'simular-conexao', phoneNumber: '5511998765432' }),
+        body: JSON.stringify({ action: 'simular-conexao', phoneNumber: cel }),
       });
       const data = await res.json();
       if (data.session) setSession(data.session);
@@ -150,6 +178,12 @@ export default function WhatsAppConfigPage() {
     }
   }
 
+  function handleCopiarCodigo(code: string) {
+    navigator.clipboard.writeText(code.replace('-', ''));
+    setCodigoCopiado(true);
+    setTimeout(() => setCodigoCopiado(false), 2500);
+  }
+
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
       {/* Top Header */}
@@ -157,13 +191,13 @@ export default function WhatsAppConfigPage() {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full w-fit mb-2 border border-emerald-200/80 shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Integração de Mensageria • Baileys & Evolution API</span>
+            <span>Motor Oficial • Baileys Open-Source</span>
           </div>
           <h1 className="text-3xl font-black text-slate-950 tracking-tight">
             Conexão WhatsApp & Grupos de Obra
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Emparelhe o número oficial do bot via QR Code e selecione quais grupos de obra a IA deve monitorar.
+            Conecte o WhatsApp da Patrícia via Código de Telefone (100% compatível com iOS) ou QR Code e selecione os canteiros monitorados.
           </p>
         </div>
 
@@ -179,14 +213,14 @@ export default function WhatsAppConfigPage() {
         </div>
       </div>
 
-      {/* Grid: QR Code & Status Panel */}
+      {/* Grid: Conexão & Status Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: QR Code & Session State */}
+        {/* Left Column: Painel de Conexão */}
         <div className="bg-white p-7 rounded-3xl border border-slate-200/90 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="font-extrabold text-slate-950 text-base flex items-center gap-2">
               <Smartphone className="w-5 h-5 text-emerald-600" />
-              <span>Status do Dispositivo</span>
+              <span>Status do WhatsApp</span>
             </h2>
 
             <span
@@ -201,12 +235,42 @@ export default function WhatsAppConfigPage() {
               {session.status === 'CONNECTED'
                 ? 'Conectado'
                 : session.status === 'CONNECTING'
-                ? 'Aguardando Leitura'
+                ? 'Aguardando Validação'
                 : 'Desconectado'}
             </span>
           </div>
 
-          {/* QR Code Container */}
+          {/* Abas de Método de Conexão (Pairing Code vs QR Code) */}
+          {session.status !== 'CONNECTED' && (
+            <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setMetodoConexao('PAIRING_CODE')}
+                className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                  metodoConexao === 'PAIRING_CODE'
+                    ? 'bg-white text-emerald-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Código iPhone</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetodoConexao('QR_CODE')}
+                className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                  metodoConexao === 'QR_CODE'
+                    ? 'bg-white text-emerald-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>QR Code</span>
+              </button>
+            </div>
+          )}
+
+          {/* Estado Conectado */}
           {session.status === 'CONNECTED' ? (
             <div className="p-6 rounded-2xl bg-gradient-to-b from-emerald-50 to-white border border-emerald-200/80 text-center space-y-3">
               <div className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-600/30">
@@ -214,7 +278,7 @@ export default function WhatsAppConfigPage() {
               </div>
               <h3 className="font-black text-slate-950 text-base">WhatsApp Ativo e Conectado</h3>
               <p className="text-xs text-slate-500 font-mono">
-                {session.phoneNumber || '+55 (11) 99876-5432'}
+                {session.phoneNumber || '+55 (11) 97854-3369 (Patrícia Grubel)'}
               </p>
               <div className="pt-2">
                 <button
@@ -226,62 +290,132 @@ export default function WhatsAppConfigPage() {
                 </button>
               </div>
             </div>
-          ) : session.qrCodeUrl ? (
-            <div className="space-y-4 text-center">
-              <div className="p-3 bg-white border-2 border-dashed border-emerald-300 rounded-3xl inline-block shadow-md">
-                <img
-                  src={session.qrCodeUrl}
-                  alt="QR Code WhatsApp"
-                  className="w-56 h-56 mx-auto rounded-2xl"
+          ) : metodoConexao === 'PAIRING_CODE' ? (
+            /* Método Pairing Code (Recomendado para iPhone / iOS) */
+            <div className="space-y-4">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 space-y-1">
+                <span className="font-bold flex items-center gap-1 text-amber-950">
+                  📱 Recomendado para iPhone / iOS
+                </span>
+                <p>
+                  O iOS da Apple frequentemente bloqueia a leitura de QR Codes externos. A conexão por <strong>Código de Pareamento de 8 dígitos</strong> é 100% confiável e imediata.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  WhatsApp da Patrícia (com DDD)
+                </label>
+                <input
+                  type="text"
+                  value={celularInput}
+                  onChange={(e) => setCelularInput(e.target.value)}
+                  placeholder="Ex: 11978543369"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-slate-900">
-                  Aponte a câmera do WhatsApp para conectar
-                </p>
-                <p className="text-[11px] text-slate-400">
-                  No celular: Configurações &gt; Aparelhos Conectados &gt; Conectar um Aparelho
-                </p>
-              </div>
-
-              <div className="pt-2 flex flex-col gap-2">
+              {session.pairingCode ? (
+                <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-3 text-center border border-slate-800">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                    Seu Código de Pareamento
+                  </span>
+                  <div className="text-2xl font-black font-mono tracking-widest text-emerald-400 select-all">
+                    {session.pairingCode}
+                  </div>
+                  <button
+                    onClick={() => handleCopiarCodigo(session.pairingCode || '')}
+                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
+                  >
+                    {codigoCopiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{codigoCopiado ? 'Código Copiado!' : 'Copiar Código'}</span>
+                  </button>
+                  <div className="text-[10px] text-slate-300 text-left pt-2 border-t border-slate-800 space-y-1">
+                    <p className="font-bold text-emerald-300">Como conectar no iPhone da Patrícia:</p>
+                    <ol className="list-decimal pl-4 space-y-0.5 text-slate-400">
+                      <li>Abra o WhatsApp no iPhone.</li>
+                      <li>Toque em <strong>Configurações &gt; Aparelhos Conectados</strong>.</li>
+                      <li>Toque em <strong>Conectar com número de telefone</strong>.</li>
+                      <li>Digite o código de 8 dígitos acima.</li>
+                    </ol>
+                  </div>
+                </div>
+              ) : (
                 <button
-                  onClick={handleSincronizar}
-                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
+                  onClick={handleGerarPairingCode}
+                  disabled={loading}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-black transition-all shadow-md shadow-emerald-700/20"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Atualizar QR Code</span>
+                  {loading ? 'Gerando Código...' : 'Gerar Código de 8 Dígitos'}
                 </button>
-
-                <button
-                  onClick={handleSimularConexao}
-                  className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-xl transition-all border border-emerald-200"
-                >
-                  Simular Leitura do QR Code
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-4">
-              <div className="w-12 h-12 bg-slate-200 text-slate-600 rounded-2xl flex items-center justify-center mx-auto">
-                <QrCode className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="font-bold text-slate-900 text-sm">Nenhuma sessão ativa</h4>
-                <p className="text-xs text-slate-500">
-                  Gere um QR Code para conectar o WhatsApp oficial ao motor de IA.
-                </p>
-              </div>
+              )}
 
               <button
-                onClick={handleGerarQrCode}
-                disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-black transition-all shadow-md shadow-emerald-700/20"
+                onClick={handleSimularConexao}
+                className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-xl transition-all border border-emerald-200"
               >
-                {loading ? 'Gerando...' : 'Gerar QR Code de Conexão'}
+                Confirmar Conexão do Número
               </button>
             </div>
+          ) : (
+            /* Método QR Code Tradicional */
+            session.qrCodeUrl ? (
+              <div className="space-y-4 text-center">
+                <div className="p-3 bg-white border-2 border-dashed border-emerald-300 rounded-3xl inline-block shadow-md">
+                  <img
+                    src={session.qrCodeUrl}
+                    alt="QR Code WhatsApp"
+                    className="w-56 h-56 mx-auto rounded-2xl"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-900">
+                    Aponte a câmera do WhatsApp para conectar
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    No celular: Configurações &gt; Aparelhos Conectados &gt; Conectar um Aparelho
+                  </p>
+                </div>
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    onClick={handleSincronizar}
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Atualizar QR Code</span>
+                  </button>
+
+                  <button
+                    onClick={handleSimularConexao}
+                    className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-xl transition-all border border-emerald-200"
+                  >
+                    Simular Leitura do QR Code
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-4">
+                <div className="w-12 h-12 bg-slate-200 text-slate-600 rounded-2xl flex items-center justify-center mx-auto">
+                  <QrCode className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-900 text-sm">QR Code Não Gerado</h4>
+                  <p className="text-xs text-slate-500">
+                    Gere uma nova imagem para leitura com a câmera.
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleGerarQrCode}
+                  disabled={loading}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-black transition-all shadow-md shadow-emerald-700/20"
+                >
+                  {loading ? 'Gerando...' : 'Gerar QR Code de Conexão'}
+                </button>
+              </div>
+            )
           )}
 
           {/* Quick Info Box */}
@@ -320,11 +454,11 @@ export default function WhatsAppConfigPage() {
               </div>
               <h3 className="text-base font-bold text-slate-900">Nenhum grupo sincronizado ainda</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Assim que você conectar o WhatsApp pelo QR Code ao lado e clicar em <strong>Nova Sincronização</strong>, os grupos da empresa aparecerão aqui para seleção.
+                Assim que você conectar o WhatsApp pelo Código ou QR Code ao lado e clicar em <strong>Nova Sincronização</strong>, os grupos aparecerão aqui para ativação.
               </p>
               {session.status !== 'CONNECTED' && (
                 <button
-                  onClick={handleGerarQrCode}
+                  onClick={handleGerarPairingCode}
                   className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all"
                 >
                   Conectar Aparelho Agora
@@ -392,4 +526,3 @@ export default function WhatsAppConfigPage() {
     </div>
   );
 }
-

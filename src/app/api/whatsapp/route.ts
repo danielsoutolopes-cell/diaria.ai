@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getWhatsAppSession,
   gerarNovoQrCode,
+  gerarPairingCodePorTelefone,
   getDiscoveredGroups,
   setDiscoveredGroups,
   toggleGroupMonitored,
@@ -49,6 +50,16 @@ export async function POST(req: NextRequest) {
     if (action === 'gerar-qrcode') {
       const novaSessao = await gerarNovoQrCode();
       return NextResponse.json({ success: true, session: novaSessao });
+    }
+
+    if (action === 'gerar-pairing-code') {
+      const cel = phoneNumber || '5511978543369';
+      const novaSessao = await gerarPairingCodePorTelefone(cel);
+      return NextResponse.json({
+        success: true,
+        message: 'Código de pareamento gerado com sucesso para o iPhone.',
+        session: novaSessao,
+      });
     }
 
     if (action === 'sincronizar') {

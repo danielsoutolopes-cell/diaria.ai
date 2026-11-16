@@ -4,6 +4,7 @@ export interface WhatsAppSessionState {
   status: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED';
   qrCodeUrl: string | null;
   qrCodeRaw: string | null;
+  pairingCode: string | null;
   phoneNumber: string | null;
   connectedAt: string | null;
   lastSyncAt: string;
@@ -18,11 +19,12 @@ export interface WhatsAppGroupItem {
   obraNome?: string;
 }
 
-// Estado em memória da sessão de WhatsApp (no Render ou Node server)
+// Estado em memória da sessão de WhatsApp
 let sessionState: WhatsAppSessionState = {
   status: 'DISCONNECTED',
   qrCodeUrl: null,
   qrCodeRaw: null,
+  pairingCode: null,
   phoneNumber: null,
   connectedAt: null,
   lastSyncAt: new Date().toISOString(),
@@ -31,9 +33,47 @@ let sessionState: WhatsAppSessionState = {
 // Lista de grupos detectados no aparelho da Patrícia / empresa
 let discoveredGroups: WhatsAppGroupItem[] = [];
 
+// Gerador de Pairing Code formatado (ex: 8543-3369 ou ABCD-EFGH)
+function formatPairingCode(seed?: string): string {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `${code.slice(0, 4)}-${code.slice(4)}`;
+}
+
 export async function gerarNovoQrCode(): Promise<WhatsAppSessionState> {
-  const pairingCode = `2@diaria-ai-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-  const qrDataUrl = await QRCode.toDataURL(pairingCode, {
+  const pairingCode = formatPairingCode();
+  const rawPayload = `2@diaria-ai-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+  
+  const qrDataUrl = await QRCode.toDataURL(rawPayload, {
+    margin: 2,
+    width: 320,
+    color: {
+      dark: '#022c22',
+      light: '#ffffff',
+    },
+  });
+
+  sessionState = {
+    status: 'CONNECTING',
+    qrCodeUrl: qrDataUrl,
+    qrCodeRaw: rawPayload,
+    pairingCode: pairingCode,
+    phoneNumber: null,
+    connectedAt: null,
+    lastSyncAt: new Date().toISOString(),
+  };
+
+  return sessionState;
+}
+
+export async function gerarPairingCodePorTelefone(numeroTelefone: string): Promise<WhatsAppSessionState> {
+  const cleanPhone = numeroTelefone.replace(/\D/g, '');
+  const pairingCode = formatPairingCode(cleanPhone);
+  
+  const qrDataUrl = await QRCode.toDataURL(`whatsapp://pair?phone=${cleanPhone}&code=${pairingCode}`, {
     margin: 2,
     width: 320,
     color: {
@@ -46,7 +86,8 @@ export async function gerarNovoQrCode(): Promise<WhatsAppSessionState> {
     status: 'CONNECTING',
     qrCodeUrl: qrDataUrl,
     qrCodeRaw: pairingCode,
-    phoneNumber: null,
+    pairingCode: pairingCode,
+    phoneNumber: cleanPhone,
     connectedAt: null,
     lastSyncAt: new Date().toISOString(),
   };
@@ -58,11 +99,12 @@ export function getWhatsAppSession(): WhatsAppSessionState {
   return sessionState;
 }
 
-export function simularConexaoSucesso(numeroTelefone: string = '5511998765432'): WhatsAppSessionState {
+export function simularConexaoSucesso(numeroTelefone: string = '5511978543369'): WhatsAppSessionState {
   sessionState = {
     status: 'CONNECTED',
     qrCodeUrl: null,
     qrCodeRaw: null,
+    pairingCode: null,
     phoneNumber: numeroTelefone,
     connectedAt: new Date().toISOString(),
     lastSyncAt: new Date().toISOString(),
@@ -75,6 +117,7 @@ export function desconectarWhatsApp(): WhatsAppSessionState {
     status: 'DISCONNECTED',
     qrCodeUrl: null,
     qrCodeRaw: null,
+    pairingCode: null,
     phoneNumber: null,
     connectedAt: null,
     lastSyncAt: new Date().toISOString(),
@@ -96,4 +139,3 @@ export function toggleGroupMonitored(jid: string): WhatsAppGroupItem[] {
   );
   return discoveredGroups;
 }
-
