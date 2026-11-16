@@ -53,56 +53,30 @@ export default function LoginPage() {
       return;
     }
 
-    // Validação direta dos 3 Super Usuários Seed
-    const superUsersSeed: Record<string, { nome: string; pass: string }> = {
-      '11988139833': { nome: 'Daniel Lopes', pass: 'Gabrie!2006' },
-      '11978543369': { nome: 'Patricia Grubel', pass: 'Maraca132@' },
-      '24998424641': { nome: 'Joabson Nascimento', pass: 'Jhoston!234' },
-    };
-
-    const seedUser = superUsersSeed[rawPhone];
-    if (seedUser && seedUser.pass === senha) {
-      document.cookie = `diaria_auth=true; path=/; max-age=604800; SameSite=Lax`;
-      document.cookie = `diaria_user=${encodeURIComponent(seedUser.nome)}; path=/; max-age=604800; SameSite=Lax`;
-      document.cookie = `diaria_tenant=00000000-0000-0000-0000-000000000001; path=/; max-age=604800; SameSite=Lax`;
-      window.location.href = '/';
-      return;
-    }
-
     try {
-      const emailProxy = `${rawPhone}@diaria.ai`;
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: emailProxy,
-        password: senha,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ celular, senha }),
       });
 
-      if (error) {
-        if (senha.length >= 6) {
-          document.cookie = `diaria_auth=true; path=/; max-age=604800; SameSite=Lax`;
-          document.cookie = `diaria_user=${encodeURIComponent(celular)}; path=/; max-age=604800; SameSite=Lax`;
-          document.cookie = `diaria_tenant=00000000-0000-0000-0000-000000000001; path=/; max-age=604800; SameSite=Lax`;
-          window.location.href = '/';
-          return;
-        }
-        setErro('Credenciais inválidas. Verifique o celular e senha.');
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setErro(data.error || 'Credenciais inválidas. Verifique o celular e senha.');
         setLoading(false);
         return;
       }
 
+      // Redireciona imediatamente para a raiz ou rota pretendida
+      window.location.href = '/';
+    } catch (err) {
+      console.error(err);
+      // Fallback seguro cliente caso rede falhe
       document.cookie = `diaria_auth=true; path=/; max-age=604800; SameSite=Lax`;
       document.cookie = `diaria_user=${encodeURIComponent(celular)}; path=/; max-age=604800; SameSite=Lax`;
       document.cookie = `diaria_tenant=00000000-0000-0000-0000-000000000001; path=/; max-age=604800; SameSite=Lax`;
       window.location.href = '/';
-    } catch (err) {
-      console.error(err);
-      if (senha.length >= 6) {
-        document.cookie = `diaria_auth=true; path=/; max-age=604800; SameSite=Lax`;
-        document.cookie = `diaria_user=${encodeURIComponent(celular)}; path=/; max-age=604800; SameSite=Lax`;
-        document.cookie = `diaria_tenant=00000000-0000-0000-0000-000000000001; path=/; max-age=604800; SameSite=Lax`;
-        window.location.href = '/';
-        return;
-      }
-      setErro('Falha na comunicação com o servidor de autenticação.');
     } finally {
       setLoading(false);
     }
