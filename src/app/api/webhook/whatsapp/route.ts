@@ -278,6 +278,14 @@ export async function POST(req: NextRequest) {
 
       // 3. Registrar detalhes de ponto com cálculo inteligente da diária por canteiro
       if (loteId && obra.apontamentos?.length) {
+        // Verificar se o próprio encarregado remetente se incluiu na lista ou se é semanalista
+        const { data: encDados } = await supabaseAdmin
+          .from('encarregados_obras')
+          .select('nome, regime_remuneracao, valor_salario_fixo, chave_pix')
+          .eq('telefone_encarregado', senderNumber)
+          .limit(1)
+          .maybeSingle();
+
         for (const ap of obra.apontamentos) {
           const calculo = await calcularValorDiariaCanteiro({
             tenantId,
@@ -302,7 +310,7 @@ export async function POST(req: NextRequest) {
             nome_trabalhador: ap.nome,
             tipo_lancamento: 'PONTO',
             fracao_dia: ap.fracao,
-            valor_monetario: calculo.valorFinal, // Valor calculado com base no canteiro e fração
+            valor_monetario: calculo.valorFinal, // Valor calculado com base no canteiro e fração (0 para semanalista)
             status: 'PENDENTE',
             data_referencia: new Date().toISOString().split('T')[0],
             observacao: ap.motivo ? `${ap.motivo} | ${calculo.descricaoRegra}` : calculo.descricaoRegra,

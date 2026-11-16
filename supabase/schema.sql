@@ -434,3 +434,15 @@ ALTER TABLE funcionarios_obra
 ADD COLUMN IF NOT EXISTS regime_remuneracao regime_remuneracao_enum NOT NULL DEFAULT 'DIARISTA',
 ADD COLUMN IF NOT EXISTS ciclo_pagamento ciclo_pagamento_enum NOT NULL DEFAULT 'QUINZENAL',
 ADD COLUMN IF NOT EXISTS valor_base_contratual NUMERIC(10, 2) DEFAULT 0.00;
+
+-- --------------------------------------------------------
+-- 12. VÍNCULO BIUNÍVOCO: ENCARREGADO <-> FUNCIONÁRIO (AUTORRECEPÇÃO DE SALÁRIO)
+-- --------------------------------------------------------
+ALTER TABLE encarregados_obras
+ADD COLUMN IF NOT EXISTS funcionario_id UUID REFERENCES funcionarios_obra(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS regime_remuneracao VARCHAR(50) DEFAULT 'SEMANALISTA',
+ADD COLUMN IF NOT EXISTS valor_salario_fixo NUMERIC(10, 2) DEFAULT 0.00,
+ADD COLUMN IF NOT EXISTS chave_pix VARCHAR(255);
+
+ALTER TABLE funcionarios_obra
+ADD COLUMN IF NOT EXISTS is_encarregado BOOLEAN NOT NULL DEFAULT FALSE;

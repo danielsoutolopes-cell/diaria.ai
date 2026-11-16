@@ -35,6 +35,7 @@ interface FuncionarioItem {
   telefone: string | null;
   obra_id: string | null;
   funcao: string | null;
+  is_encarregado?: boolean;
   regime_remuneracao?: 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA';
   ciclo_pagamento?: 'SEMANAL' | 'QUINZENAL';
   valor_base_contratual?: number;
@@ -66,6 +67,7 @@ export default function SetupPage() {
   const [apelidosFuncionario, setApelidosFuncionario] = useState('');
   const [telefoneFunc, setTelefoneFunc] = useState('');
   const [obraFuncId, setObraFuncId] = useState('');
+  const [isEncarregado, setIsEncarregado] = useState(false);
   const [regimeFunc, setRegimeFunc] = useState<'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA'>('DIARISTA');
   const [cicloFunc, setCicloFunc] = useState<'SEMANAL' | 'QUINZENAL'>('QUINZENAL');
   const [valorDiariaCustom, setValorDiariaCustom] = useState('');
@@ -199,11 +201,12 @@ export default function SetupPage() {
           chave_pix: chavePix.trim(),
           telefone: telefoneFunc.trim() || null,
           obra_id: obraFuncId || null,
+          is_encarregado: isEncarregado,
           regime_remuneracao: regimeFunc,
           ciclo_pagamento: cicloFunc,
           valor_base_contratual: valorFinal,
           valor_diaria: valorFinal,
-          funcao: regimeFunc === 'SEMANALISTA' ? 'ENCARREGADO' : 'OPERACIONAL',
+          funcao: isEncarregado || regimeFunc === 'SEMANALISTA' ? 'ENCARREGADO' : 'OPERACIONAL',
           apelidos: listaApelidos,
         }),
       });
@@ -339,6 +342,27 @@ export default function SetupPage() {
                 <p className="text-[11px] text-slate-400">
                   A IA usará esses apelidos para identificar este colaborador nas mensagens dos grupos.
                 </p>
+              </div>
+
+              {/* Flag Encarregado */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-800 block">Este colaborador é Encarregado de Obra?</span>
+                  <span className="text-[11px] text-slate-500">Ele lidera canteiros e pode enviar o ponto no WhatsApp</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isEncarregado}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsEncarregado(checked);
+                    if (checked && regimeFunc === 'DIARISTA') {
+                      setRegimeFunc('SEMANALISTA');
+                      setCicloFunc('SEMANAL');
+                    }
+                  }}
+                  className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

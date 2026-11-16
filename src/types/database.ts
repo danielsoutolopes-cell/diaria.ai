@@ -3,8 +3,8 @@ export type NivelPermissao = 'APONTAMENTO' | 'CONSULTA' | 'MASTER';
 export type TipoLancamento = 'PONTO' | 'VALE' | 'LIQUIDACAO';
 export type StatusLancamento = 'PENDENTE' | 'VALIDADO' | 'LIQUIDADO';
 export type StatusValidacao = 'PENDENTE' | 'VALIDADO';
-export type RegimeRemuneracao = 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA';
-export type CicloPagamento = 'SEMANAL' | 'QUINZENAL';
+export type RegimeRemuneracao = 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA' | 'MENSALISTA';
+export type CicloPagamento = 'SEMANAL' | 'QUINZENAL' | 'MENSAL';
 
 export interface ParametrosSistemaConfig {
   dia_viagem_padrao: number;
@@ -31,7 +31,8 @@ export interface FuncionarioObra {
   tenant_id: string;
   obra_id: string | null;
   nome_trabalhador: string;
-  funcao?: string;
+  funcao?: string; // Ex: 'ENCARREGADO', 'MESTRE', 'OPERACIONAL', 'PEDREIRO'
+  is_encarregado?: boolean; // Se ele próprio é quem envia o ponto e lidera o canteiro
   regime_remuneracao?: RegimeRemuneracao;
   ciclo_pagamento?: CicloPagamento;
   valor_base_contratual?: number;
@@ -49,6 +50,10 @@ export interface EncarregadoObra {
   telefone_encarregado: string;
   nome?: string | null;
   obra_id: string | null;
+  funcionario_id?: string | null; // Vínculo direto com o cadastro de pagamento
+  regime_remuneracao?: RegimeRemuneracao;
+  valor_salario_fixo?: number;
+  chave_pix?: string | null;
   nivel_permissao: NivelPermissao;
   ativo: boolean;
   created_at: string;
