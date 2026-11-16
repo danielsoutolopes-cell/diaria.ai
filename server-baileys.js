@@ -147,6 +147,64 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
     }
   });
 
+  // OUVINTE DE MENSAGENS EM TEMPO REAL:
+  // Captura mensagens enviadas em grupos monitorados, processa via Webhook e dispara os tickets privados
+  sock.ev.on('messages.upsert', async (m) => {
+    try {
+      const msg = m.messages?.[0];
+      if (!msg || !msg.message || msg.key.fromMe) return;
+
+      const remoteJid = msg.key.remoteJid || '';
+      const isGroup = remoteJid.endsWith('@g.us');
+      if (!isGroup) return;
+
+      // Verificar se o grupo está marcado como monitorado
+      const savedConfig = loadSavedGroupsConfig();
+      const isMonitored = savedConfig[remoteJid] !== undefined ? savedConfig[remoteJid] : false;
+      if (!isMonitored) return;
+
+      // Extrair texto da mensagem
+      const text =
+        msg.message.conversation ||
+        msg.message.extendedTextMessage?.text ||
+        msg.message.imageMessage?.caption ||
+        '';
+
+      console.log(`[BAILEYS-SERVICE] Mensagem recebida no grupo monitorado [${remoteJid}]:`, text);
+
+      // Enviar para o endpoint do Webhook do Ponto Patrícia para análise de IA e gravação no banco
+      const webhookPayload = {
+        data: {
+          key: msg.key,
+          message: msg.message,
+        },
+      };
+
+      const res = await fetch('http://localhost:3000/api/webhook/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(webhookPayload),
+      });
+
+      const data = await res.json();
+      console.log(`[BAILEYS-SERVICE] Retorno do Webhook:`, data.status);
+
+      // Disparar notificações no PRIVADO (nunca no grupo da obra)
+      if (data && data.whatsappNotifications && Array.isArray(data.whatsappNotifications)) {
+        for (const notif of data.whatsappNotifications) {
+          const rawTel = notif.telefone ? notif.telefone.replace(/\D/g, '') : '';
+          if (!rawTel) continue;
+          const targetJid = `${rawTel}@s.whatsapp.net`;
+
+          console.log(`[BAILEYS-SERVICE] Enviando Ticket Privado para ${notif.destinatario} (${targetJid}). Contém valores? ${notif.contemValores}`);
+          await sock.sendMessage(targetJid, { text: notif.mensagem });
+        }
+      }
+    } catch (err) {
+      console.error('[BAILEYS-SERVICE] Erro ao processar mensagem do grupo:', err);
+    }
+  });
+
   if (pairingPhone && !sock.authState.creds.registered) {
     const clean = pairingPhone.replace(/\D/g, '');
     setTimeout(async () => {
