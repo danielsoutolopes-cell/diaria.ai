@@ -5,6 +5,22 @@ const { default: makeWASocket, useMultiFileAuthState, Browsers, DisconnectReason
 const QRCode = require('qrcode');
 
 const AUTH_DIR = path.join(__dirname, '.baileys_service_auth');
+const GROUPS_CONFIG_FILE = path.join(__dirname, 'monitored_groups.json');
+
+function loadSavedGroupsConfig() {
+  try {
+    if (fs.existsSync(GROUPS_CONFIG_FILE)) {
+      return JSON.parse(fs.readFileSync(GROUPS_CONFIG_FILE, 'utf8'));
+    }
+  } catch(e) {}
+  return {};
+}
+
+function saveGroupsConfig(monitoredMap) {
+  try {
+    fs.writeFileSync(GROUPS_CONFIG_FILE, JSON.stringify(monitoredMap, null, 2), 'utf8');
+  } catch(e) {}
+}
 
 let state = {
   status: 'DISCONNECTED',
@@ -119,12 +135,13 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
 
       try {
         const resGroups = await sock.groupFetchAllParticipating();
+        const savedConfig = loadSavedGroupsConfig();
         groups = Object.values(resGroups).map(g => ({
           id: g.id,
           jid: g.id,
           name: g.subject,
           memberCount: g.participants?.length || 0,
-          monitored: true,
+          monitored: savedConfig[g.id] !== undefined ? savedConfig[g.id] : false,
         }));
       } catch(e) {}
     }
@@ -171,6 +188,10 @@ const server = http.createServer((req, res) => {
       const jid = parsed.jid;
       if (jid) {
         groups = groups.map(g => g.jid === jid ? { ...g, monitored: !g.monitored } : g);
+        const map = {};
+        groups.forEach(g => { map[g.jid] = g.monitored; });
+        saveGroupsConfig(map);
+        console.log(`[BAILEYS-SERVICE] Grupo ${jid} atualizado. Configuração salva em disco.`);
       }
       res.writeHead(200);
       res.end(JSON.stringify({ success: true, groups }));

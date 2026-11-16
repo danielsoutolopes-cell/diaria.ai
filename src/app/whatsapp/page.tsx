@@ -499,8 +499,14 @@ export default function WhatsAppConfigPage() {
               </p>
             </div>
 
-            <div className="text-xs text-emerald-700 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60">
-              {groups.filter((g) => g.monitored).length} grupos monitorados
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                ✓ Salvo automaticamente
+              </span>
+              <div className="text-xs text-emerald-700 font-bold bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200/60 shadow-sm flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                {groups.filter((g) => g.monitored).length} de {groups.length} monitorados
+              </div>
             </div>
           </div>
 
