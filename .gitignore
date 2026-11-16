@@ -34,3 +34,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+
+# Baileys session files (tokens & credentials)
+.baileys_auth/
+.baileys_service_auth/
+baileys_auth_info/

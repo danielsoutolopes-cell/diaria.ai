@@ -50,7 +50,8 @@ export default function WhatsAppConfigPage() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [metodoConexao, setMetodoConexao] = useState<'PAIRING_CODE' | 'QR_CODE'>('PAIRING_CODE');
-  const [celularInput, setCelularInput] = useState('11978543369');
+  const [aparelhoDestino, setAparelhoDestino] = useState<'ANDROID' | 'IOS'>('ANDROID');
+  const [celularInput, setCelularInput] = useState('11988139833');
   const [codigoCopiado, setCodigoCopiado] = useState(false);
 
   async function carregarStatus(silencioso = false) {
@@ -82,7 +83,7 @@ export default function WhatsAppConfigPage() {
       const res = await fetch('/api/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'gerar-qrcode' }),
+        body: JSON.stringify({ action: 'gerar-qrcode', targetOs: aparelhoDestino }),
       });
       const data = await res.json();
       if (data.session) setSession(data.session);
@@ -102,6 +103,7 @@ export default function WhatsAppConfigPage() {
         body: JSON.stringify({
           action: 'gerar-pairing-code',
           phoneNumber: celularInput.replace(/\D/g, ''),
+          targetOs: aparelhoDestino,
         }),
       });
       const data = await res.json();
@@ -245,6 +247,41 @@ export default function WhatsAppConfigPage() {
             </span>
           </div>
 
+          {/* Seleção do Sistema Operacional (Android vs iOS) */}
+          {session.status !== 'CONNECTED' && (
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold text-slate-700 block">
+                Escolha o aparelho a ser conectado:
+              </span>
+              <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl text-xs font-bold gap-1">
+                <button
+                  type="button"
+                  onClick={() => setAparelhoDestino('ANDROID')}
+                  className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    aparelhoDestino === 'ANDROID'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Android (Daniel)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAparelhoDestino('IOS')}
+                  className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                    aparelhoDestino === 'IOS'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>iPhone / iOS (Patrícia)</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Abas de Método de Conexão (Pairing Code vs QR Code) */}
           {session.status !== 'CONNECTED' && (
             <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl text-xs font-bold">
@@ -258,7 +295,7 @@ export default function WhatsAppConfigPage() {
                 }`}
               >
                 <KeyRound className="w-3.5 h-3.5" />
-                <span>Código iPhone</span>
+                <span>Código de 8 Dígitos</span>
               </button>
               <button
                 type="button"
@@ -270,7 +307,7 @@ export default function WhatsAppConfigPage() {
                 }`}
               >
                 <QrCode className="w-3.5 h-3.5" />
-                <span>QR Code</span>
+                <span>QR Code Câmera</span>
               </button>
             </div>
           )}
