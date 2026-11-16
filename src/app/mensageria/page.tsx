@@ -154,6 +154,7 @@ export default function MensageriaPage() {
     usuarioAtual.toLowerCase().includes('patr') ||
     usuarioAtual.toLowerCase().includes('daniel') ||
     usuarioAtual.includes('11978543369') ||
+    usuarioAtual.includes('11988139833') ||
     usuarioAtual.includes('11913192703');
 
   if (!isDanielOrPatricia) {
@@ -232,6 +233,7 @@ export default function MensageriaPage() {
     usuarioAtual.toLowerCase().includes('patr') ||
     usuarioAtual.toLowerCase().includes('daniel') ||
     usuarioAtual.includes('11978543369') ||
+    usuarioAtual.includes('11988139833') ||
     usuarioAtual.includes('11913192703');
 
   if (!isDanielOrPatricia) {

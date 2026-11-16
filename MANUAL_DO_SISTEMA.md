@@ -164,7 +164,7 @@ Na aba **Mensageria & Pedidos IA** (`/mensageria`):
    - Assim que o escopo fica claro, a IA compila um **Prompt Técnico Estruturado** detalhando requisitos, rotas, tipos TypeScript e componentes a serem alterados.
    - O prompt fica disponível na tela com botão de **"Copiar Prompt para a IDE"**.
 3. **Notificação ao Desenvolvedor (Daniel Lopes)**:
-   - Um alerta é disparado automaticamente para o WhatsApp pessoal de **Daniel Lopes** (`5511913192703`) com o resumo da solicitação e o link direto para acesso.
+   - Um alerta é disparado automaticamente para o WhatsApp pessoal de **Daniel Lopes** (`5511988139833`) com o resumo da solicitação e o link direto para acesso.
 4. **Fechamento do Pedido pelo Desenvolvedor**:
    - Daniel abre o pedido, cola o prompt no Antigravity/Cursor para implementação e clica em **"Fechar Pedido"** após a entrega, registrando a data e o responsável pela conclusão.
 

@@ -126,7 +126,7 @@ Nova mensagem da Patrícia:
 
       notificacaoDaniel = {
         destinatario: 'Daniel Lopes',
-        telefone: '5511913192703',
+        telefone: '5511988139833',
         texto: `🔔 *NOVA SOLICITAÇÃO DE FEATURE / RELATÓRIO*\n` +
           `*Ponto Patrícia (Diária.AI)*\n` +
           `--------------------------------------\n` +
@@ -138,7 +138,7 @@ Nova mensagem da Patrícia:
           `_Acesse para copiar o prompt e fechar o pedido após implantar na IDE._`,
       };
 
-      console.log(`[MENSAGERIA]: Notificação enviada para Daniel Lopes (5511913192703).`);
+      console.log(`[MENSAGERIA]: Notificação enviada para Daniel Lopes (5511988139833).`);
     }
 
     return NextResponse.json({

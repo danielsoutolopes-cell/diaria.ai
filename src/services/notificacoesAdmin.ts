@@ -15,7 +15,7 @@ export const ADMINISTRADORES_PADRAO: DestinatarioAviso[] = [
   },
   {
     nome: 'Daniel Lopes',
-    telefone: '5511913192703',
+    telefone: '5511988139833',
     papel: 'Super Admin Global',
   },
 ];

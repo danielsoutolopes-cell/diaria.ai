@@ -284,7 +284,7 @@ export default function AjudaPage() {
           <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
             <li><strong>Chat Inteligente com Gemini</strong>: A IA conversa, faz perguntas de alinhamento (quais colunas, filtros, periodicidade) até entender perfeitamente a necessidade.</li>
             <li><strong>Geração do Prompt para a IDE</strong>: Assim que tudo é alinhado, o sistema sintetiza um prompt técnico de engenharia de software pronto para copiar em 1 clique.</li>
-            <li><strong>Aviso no WhatsApp do Daniel Lopes</strong>: Um alerta com o link direto da solicitação é enviado para o Daniel Lopes (5511913192703) para execução na IDE.</li>
+            <li><strong>Aviso no WhatsApp do Daniel Lopes</strong>: Um alerta com o link direto da solicitação é enviado para o Daniel Lopes (5511988139833) para execução na IDE.</li>
             <li><strong>Fechamento do Pedido</strong>: Daniel acessa a tela, copia o prompt para o ambiente de desenvolvimento e clica em <strong>&quot;Fechar Pedido&quot;</strong> assim que a entrega for concluída.</li>
           </ul>
         </div>

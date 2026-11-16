@@ -55,7 +55,7 @@ export default function LoginPage() {
 
     // Validação direta dos 3 Super Usuários Seed
     const superUsersSeed: Record<string, { nome: string; pass: string }> = {
-      '11913192703': { nome: 'Daniel Lopes', pass: 'Gabrie!2006' },
+      '11988139833': { nome: 'Daniel Lopes', pass: 'Gabrie!2006' },
       '11978543369': { nome: 'Patricia Grubel', pass: 'Maraca132@' },
       '24998424641': { nome: 'Joabson Nascimento', pass: 'Jhoston!234' },
     };

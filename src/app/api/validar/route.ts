@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
       notificacaoDuplicada: {
         enviadoPara: [
           { nome: 'Patrícia Grubel', telefone: '5511978543369' },
-          { nome: 'Daniel Lopes', telefone: '5511913192703' },
+          { nome: 'Daniel Lopes', telefone: '5511988139833' },
         ],
         aviso: 'Lote aprovado e disponibilizado para liquidação no Borderô.',
       },

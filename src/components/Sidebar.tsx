@@ -115,6 +115,7 @@ export default function Sidebar() {
     currentUser.toLowerCase().includes('patr') ||
     currentUser.toLowerCase().includes('daniel') ||
     currentUser.includes('11978543369') ||
+    currentUser.includes('11988139833') ||
     currentUser.includes('11913192703');
 
   const visibleNavItems = navItems.filter((item) => {

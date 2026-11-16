@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         },
         {
           destinatario: 'Daniel Lopes',
-          telefone: '5511913192703',
+          telefone: '5511988139833',
           mensagem: `💰 *Fechamento Financeiro Liquidado!*\n${lancamentosIds.length} lançamento(s) baixado(s) com sucesso na folha de hoje.`,
         },
       ],

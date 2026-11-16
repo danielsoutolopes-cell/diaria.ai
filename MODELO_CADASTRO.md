@@ -102,9 +102,9 @@ Obra Principal: QUASE TUDO
 
 FUNCIONÁRIO 6:
 Nome Completo: Daniel Lopes
-Chave PIX: 11913192703
+Chave PIX: 11988139833
 Apelidos do WhatsApp: Daniel, Dani, Daniel lopes
-WhatsApp / Cel: 11913192703
+WhatsApp / Cel: 11988139833
 Diária Customizada: 150
 Obra Principal: Equipe Volante / Todas as Obras
 ```

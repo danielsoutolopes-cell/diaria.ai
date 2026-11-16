@@ -28,7 +28,7 @@
   - **Dia Parado**: R$ 120,00 quando o condomínio barra o acesso à obra ou há impedimento por terceiros.
   - **Configurável**: Todos os valores são gerenciáveis dinamicamente pela Administradora na tela de Configurações (`/configuracoes`) via tabela `parametros_sistema`.
 - **Notificações Espelhadas (Patrícia Grubel & Daniel Lopes)**:
-  - Todo alerta de novo apontamento, lote pendente, aprovação e fechamento é duplicado simultaneamente para o WhatsApp da Patrícia (`5511978543369`) e do Daniel (`5511913192703`).
+  - Todo alerta de novo apontamento, lote pendente, aprovação e fechamento é duplicado simultaneamente para o WhatsApp da Patrícia (`5511978543369`) e do Daniel (`5511988139833`).
 - **Regra Central de Negócio - Human-in-the-Loop & Gestão de Vales**:
   - Toda decisão de abatimento financeiro é 100% humana.
   - Vales registrados no canteiro **não são abatidos compulsoriamente**. Na tela de Borderô, a Administradora (Patrícia Grubel) tem total liberdade para marcar ou desmarcar cada vale.
@@ -51,7 +51,7 @@
   - Implementado chat interativo no frontend (`src/app/mensageria/page.tsx`) com a IA Gemini (`gemini-3.5-flash-lite`).
   - A IA atua como arquiteto de software, alinhando necessidades com Patrícia Grubel e gerando automaticamente um **Prompt Técnico para a IDE**.
   - O prompt conta com botão de cópia de 1 clique (`Copiar Prompt para a IDE`).
-  - Alerta automático enviado para o WhatsApp de Daniel Lopes (`5511913192703`) com o resumo e link da solicitação.
+  - Alerta automático enviado para o WhatsApp de Daniel Lopes (`5511988139833`) com o resumo e link da solicitação.
   - Implementada a ação de **"Fechar Pedido"** para Daniel Lopes concluir e arquivar as demandas entregues.
   - Armazenamento resiliente e persistente implementado em `src/services/mensageriaStorage.ts` via chaves de metadados no Supabase.
 - **Rastreabilidade e Carimbo Pericial de Apontamentos (TimeStamp & SHA-256)**:
