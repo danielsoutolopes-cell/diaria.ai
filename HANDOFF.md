@@ -1,11 +1,12 @@
 # Diário de Bordo & Transição de Contexto (HANDOFF.md)
 
 ## Estado Atual
-- **Motor Oficial WhatsApp (Baileys Open-Source)**:
+- **Motor Oficial WhatsApp (Baileys Open-Source & Instância Render)**:
   - O sistema opera exclusivamente sob a biblioteca open-source **Baileys** para conexão e automação do WhatsApp.
   - Vantagens arquiteturais: isenção de custos por mensagem (zero taxas da Meta/Cloud API) e suporte nativo a leitura/envio em grupos fechados de canteiro (`@g.us`).
   - O webhook (`src/app/api/webhook/whatsapp/route.ts`) extrai dados periciais nativos do Baileys (`data.key.id`, `data.key.remoteJid`, `data.key.participant`) e mídias de comprovantes (`data.message.imageMessage`).
-  - Emparelhamento por QR Code direto implementado em `src/lib/whatsapp.ts` e exposto na interface `/whatsapp`.
+  - **Instância Dedicada no Render**: Daniel Lopes já possui uma instância dedicada do Baileys/Evolution API ativa no Render (`https://diaria-ai.onrender.com`), garantindo estabilidade e persistência de sessão.
+  - **Emparelhamento Nativo via Pairing Code (8 Dígitos)**: Suporte completo para conexão direta por código de telefone (`gerarPairingCodePorTelefone`), resolvendo definitivamente rejeições de QR Code no iOS (iPhone).
 - **Prevenção de Conflito Multi-Admin (Patrícia Grubel & Daniel Lopes)**:
   - Como agora ambos os administradores recebem notificações do sistema, foi implementada a trava de confirmação prévia:
   - Se um lote ou lançamento financeiro já foi confirmado ou validado por um dos gestores, qualquer tentativa de revalidação ou reedição exibe o diálogo de guarda:
