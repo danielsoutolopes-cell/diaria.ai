@@ -15,6 +15,9 @@ export async function GET() {
         obra_id,
         funcao,
         valor_diaria,
+        regime_remuneracao,
+        ciclo_pagamento,
+        valor_base_contratual,
         ativo,
         obras_config (
           nome
@@ -43,6 +46,9 @@ export async function POST(req: NextRequest) {
       telefone,
       obra_id,
       valor_diaria,
+      regime_remuneracao = 'DIARISTA',
+      ciclo_pagamento = 'QUINZENAL',
+      valor_base_contratual,
       funcao = 'OPERACIONAL',
       apelidos,
       tenant_id = '00000000-0000-0000-0000-000000000001',
@@ -59,6 +65,9 @@ export async function POST(req: NextRequest) {
       telefone: telefone ? String(telefone).trim() : null,
       obra_id: obra_id || null,
       valor_diaria: Number(valor_diaria) || 150,
+      regime_remuneracao,
+      ciclo_pagamento,
+      valor_base_contratual: Number(valor_base_contratual || valor_diaria || 0),
       funcao: funcao || 'OPERACIONAL',
       ativo: true,
     };
@@ -74,6 +83,9 @@ export async function POST(req: NextRequest) {
         obra_id,
         funcao,
         valor_diaria,
+        regime_remuneracao,
+        ciclo_pagamento,
+        valor_base_contratual,
         ativo,
         obras_config (
           nome

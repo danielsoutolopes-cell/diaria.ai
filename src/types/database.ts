@@ -3,6 +3,8 @@ export type NivelPermissao = 'APONTAMENTO' | 'CONSULTA' | 'MASTER';
 export type TipoLancamento = 'PONTO' | 'VALE' | 'LIQUIDACAO';
 export type StatusLancamento = 'PENDENTE' | 'VALIDADO' | 'LIQUIDADO';
 export type StatusValidacao = 'PENDENTE' | 'VALIDADO';
+export type RegimeRemuneracao = 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA';
+export type CicloPagamento = 'SEMANAL' | 'QUINZENAL';
 
 export interface ParametrosSistemaConfig {
   dia_viagem_padrao: number;
@@ -30,7 +32,10 @@ export interface FuncionarioObra {
   obra_id: string | null;
   nome_trabalhador: string;
   funcao?: string;
-  valor_diaria: number;
+  regime_remuneracao?: RegimeRemuneracao;
+  ciclo_pagamento?: CicloPagamento;
+  valor_base_contratual?: number;
+  valor_diaria: number; // mantido para compatibilidade
   chave_pix?: string | null;
   telefone?: string | null;
   ativo: boolean;

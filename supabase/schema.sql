@@ -414,3 +414,23 @@ CREATE POLICY "Tenant isolation for pagamentos_reembolso" ON pagamentos_reembols
         OR auth.role() = 'service_role'
         OR auth.uid() IS NOT NULL
     );
+
+-- --------------------------------------------------------
+-- 11. REGIME DE REMUNERAÇÃO MULTI-CICLO (DIARISTA, SEMANALISTA, QUINZENALISTA)
+-- --------------------------------------------------------
+DO $$ BEGIN
+    CREATE TYPE regime_remuneracao_enum AS ENUM ('DIARISTA', 'SEMANALISTA', 'QUINZENALISTA');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE ciclo_pagamento_enum AS ENUM ('SEMANAL', 'QUINZENAL');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+ALTER TABLE funcionarios_obra 
+ADD COLUMN IF NOT EXISTS regime_remuneracao regime_remuneracao_enum NOT NULL DEFAULT 'DIARISTA',
+ADD COLUMN IF NOT EXISTS ciclo_pagamento ciclo_pagamento_enum NOT NULL DEFAULT 'QUINZENAL',
+ADD COLUMN IF NOT EXISTS valor_base_contratual NUMERIC(10, 2) DEFAULT 0.00;

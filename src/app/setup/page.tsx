@@ -35,6 +35,9 @@ interface FuncionarioItem {
   telefone: string | null;
   obra_id: string | null;
   funcao: string | null;
+  regime_remuneracao?: 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA';
+  ciclo_pagamento?: 'SEMANAL' | 'QUINZENAL';
+  valor_base_contratual?: number;
   valor_diaria: number;
   ativo: boolean;
   obras_config?: { nome: string } | null;
@@ -63,6 +66,8 @@ export default function SetupPage() {
   const [apelidosFuncionario, setApelidosFuncionario] = useState('');
   const [telefoneFunc, setTelefoneFunc] = useState('');
   const [obraFuncId, setObraFuncId] = useState('');
+  const [regimeFunc, setRegimeFunc] = useState<'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA'>('DIARISTA');
+  const [cicloFunc, setCicloFunc] = useState<'SEMANAL' | 'QUINZENAL'>('QUINZENAL');
   const [valorDiariaCustom, setValorDiariaCustom] = useState('');
   const [salvoFunc, setSalvoFunc] = useState(false);
 
@@ -194,8 +199,11 @@ export default function SetupPage() {
           chave_pix: chavePix.trim(),
           telefone: telefoneFunc.trim() || null,
           obra_id: obraFuncId || null,
+          regime_remuneracao: regimeFunc,
+          ciclo_pagamento: cicloFunc,
+          valor_base_contratual: valorFinal,
           valor_diaria: valorFinal,
-          funcao: 'OPERACIONAL',
+          funcao: regimeFunc === 'SEMANALISTA' ? 'ENCARREGADO' : 'OPERACIONAL',
           apelidos: listaApelidos,
         }),
       });
@@ -335,6 +343,38 @@ export default function SetupPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Regime de Pagamento</label>
+                  <select
+                    value={regimeFunc}
+                    onChange={(e: any) => {
+                      const reg = e.target.value;
+                      setRegimeFunc(reg);
+                      if (reg === 'SEMANALISTA') setCicloFunc('SEMANAL');
+                      if (reg === 'QUINZENALISTA') setCicloFunc('QUINZENAL');
+                    }}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-bold focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                  >
+                    <option value="DIARISTA">Diarista (Por Dia)</option>
+                    <option value="SEMANALISTA">Semanalista Fixo (Encarregado)</option>
+                    <option value="QUINZENALISTA">Quinzenalista Fixo</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Ciclo do Fechamento</label>
+                  <select
+                    value={cicloFunc}
+                    onChange={(e: any) => setCicloFunc(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-bold focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                  >
+                    <option value="SEMANAL">Toda Sexta (Semanal)</option>
+                    <option value="QUINZENAL">Quinzenal (15 Dias)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700">WhatsApp / Cel</label>
                   <input
                     type="text"
@@ -346,14 +386,16 @@ export default function SetupPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Diária (R$)</label>
+                  <label className="text-xs font-bold text-slate-700">
+                    {regimeFunc === 'SEMANALISTA' ? 'Fixo Semanal (R$)' : regimeFunc === 'QUINZENALISTA' ? 'Fixo Quinzena (R$)' : 'Diária (R$)'}
+                  </label>
                   <input
                     type="number"
                     step="5"
-                    placeholder="Ex: 150"
+                    placeholder={regimeFunc === 'SEMANALISTA' ? 'Ex: 1500' : 'Ex: 150'}
                     value={valorDiariaCustom}
                     onChange={(e) => setValorDiariaCustom(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-bold focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
                   />
                 </div>
               </div>
@@ -431,12 +473,26 @@ export default function SetupPage() {
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-black text-sm text-slate-950">{f.nome_trabalhador}</h3>
-                        <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-0.5">
-                          {f.obras_config?.nome || 'Equipe Volante'}
-                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block">
+                            {f.obras_config?.nome || 'Equipe Volante'}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            f.regime_remuneracao === 'SEMANALISTA' 
+                              ? 'bg-purple-100 text-purple-800 border border-purple-200' 
+                              : f.regime_remuneracao === 'QUINZENALISTA'
+                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {f.regime_remuneracao === 'SEMANALISTA' ? 'Semanalista Fixo' : f.regime_remuneracao === 'QUINZENALISTA' ? 'Quinzenalista Fixo' : 'Diarista'}
+                          </span>
+                        </div>
                       </div>
                       <span className="text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl">
-                        R$ {Number(f.valor_diaria).toFixed(2)}
+                        R$ {Number(f.valor_base_contratual || f.valor_diaria).toFixed(2)}
+                        <span className="text-[10px] text-slate-500 font-normal block text-right">
+                          {f.regime_remuneracao === 'SEMANALISTA' ? '/sem' : f.regime_remuneracao === 'QUINZENALISTA' ? '/quinz' : '/dia'}
+                        </span>
                       </span>
                     </div>
 

@@ -110,25 +110,40 @@ export async function calcularValorDiariaCanteiro(params: CalculoDiariaParams): 
     }
   }
 
-  // 4. Prioridade 3: Valor Global do Trabalhador
+  // 4. Prioridade 3: Valor Global do Trabalhador e Regime Contratual
   try {
     const { data: funcData } = await supabaseAdmin
       .from('funcionarios_obra')
-      .select('valor_diaria')
+      .select('valor_diaria, regime_remuneracao, valor_base_contratual')
       .eq('tenant_id', tenantId)
       .ilike('nome_trabalhador', `%${nomeTrabalhador}%`)
       .limit(1)
       .maybeSingle();
 
-    if (funcData?.valor_diaria && Number(funcData.valor_diaria) > 0) {
-      const base = Number(funcData.valor_diaria);
-      return {
-        valorUnitarioObra: base,
-        fracaoAplicada: fracao,
-        valorFinal: Number((base * (fracao || 1.0)).toFixed(2)),
-        origemValor: 'TRABALHADOR_GLOBAL',
-        descricaoRegra: `Diária padrão do trabalhador: R$ ${base.toFixed(2)}/dia`,
-      };
+    if (funcData) {
+      // Se for SEMANALISTA fixo:
+      // O ponto atesta presença no canteiro, mas seu valor financeiro diário não gera cobrança duplicada avulsa
+      if (funcData.regime_remuneracao === 'SEMANALISTA') {
+        const salarioSemana = Number(funcData.valor_base_contratual || 0);
+        return {
+          valorUnitarioObra: 0.0,
+          fracaoAplicada: fracao,
+          valorFinal: 0.0, // Não infla com diária diária, recebe salário semanal fixo no fechamento de sexta
+          origemValor: 'TRABALHADOR_GLOBAL',
+          descricaoRegra: `Encarregado Semanalista Fixo (R$ ${salarioSemana.toFixed(2)}/sem) - Ponto para auditoria de presença`,
+        };
+      }
+
+      if (funcData.valor_diaria && Number(funcData.valor_diaria) > 0) {
+        const base = Number(funcData.valor_diaria);
+        return {
+          valorUnitarioObra: base,
+          fracaoAplicada: fracao,
+          valorFinal: Number((base * (fracao || 1.0)).toFixed(2)),
+          origemValor: 'TRABALHADOR_GLOBAL',
+          descricaoRegra: `Diária padrão do trabalhador: R$ ${base.toFixed(2)}/dia`,
+        };
+      }
     }
   } catch (e) {
     console.warn('Aviso ao consultar funcionarios_obra:', e);

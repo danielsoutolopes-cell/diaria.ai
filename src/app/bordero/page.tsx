@@ -36,12 +36,16 @@ interface ExtratoFuncionario {
   obra: string;
   chavePix: string;
   diariaPadrao: number;
+  regimeRemuneracao?: 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA';
+  cicloPagamento?: 'SEMANAL' | 'QUINZENAL';
+  valorBaseContratual?: number;
   lancamentos: LinhaLancamento[];
 }
 
 export default function BorderoPage() {
   const [funcionarios, setFuncionarios] = useState<ExtratoFuncionario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cicloAtivo, setCicloAtivo] = useState<'SEMANAL' | 'QUINZENAL' | 'TODOS'>('TODOS');
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
   const [modalPix, setModalPix] = useState<{ nome: string; valor: number; payload: string; chave: string } | null>(null);
   const [liquidando, setLiquidando] = useState(false);
@@ -116,7 +120,14 @@ export default function BorderoPage() {
     const pontosMarcados = f.lancamentos.filter((l) => l.tipo === 'PONTO' && l.selecionado);
     const valesMarcados = f.lancamentos.filter((l) => l.tipo === 'VALE' && l.selecionado);
 
-    const totalBruto = pontosMarcados.reduce((acc, curr) => acc + curr.valor, 0);
+    // Se for Semanalista fixo e houver presença marcada na semana, o bruto é o valor fixo contratual
+    let totalBruto = pontosMarcados.reduce((acc, curr) => acc + curr.valor, 0);
+    if (f.regimeRemuneracao === 'SEMANALISTA' && (f.valorBaseContratual || 0) > 0) {
+      totalBruto = Number(f.valorBaseContratual);
+    } else if (f.regimeRemuneracao === 'QUINZENALISTA' && (f.valorBaseContratual || 0) > 0) {
+      totalBruto = Number(f.valorBaseContratual);
+    }
+
     const totalVales = valesMarcados.reduce((acc, curr) => acc + curr.valor, 0);
     const totalLiquido = Math.max(0, totalBruto - totalVales);
     const totalDiarias = pontosMarcados.reduce((acc, curr) => acc + curr.fracao, 0);
@@ -206,17 +217,44 @@ export default function BorderoPage() {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full w-fit mb-2 border border-amber-200/80 shadow-sm">
             <Calendar className="w-3.5 h-3.5 text-amber-600" />
-            <span>Fechamento Quinzenal • Rotina Semanal Sexta a Sexta</span>
+            <span>Fechamento Multi-Ciclo • Diaristas, Semanalistas e Quinzenalistas</span>
           </div>
           <h1 className="text-3xl font-black text-slate-950 tracking-tight">
             Borderô e Pagamento da Folha
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Consolidação semanal para o fechamento quinzenal sem acúmulo de papéis. Os vales desmarcados são preservados para a próxima quinzena.
+            Gestão integrada de mão de obra de campo: semanalistas recebem na sexta-feira e diaristas fecham conforme o ciclo.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Seletor de Ciclo de Fechamento */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/80">
+            <button
+              onClick={() => setCicloAtivo('TODOS')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                cicloAtivo === 'TODOS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Todos ({funcionarios.length})
+            </button>
+            <button
+              onClick={() => setCicloAtivo('SEMANAL')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                cicloAtivo === 'SEMANAL' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Toda Sexta / Semanal ({funcionarios.filter(f => f.cicloPagamento === 'SEMANAL' || f.regimeRemuneracao === 'SEMANALISTA').length})
+            </button>
+            <button
+              onClick={() => setCicloAtivo('QUINZENAL')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                cicloAtivo === 'QUINZENAL' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Quinzenal ({funcionarios.filter(f => f.cicloPagamento !== 'SEMANAL' && f.regimeRemuneracao !== 'SEMANALISTA').length})
+            </button>
+          </div>
           <button
             onClick={() => {
               const linhasExport: LinhaBorderoExport[] = funcionarios.map((f) => {
@@ -289,7 +327,13 @@ export default function BorderoPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {funcionarios.map((f) => {
+          {funcionarios
+            .filter((f) => {
+              if (cicloAtivo === 'TODOS') return true;
+              if (cicloAtivo === 'SEMANAL') return f.cicloPagamento === 'SEMANAL' || f.regimeRemuneracao === 'SEMANALISTA';
+              return f.cicloPagamento !== 'SEMANAL' && f.regimeRemuneracao !== 'SEMANALISTA';
+            })
+            .map((f) => {
             const totais = calcularTotais(f);
 
             return (
@@ -303,7 +347,16 @@ export default function BorderoPage() {
                       <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
                         {f.obra}
                       </span>
-                      <span className="text-xs text-slate-400">• Diária base: R$ {f.diariaPadrao.toFixed(2)}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        f.regimeRemuneracao === 'SEMANALISTA'
+                          ? 'bg-purple-500/30 text-purple-200 border border-purple-500/40'
+                          : 'bg-slate-800 text-slate-300'
+                      }`}>
+                        {f.regimeRemuneracao === 'SEMANALISTA' ? 'Semanalista Fixo (Toda Sexta)' : 'Diarista Produção'}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        • {f.regimeRemuneracao === 'SEMANALISTA' ? `Fixo Semanal: R$ ${(f.valorBaseContratual || 0).toFixed(2)}` : `Diária base: R$ ${f.diariaPadrao.toFixed(2)}`}
+                      </span>
                     </div>
                     <h3 className="text-xl font-black text-white tracking-tight">{f.nome}</h3>
                   </div>

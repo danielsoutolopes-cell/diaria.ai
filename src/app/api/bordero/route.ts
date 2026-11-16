@@ -77,6 +77,9 @@ export async function GET() {
         const obraNome = (l as any).obras_config?.nome || 'CANTEIRO VOLANTE';
         const chavePix = (l as any).funcionarios_obra?.chave_pix || 'Chave não informada';
         const diariaPadrao = Number((l as any).funcionarios_obra?.valor_diaria) || 150;
+        const regime = (l as any).funcionarios_obra?.regime_remuneracao || 'DIARISTA';
+        const ciclo = (l as any).funcionarios_obra?.ciclo_pagamento || 'QUINZENAL';
+        const valorBase = Number((l as any).funcionarios_obra?.valor_base_contratual) || diariaPadrao;
 
         gruposMap.set(nome, {
           id: `func-${nome.toLowerCase().replace(/\s+/g, '-')}`,
@@ -84,6 +87,9 @@ export async function GET() {
           obra: obraNome,
           chavePix: chavePix,
           diariaPadrao: diariaPadrao,
+          regimeRemuneracao: regime,
+          cicloPagamento: ciclo,
+          valorBaseContratual: valorBase,
           lancamentos: [],
         });
       }
