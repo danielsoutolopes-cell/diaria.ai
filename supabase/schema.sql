@@ -324,3 +324,93 @@ INSERT INTO encarregados_obras (
     ('00000000-0000-0000-0000-000000000001', '5524998424641', 'Joabson Nascimento', 'MASTER', TRUE)
 ON CONFLICT DO NOTHING;
 
+
+-- --------------------------------------------------------
+-- 9. TABELA DE DIÁRIAS VARIÁVEIS POR OBRA (trabalhador_obra_valores)
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS trabalhador_obra_valores (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    funcionario_id UUID REFERENCES funcionarios_obra(id) ON DELETE CASCADE,
+    nome_trabalhador VARCHAR(255) NOT NULL,
+    obra_id UUID REFERENCES obras_config(id) ON DELETE CASCADE,
+    nome_obra VARCHAR(255),
+    valor_diaria NUMERIC(10, 2) NOT NULL, -- Ex: 220.00 na Quase Tudo, 200.00 no Jabaquara
+    observacao TEXT,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE trabalhador_obra_valores ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant isolation for trabalhador_obra_valores" ON trabalhador_obra_valores
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
+
+-- --------------------------------------------------------
+-- 10. MÓDULO DE REEMBOLSOS (pedidos_reembolso & pagamentos_reembolso)
+-- --------------------------------------------------------
+DO $$ BEGIN
+    CREATE TYPE status_reembolso_enum AS ENUM ('PENDENTE_ANALISE', 'APROVADO', 'PAGO_PARCIAL', 'LIQUIDADO', 'RECUSADO');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS pedidos_reembolso (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    obra_id UUID REFERENCES obras_config(id) ON DELETE SET NULL,
+    nome_obra VARCHAR(255),
+    solicitante_nome VARCHAR(255) NOT NULL, -- Ex: Joabson
+    solicitante_telefone VARCHAR(50),
+    categoria VARCHAR(100) DEFAULT 'OUTROS', -- COMBUSTIVEL, MATERIAL, ALIMENTACAO, PEDAGIO
+    descricao TEXT,
+    valor_solicitado NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    valor_aprovado NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    valor_pago NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    saldo_pendente NUMERIC(10, 2) GENERATED ALWAYS AS (valor_aprovado - valor_pago) STORED,
+    status status_reembolso_enum NOT NULL DEFAULT 'PENDENTE_ANALISE',
+    comprovante_url TEXT,
+    motivo_recusa TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE pedidos_reembolso ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant isolation for pedidos_reembolso" ON pedidos_reembolso
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );
+
+-- Histórico de Abates / Pagamentos de Reembolso (Data Livre e Parcial)
+CREATE TABLE IF NOT EXISTS pagamentos_reembolso (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    reembolso_id UUID NOT NULL REFERENCES pedidos_reembolso(id) ON DELETE CASCADE,
+    valor_pago NUMERIC(10, 2) NOT NULL,
+    data_pagamento DATE NOT NULL DEFAULT CURRENT_DATE,
+    forma_pagamento VARCHAR(50) DEFAULT 'PIX',
+    comprovante_pix_url TEXT,
+    registrado_por VARCHAR(100) NOT NULL DEFAULT 'PATRICIA',
+    observacao TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE pagamentos_reembolso ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant isolation for pagamentos_reembolso" ON pagamentos_reembolso
+    FOR ALL
+    USING (
+        tenant_id = get_current_tenant_id()
+        OR auth.role() = 'service_role'
+        OR auth.uid() IS NOT NULL
+    );

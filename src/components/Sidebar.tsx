@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Shield,
   MessageSquare,
+  Receipt,
 } from 'lucide-react';
 
 const navItems = [
@@ -33,6 +34,13 @@ const navItems = [
     icon: CalendarCheck2,
     badge: null,
     badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  },
+  {
+    name: 'Reembolsos & Caixa Campo',
+    href: '/reembolsos',
+    icon: Receipt,
+    badge: 'Despesas',
+    badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
   },
   {
     name: 'Lançamentos em Lote (Setup)',

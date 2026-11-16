@@ -142,3 +142,52 @@ export interface NLPExtracaoResponse {
   obras: NLPObraExtracao[];
 }
 
+
+export interface TrabalhadorObraValor {
+  id: string;
+  tenant_id: string;
+  funcionario_id?: string | null;
+  nome_trabalhador: string;
+  obra_id?: string | null;
+  nome_obra?: string | null;
+  valor_diaria: number;
+  observacao?: string | null;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type StatusReembolso = 'PENDENTE_ANALISE' | 'APROVADO' | 'PAGO_PARCIAL' | 'LIQUIDADO' | 'RECUSADO';
+
+export interface PedidoReembolso {
+  id: string;
+  tenant_id: string;
+  obra_id?: string | null;
+  nome_obra?: string | null;
+  solicitante_nome: string;
+  solicitante_telefone?: string | null;
+  categoria: 'COMBUSTIVEL' | 'MATERIAL' | 'ALIMENTACAO' | 'PEDAGIO' | 'OUTROS';
+  descricao?: string | null;
+  valor_solicitado: number;
+  valor_aprovado: number;
+  valor_pago: number;
+  saldo_pendente: number;
+  status: StatusReembolso;
+  comprovante_url?: string | null;
+  motivo_recusa?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PagamentoReembolso {
+  id: string;
+  tenant_id: string;
+  reembolso_id: string;
+  valor_pago: number;
+  data_pagamento: string;
+  forma_pagamento: string;
+  comprovante_pix_url?: string | null;
+  registrado_por: string;
+  observacao?: string | null;
+  created_at: string;
+}

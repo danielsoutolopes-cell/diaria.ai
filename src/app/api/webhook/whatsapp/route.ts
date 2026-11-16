@@ -6,6 +6,7 @@ import {
   formatarTicketEncarregado,
   formatarTicketFinanceiroAdministracao,
 } from '@/services/notificacoesAdmin';
+import { calcularValorDiariaCanteiro } from '@/services/calculoDiarias';
 import crypto from 'crypto';
 
 // Mutex em memória para evitar concorrência e mensagens duplicadas do WhatsApp
@@ -108,12 +109,114 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Processamento via Gemini AI (Extração Multi-Contexto)
+    const tenantId = '00000000-0000-0000-0000-000000000001'; // Default tenant
+
+    // Verificação de Intenção de Reembolso / Despesa de Campo (Combustível, Material, Alimentação, Pedágio)
+    const textLower = (messageText || '').toLowerCase();
+    const isPalavraReembolso =
+      textLower.includes('reembolso') ||
+      textLower.includes('gasolina') ||
+      textLower.includes('combustivel') ||
+      textLower.includes('combustível') ||
+      textLower.includes('nota fiscal') ||
+      textLower.includes('cupom') ||
+      textLower.includes('pedagio') ||
+      textLower.includes('pedágio') ||
+      textLower.includes('despesa') ||
+      textLower.includes('gasto na obra');
+
+    const isPedidoReembolso = comprovanteUrl && (isPalavraReembolso || textLower.includes('nf') || textLower.includes('r$'));
+
+    if (isPedidoReembolso) {
+      console.log(`[WHATSAPP WEBHOOK]: Pedido de Reembolso detectado de ${senderNumber} com comprovante: ${comprovanteUrl}`);
+
+      // Categorização inicial
+      let categoria: 'COMBUSTIVEL' | 'MATERIAL' | 'ALIMENTACAO' | 'PEDAGIO' | 'OUTROS' = 'OUTROS';
+      if (textLower.includes('gasolina') || textLower.includes('combustivel') || textLower.includes('combustível') || textLower.includes('posto')) {
+        categoria = 'COMBUSTIVEL';
+      } else if (textLower.includes('material') || textLower.includes('deposito') || textLower.includes('depósito') || textLower.includes('cimento') || textLower.includes('cano')) {
+        categoria = 'MATERIAL';
+      } else if (textLower.includes('pedagio') || textLower.includes('pedágio') || textLower.includes('sem parar')) {
+        categoria = 'PEDAGIO';
+      } else if (textLower.includes('almoco') || textLower.includes('almoço') || textLower.includes('refeicao') || textLower.includes('refeição')) {
+        categoria = 'ALIMENTACAO';
+      }
+
+      // Extração de valor monetário citado no texto, se houver
+      const matchValor = messageText.match(/(?:r\$|reais)?\s*(\d+[.,]?\d*)/i);
+      let valorSolicitado = 0.0;
+      if (matchValor && matchValor[1]) {
+        valorSolicitado = parseFloat(matchValor[1].replace(',', '.'));
+      }
+
+      // Identificar obra ou encarregado remetente
+      const { data: enc } = await supabaseAdmin
+        .from('encarregados_obras')
+        .select('nome')
+        .eq('telefone_encarregado', senderNumber)
+        .limit(1)
+        .maybeSingle();
+
+      const nomeSolicitante = enc?.nome || (senderNumber.includes('998424641') ? 'Joabson Nascimento' : 'Encarregado de Campo');
+
+      const { data: reembolsoCriado } = await supabaseAdmin
+        .from('pedidos_reembolso')
+        .insert({
+          tenant_id: tenantId,
+          solicitante_nome: nomeSolicitante,
+          solicitante_telefone: senderNumber,
+          categoria,
+          descricao: messageText,
+          valor_solicitado: valorSolicitado,
+          valor_aprovado: 0.0,
+          valor_pago: 0.0,
+          status: 'PENDENTE_ANALISE',
+          comprovante_url: comprovanteUrl,
+        })
+        .select('id')
+        .single();
+
+      // REGRA DE OURO: ZERO mensagens para o Joabson / solicitante!
+      // Envia notificação sigilosa EXCLUSIVAMENTE para Patrícia e Daniel
+      const textoAlertaReembolso =
+        `🧾 *NOVO PEDIDO DE REEMBOLSO DE CAMPO [SIGILOSO]*\n` +
+        `*Ponto Patrícia (Diária.AI)*\n` +
+        `--------------------------------------\n` +
+        `👤 *Solicitante:* ${nomeSolicitante} (${senderNumber})\n` +
+        `🏷️ *Categoria:* ${categoria}\n` +
+        `💵 *Valor Citado:* ${valorSolicitado > 0 ? `R$ ${valorSolicitado.toFixed(2)}` : 'A apurar na foto'}\n` +
+        `📝 *Descrição:* ${messageText}\n` +
+        (comprovanteUrl ? `📎 *Comprovante:* ${comprovanteUrl}\n` : '') +
+        `\n💬 *Orientações:* Patrícia, alinhe diretamente com o ${nomeSolicitante.split(' ')[0]} para validação.\n` +
+        `🔗 *Painel de Reembolsos:* ${process.env.APP_URL || 'https://diaria-ai.onrender.com'}/reembolsos\n` +
+        `\n_Nota: O remetente NÃO recebeu confirmação por WhatsApp para sigilo de valores._`;
+
+      return NextResponse.json({
+        status: 'success',
+        tipo: 'REEMBOLSO_REGISTRADO',
+        reembolsoId: reembolsoCriado?.id,
+        whatsappNotifications: [
+          {
+            destinatario: 'Patrícia Grubel',
+            telefone: '5511978543369',
+            isPrivadoEncarregado: false,
+            contemValores: true,
+            mensagem: textoAlertaReembolso,
+          },
+          {
+            destinatario: 'Daniel Lopes',
+            telefone: '5511988139833',
+            isPrivadoEncarregado: false,
+            contemValores: true,
+            mensagem: textoAlertaReembolso,
+          },
+        ],
+      });
+    }
     const extracao = await extrairDadosMensagem(messageText);
 
     // Gerar token de aprovação seguro para o link mágico do WhatsApp da Patrícia
     const tokenAprovacao = crypto.randomBytes(24).toString('hex');
-    const tenantId = '00000000-0000-0000-0000-000000000001'; // Default tenant
 
     // Salvar no Supabase
     let ultimoLoteId: string | undefined = undefined;
@@ -173,9 +276,18 @@ export async function POST(req: NextRequest) {
       const loteId = lote?.id;
       if (loteId) ultimoLoteId = loteId;
 
-      // 3. Registrar detalhes de ponto
+      // 3. Registrar detalhes de ponto com cálculo inteligente da diária por canteiro
       if (loteId && obra.apontamentos?.length) {
         for (const ap of obra.apontamentos) {
+          const calculo = await calcularValorDiariaCanteiro({
+            tenantId,
+            nomeTrabalhador: ap.nome,
+            obraId,
+            nomeObra: obra.nome_obra,
+            fracao: ap.fracao,
+            motivo: ap.motivo,
+          });
+
           await supabaseAdmin.from('ponto_detalhe').insert({
             tenant_id: tenantId,
             ponto_lote_id: loteId,
@@ -190,10 +302,10 @@ export async function POST(req: NextRequest) {
             nome_trabalhador: ap.nome,
             tipo_lancamento: 'PONTO',
             fracao_dia: ap.fracao,
-            valor_monetario: 0.0,
+            valor_monetario: calculo.valorFinal, // Valor calculado com base no canteiro e fração
             status: 'PENDENTE',
             data_referencia: new Date().toISOString().split('T')[0],
-            observacao: ap.motivo || 'Apontamento via WhatsApp Bot',
+            observacao: ap.motivo ? `${ap.motivo} | ${calculo.descricaoRegra}` : calculo.descricaoRegra,
             ponto_lote_id: loteId,
             comprovante_url: null,
           });
