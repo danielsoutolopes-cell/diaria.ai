@@ -1,7 +1,7 @@
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
-const { default: makeWASocket, useMultiFileAuthState, Browsers, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, Browsers, DisconnectReason, fetchLatestWaWebVersion } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 
 const AUTH_DIR = path.join(__dirname, '.baileys_service_auth');
@@ -48,9 +48,20 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
   const auth = await useMultiFileAuthState(AUTH_DIR);
   const browser = getBrowserProfile(targetOs);
   
-  console.log(`[BAILEYS-SERVICE] Iniciando socket otimizado para ${targetOs} com perfil:`, browser);
+  let version = [2, 3000, 1054759074];
+  try {
+    const waVer = await fetchLatestWaWebVersion();
+    if (waVer && waVer.version) {
+      version = waVer.version;
+    }
+  } catch(e) {
+    console.log('[BAILEYS-SERVICE] Erro ao buscar versão do WA Web, usando fallback:', version);
+  }
+
+  console.log(`[BAILEYS-SERVICE] Iniciando socket [${targetOs}] | WA Version: ${version.join('.')} | Perfil:`, browser);
 
   sock = makeWASocket({
+    version,
     auth: auth.state,
     browser,
     syncFullHistory: false,
@@ -59,7 +70,6 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
 
   state.status = 'CONNECTING';
   state.qrCodeUrl = null;
-  state.pairingCode = null;
   state.phoneNumber = pairingPhone || null;
   state.profileType = targetOs;
   state.lastSyncAt = new Date().toISOString();
@@ -82,7 +92,17 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
 
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
-      console.log(`[BAILEYS-SERVICE] Conexão encerrada (${targetOs}):`, code);
+      console.log(`[BAILEYS-SERVICE] Conexão encerrada (${targetOs}) com código:`, code);
+      
+      // Código 515 (Stream Errored - restart required) acontece rotineiramente quando o celular
+      // conclui a troca inicial de chaves criptográficas de pareamento!
+      // É CRÍTICO reconectar imediatamente SEM deletar a pasta de autenticação:
+      if (code === 515 || code === DisconnectReason.restartRequired) {
+        console.log(`[BAILEYS-SERVICE] Código ${code} detectado! Reconectando imediatamente para consolidar pareamento...`);
+        setTimeout(() => startBaileys(null, targetOs, false), 500);
+        return;
+      }
+
       if (code === DisconnectReason.loggedOut) {
         state.status = 'DISCONNECTED';
         state.qrCodeUrl = null;
