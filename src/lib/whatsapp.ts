@@ -29,15 +29,12 @@ export interface WhatsAppGroupItem {
   obraNome?: string;
 }
 
-// Pasta de autenticação do Baileys
 const AUTH_FOLDER = path.join(process.cwd(), '.baileys_auth');
 
-// Singleton em memória para a instância do socket
 declare global {
   var __baileysSocket: WASocket | null | undefined;
   var __baileysState: WhatsAppSessionState | undefined;
   var __baileysGroups: WhatsAppGroupItem[] | undefined;
-  var __baileysStarting: Promise<WhatsAppSessionState> | undefined;
 }
 
 if (!global.__baileysState) {
@@ -58,9 +55,6 @@ if (!global.__baileysGroups) {
 
 const logger = pino({ level: 'silent' });
 
-/**
- * Limpa completamente a sessão e reinicia do zero (clean state)
- */
 export function limparSessaoLocal(): void {
   console.log('[BAILEYS] Limpando sessão local e encerrando socket...');
   if (global.__baileysSocket) {
@@ -90,7 +84,6 @@ export function limparSessaoLocal(): void {
     connectedAt: null,
     lastSyncAt: new Date().toISOString(),
   };
-  global.__baileysStarting = undefined;
 }
 
 export async function iniciarOuObterBaileys(numeroPairing?: string, forcarReinicio: boolean = false): Promise<WhatsAppSessionState> {
@@ -98,8 +91,12 @@ export async function iniciarOuObterBaileys(numeroPairing?: string, forcarReinic
     limparSessaoLocal();
   }
 
-  // Se já está conectado, retorna estado
   if (global.__baileysSocket && global.__baileysState?.status === 'CONNECTED') {
+    return global.__baileysState;
+  }
+
+  // Se já temos um QR Code gerado recentemente (menos de 20s), retorna
+  if (global.__baileysSocket && global.__baileysState?.qrCodeUrl && !forcarReinicio && !numeroPairing) {
     return global.__baileysState;
   }
 
@@ -119,20 +116,14 @@ export async function iniciarOuObterBaileys(numeroPairing?: string, forcarReinic
     global.__baileysSocket = null;
   }
 
-  console.log(`[BAILEYS] Inicializando socket com WhatsApp Web v${version.join('.')}`);
+  console.log(`[BAILEYS] Inicializando socket oficial v${version.join('.')}`);
 
-  // Browser id reconhecido oficialmente pelo WhatsApp Web (evita rejeição de conexão)
   const sock = makeWASocket({
     version,
     logger,
     printQRInTerminal: false,
     auth: state,
     browser: Browsers.ubuntu('Chrome'),
-    syncFullHistory: false,
-    markOnlineOnConnect: true,
-    connectTimeoutMs: 60000,
-    defaultQueryTimeoutMs: 60000,
-    keepAliveIntervalMs: 25000,
   });
 
   global.__baileysSocket = sock;
@@ -148,91 +139,93 @@ export async function iniciarOuObterBaileys(numeroPairing?: string, forcarReinic
 
   sock.ev.on('creds.update', saveCreds);
 
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
+  // Promessa para aguardar a chegada do primeiro QR ou evento
+  const aguardarPrimeiroEvento = new Promise<void>((resolve) => {
+    let resolvido = false;
 
-    // Atualização em tempo real do QR Code
-    if (qr) {
-      try {
-        console.log('[BAILEYS] Novo QR Code dinâmico recebido dos servidores do WhatsApp.');
-        const qrUrl = await QRCode.toDataURL(qr, {
-          margin: 2,
-          width: 320,
-          color: { dark: '#022c22', light: '#ffffff' },
-        });
+    const timeout = setTimeout(() => {
+      if (!resolvido) {
+        resolvido = true;
+        resolve();
+      }
+    }, 4000);
+
+    sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+
+      if (qr) {
+        try {
+          const qrUrl = await QRCode.toDataURL(qr, {
+            margin: 2,
+            width: 320,
+            color: { dark: '#022c22', light: '#ffffff' },
+          });
+          if (global.__baileysState) {
+            global.__baileysState.qrCodeUrl = qrUrl;
+            global.__baileysState.qrCodeRaw = qr;
+            global.__baileysState.status = 'CONNECTING';
+            global.__baileysState.lastSyncAt = new Date().toISOString();
+          }
+          if (!resolvido) {
+            resolvido = true;
+            clearTimeout(timeout);
+            resolve();
+          }
+        } catch (err) {
+          console.error('[BAILEYS] Erro ao gerar QRCode DataURL:', err);
+        }
+      }
+
+      if (connection === 'close') {
+        const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
+        console.log(`[BAILEYS] Status conexão fechada: ${statusCode}`);
+        if (global.__baileysState && global.__baileysState.status !== 'CONNECTED') {
+          // Não marca como DISCONNECTED se tivermos QR Code ativo
+          if (!global.__baileysState.qrCodeUrl && !global.__baileysState.pairingCode) {
+            global.__baileysState.status = 'DISCONNECTED';
+          }
+        }
+      } else if (connection === 'open') {
+        console.log('[BAILEYS] Conectado com sucesso!');
+        const phone = sock.user?.id ? sock.user.id.split(':')[0] : 'Conectado';
         if (global.__baileysState) {
-          global.__baileysState.qrCodeUrl = qrUrl;
-          global.__baileysState.qrCodeRaw = qr;
+          global.__baileysState.status = 'CONNECTED';
+          global.__baileysState.phoneNumber = phone;
+          global.__baileysState.connectedAt = new Date().toISOString();
+          global.__baileysState.qrCodeUrl = null;
+          global.__baileysState.pairingCode = null;
           global.__baileysState.lastSyncAt = new Date().toISOString();
         }
-      } catch (err) {
-        console.error('[BAILEYS] Erro ao converter QR para base64:', err);
+        if (!resolvido) {
+          resolvido = true;
+          clearTimeout(timeout);
+          resolve();
+        }
       }
-    }
-
-    if (connection === 'close') {
-      const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-      
-      console.log(`[BAILEYS] Conexão fechada. Motivo: ${statusCode}. Reconectar: ${shouldReconnect}`);
-
-      if (global.__baileysState) {
-        global.__baileysState.status = 'DISCONNECTED';
-      }
-
-      if (shouldReconnect) {
-        setTimeout(() => {
-          iniciarOuObterBaileys();
-        }, 3000);
-      }
-    } else if (connection === 'open') {
-      console.log('[BAILEYS] Conexão estabelecida com sucesso!');
-      const phone = sock.user?.id ? sock.user.id.split(':')[0] : 'Conectado';
-      
-      if (global.__baileysState) {
-        global.__baileysState.status = 'CONNECTED';
-        global.__baileysState.phoneNumber = phone;
-        global.__baileysState.connectedAt = new Date().toISOString();
-        global.__baileysState.qrCodeUrl = null;
-        global.__baileysState.pairingCode = null;
-        global.__baileysState.lastSyncAt = new Date().toISOString();
-      }
-
-      try {
-        const groups = await sock.groupFetchAllParticipating();
-        const listaGrupos: WhatsAppGroupItem[] = Object.values(groups).map((g) => ({
-          id: g.id,
-          jid: g.id,
-          name: g.subject,
-          memberCount: g.participants?.length || 0,
-          monitored: true,
-        }));
-        global.__baileysGroups = listaGrupos;
-      } catch (err) {
-        console.error('[BAILEYS] Erro ao sincronizar grupos:', err);
-      }
-    }
+    });
   });
 
-  // Pairing Code Oficial do WhatsApp (Código de 8 dígitos)
+  // Se for solicitado Pairing Code (Código de 8 dígitos)
   if (numeroPairing && !sock.authState.creds.registered) {
     try {
       const cleanPhone = numeroPairing.replace(/\D/g, '');
-      // Aguarda 2 segundos para o WebSocket estar aberto com o WhatsApp
-      await new Promise((r) => setTimeout(r, 2000));
-      
+      await new Promise((r) => setTimeout(r, 1500));
       const code = await sock.requestPairingCode(cleanPhone);
       const formatted = code ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
       
       if (global.__baileysState) {
         global.__baileysState.pairingCode = formatted;
         global.__baileysState.phoneNumber = cleanPhone;
+        global.__baileysState.status = 'CONNECTING';
         global.__baileysState.lastSyncAt = new Date().toISOString();
       }
       console.log(`[BAILEYS] Pairing Code emitido para ${cleanPhone}: ${formatted}`);
     } catch (err) {
       console.error('[BAILEYS] Erro ao requisitar pairing code:', err);
     }
+  } else {
+    // Aguarda o primeiro QR code chegar antes de retornar a resposta HTTP
+    await aguardarPrimeiroEvento;
   }
 
   return global.__baileysState;
