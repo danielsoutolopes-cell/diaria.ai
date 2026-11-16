@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { extrairDadosMensagem } from '@/lib/gemini';
 import { supabaseAdmin } from '@/lib/supabase';
 import { uploadToR2 } from '@/services/r2Storage';
-import { formatarAlertaNovoLoteWhatsApp } from '@/services/notificacoesAdmin';
+import {
+  formatarTicketEncarregado,
+  formatarTicketFinanceiroAdministracao,
+} from '@/services/notificacoesAdmin';
 import crypto from 'crypto';
 
 // Mutex em memória para evitar concorrência e mensagens duplicadas do WhatsApp
@@ -16,7 +19,9 @@ export async function POST(req: NextRequest) {
     // Compatível com Baileys / Evolution API v2 / Webhook padrão
     const messageId = body?.data?.key?.id || body?.messageId || body?.id || `msg-${Date.now()}`;
     const remoteJid = body?.data?.key?.remoteJid || body?.from || '';
-    const senderNumber = remoteJid.replace(/[^0-9]/g, '');
+    // Em grupos, key.participant é o telefone real do encarregado que digitou
+    const participantJid = body?.data?.key?.participant || body?.participant || remoteJid;
+    const senderNumber = participantJid.replace(/[^0-9]/g, '');
 
     // Detecção de foto / recibo (imageMessage)
     const imageMessage =
@@ -111,6 +116,8 @@ export async function POST(req: NextRequest) {
     const tenantId = '00000000-0000-0000-0000-000000000001'; // Default tenant
 
     // Salvar no Supabase
+    let ultimoLoteId: string | undefined = undefined;
+
     for (const obra of extracao.obras) {
       // 1. Localizar ou registrar obra
       let obraId: string | null = null;
@@ -164,6 +171,7 @@ export async function POST(req: NextRequest) {
         .single();
 
       const loteId = lote?.id;
+      if (loteId) ultimoLoteId = loteId;
 
       // 3. Registrar detalhes de ponto
       if (loteId && obra.apontamentos?.length) {
@@ -246,20 +254,61 @@ export async function POST(req: NextRequest) {
     }
 
     const colaboradoresNomes = (primeiraObra?.apontamentos || []).map((a) => a.nome);
+    const colaboradoresComStatus = (primeiraObra?.apontamentos || []).map((a) => ({
+      nome: a.nome,
+      status: a.motivo ? a.motivo : a.fracao === 0.5 ? 'Meio Período' : 'Integral',
+    }));
     const obraNome = primeiraObra?.nome_obra || 'CANTEIRO DE OBRAS';
     const dataRef = (primeiraObra as any)?.data_referencia || new Date().toISOString().split('T')[0];
 
-    const notificacaoFormatada = formatarAlertaNovoLoteWhatsApp({
+    // Totalização financeira (SIGILOSA: apenas para Daniel e Patrícia)
+    const valesList = primeiraObra?.vales || [];
+    const totalValesMonetario = valesList.reduce((acc, v) => acc + (v.valor || 0), 0);
+
+    // 1. TICKET OPERACIONAL PARA O ENCARREGADO (ZERO VALORES MONETÁRIOS)
+    const ticketEncarregadoTexto = formatarTicketEncarregado({
       obra: obraNome,
       dataReferencia: dataRef,
-      tipoEvento: tipoEvento,
-      colaboradores: colaboradoresNomes,
+      colaboradores: colaboradoresComStatus,
+      valesQtd: valesList.length,
+      loteId: ultimoLoteId,
+    });
+
+    // 2. TICKET EXECUTIVO & FINANCEIRO (EXCLUSIVO PARA DANIEL LOPES E PATRÍCIA GRUBEL)
+    const ticketAdmin = formatarTicketFinanceiroAdministracao({
+      obra: obraNome,
+      dataReferencia: dataRef,
+      encarregadoTelefone: senderNumber,
       totalColaboradores: colaboradoresNomes.length,
-      possuiViagemSemMotorista: possuiViagemSemMotorista,
+      colaboradoresNomes: colaboradoresNomes,
+      totalValesMonetario,
+      valesDetalhados: valesList.map(v => ({ nome: v.nome, valor: v.valor })),
+      tipoEvento,
       linkAcao: validationUrl,
     });
 
-    console.log(`[WHATSAPP WEBHOOK]: Alerta espelhado enviado para Patrícia Grubel e Daniel Lopes.`);
+    console.log(`[WHATSAPP WEBHOOK]: Ticket Operacional sem valores gerado para o remetente ${senderNumber}.`);
+    console.log(`[WHATSAPP WEBHOOK]: Resumo com valores monetários gerado EXCLUSIVAMENTE para Daniel Lopes e Patrícia Grubel.`);
+
+    // Estrutura de notificações separadas: privada do encarregado vs sigilosa dos administradores
+    const notificacoesFinais = [
+      // Encarregado recebe no PRIVADO dele (nunca no grupo), sem valores
+      {
+        destinatario: 'Encarregado da Obra',
+        telefone: senderNumber,
+        isPrivadoEncarregado: true,
+        contemValores: false,
+        mensagem: ticketEncarregadoTexto,
+      },
+      // Patrícia e Daniel recebem com todos os valores, detalhes e link de aprovação
+      ...ticketAdmin.destinatarios.map((dest) => ({
+        destinatario: dest.nome,
+        telefone: dest.telefone,
+        isPrivadoEncarregado: false,
+        contemValores: true,
+        mensagem: ticketAdmin.texto,
+      })),
+    ];
 
     return NextResponse.json({
       status: 'success',
@@ -267,12 +316,7 @@ export async function POST(req: NextRequest) {
       extracao,
       comprovanteUrl,
       validationUrl,
-      // Notificação duplicada e enriquecida para Patrícia Grubel e Daniel Lopes
-      whatsappNotifications: notificacaoFormatada.destinatarios.map((dest) => ({
-        destinatario: dest.nome,
-        telefone: dest.telefone,
-        mensagem: notificacaoFormatada.texto,
-      })),
+      whatsappNotifications: notificacoesFinais,
     });
   } catch (error) {
     console.error('Erro no processamento do webhook WhatsApp:', error);

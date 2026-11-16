@@ -65,6 +65,9 @@ export async function obterDestinatariosAvisos(tenantId = '00000000-0000-0000-00
 /**
  * Monta o payload de notificação duplicada para Patrícia e Daniel
  */
+/**
+ * Monta o payload de notificação duplicada para Patrícia e Daniel
+ */
 export function formatarMensagemNotificacaoDupla(
   titulo: string,
   detalhes: string,
@@ -78,6 +81,83 @@ export function formatarMensagemNotificacaoDupla(
     texto += `\n🔗 *Link Direto de Validação & Ajuste:* ${linkAcao}\n`;
   }
   texto += `\n_Notificação espelhada enviada para Patrícia Grubel e Daniel Lopes._`;
+
+  return {
+    destinatarios: ADMINISTRADORES_PADRAO,
+    texto,
+  };
+}
+
+export interface TicketEncarregado {
+  obra: string;
+  dataReferencia: string;
+  colaboradores: { nome: string; status: string }[];
+  valesQtd: number; // Apenas quantidade de comprovantes/pedidos, SEM VALOR
+  loteId?: string;
+}
+
+export function formatarTicketEncarregado(item: TicketEncarregado): string {
+  let texto = `👷‍♂️ *PONTO PATRÍCIA | COMPROVANTE OPERACIONAL*\n`;
+  texto += `--------------------------------------\n`;
+  texto += `📍 *Canteiro / Obra:* ${item.obra}\n`;
+  texto += `📅 *Data de Referência:* ${item.dataReferencia}\n\n`;
+  texto += `👥 *Efetivo Registrado (${item.colaboradores.length}):*\n`;
+  
+  item.colaboradores.forEach((c) => {
+    texto += ` • ${c.nome} _(${c.status})_\n`;
+  });
+
+  if (item.valesQtd > 0) {
+    texto += `\n📑 *Comprovantes / Vales Anexados:* ${item.valesQtd} registro(s) recebido(s)\n`;
+  }
+
+  texto += `\n✅ *Seu apontamento foi protocolado com sucesso!*\n`;
+  texto += `_Os registros foram encaminhados para validação da Administração._\n`;
+  texto += `⚠️ _Se faltou alguém da equipe ou houve engano, avise respondendo aqui._`;
+
+  return texto;
+}
+
+export function formatarTicketFinanceiroAdministracao(item: {
+  obra: string;
+  dataReferencia: string;
+  encarregadoNome?: string;
+  encarregadoTelefone?: string;
+  totalColaboradores: number;
+  colaboradoresNomes: string[];
+  totalValesMonetario?: number;
+  valesDetalhados?: { nome: string; valor: number }[];
+  tipoEvento: 'VIAGEM' | 'CHUVA' | 'MEIO_PERIODO' | 'NORMAL';
+  linkAcao: string;
+}): { destinatarios: DestinatarioAviso[]; texto: string } {
+  let titulo = '📊 RESUMO OPERACIONAL & FINANCEIRO';
+  if (item.tipoEvento === 'VIAGEM') titulo = '🚗 APONTAMENTO DE VIAGEM';
+  if (item.tipoEvento === 'CHUVA') titulo = '🌧️ DIÁRIAS DE CHUVA';
+  if (item.tipoEvento === 'MEIO_PERIODO') titulo = '⏱️ MEIO PERÍODO (0.5x)';
+
+  let texto = `🔒 *${titulo} [SIGILOSO]*\n`;
+  texto += `*Ponto Patrícia (Diária.AI)*\n`;
+  texto += `--------------------------------------\n`;
+  texto += `🏗️ *Canteiro / Obra:* ${item.obra}\n`;
+  texto += `📅 *Data:* ${item.dataReferencia}\n`;
+  if (item.encarregadoTelefone) {
+    texto += `👷 *Encarregado Remetente:* ${item.encarregadoNome || 'Encarregado'} (${item.encarregadoTelefone})\n`;
+  }
+  texto += `👥 *Total de Diárias:* ${item.totalColaboradores} colaboradores\n`;
+  texto += `📝 *Equipe:* ${item.colaboradoresNomes.slice(0, 8).join(', ')}${item.colaboradoresNomes.length > 8 ? '...' : ''}\n`;
+
+  // Seção Financeira Específica (Apenas Patrícia e Daniel)
+  if (item.valesDetalhados && item.valesDetalhados.length > 0) {
+    texto += `\n💵 *VALES SOLICITADOS (TOTAL: R$ ${(item.totalValesMonetario || 0).toFixed(2)}):*\n`;
+    item.valesDetalhados.forEach(v => {
+      texto += ` • ${v.nome}: R$ ${v.valor.toFixed(2)}\n`;
+    });
+  } else if (item.totalValesMonetario && item.totalValesMonetario > 0) {
+    texto += `\n💵 *Total em Vales Solicitados:* R$ ${item.totalValesMonetario.toFixed(2)}\n`;
+  }
+
+  texto += `\n🔗 *Link Exclusivo de Validação & Aprovação:*\n${item.linkAcao}\n`;
+  texto += `\n_Mensagem sigilosa enviada exclusivamente para Daniel Lopes e Patrícia Grubel._`;
 
   return {
     destinatarios: ADMINISTRADORES_PADRAO,
