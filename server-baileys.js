@@ -167,6 +167,13 @@ const server = http.createServer((req, res) => {
     if (req.url === '/status' && req.method === 'GET') {
       res.writeHead(200);
       res.end(JSON.stringify({ session: state, groups }));
+    } else if (req.url === '/toggle-group' && req.method === 'POST') {
+      const jid = parsed.jid;
+      if (jid) {
+        groups = groups.map(g => g.jid === jid ? { ...g, monitored: !g.monitored } : g);
+      }
+      res.writeHead(200);
+      res.end(JSON.stringify({ success: true, groups }));
     } else if (req.url === '/connect-qr' && req.method === 'POST') {
       const targetOs = parsed.targetOs || 'ANDROID';
       await startBaileys(null, targetOs, true);
@@ -207,6 +214,11 @@ const server = http.createServer((req, res) => {
 });
 
 const PORT = 3001;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`[BAILEYS-SERVICE] Microserviço Baileys nativo rodando em http://localhost:${PORT}`);
+  // Se já houver credenciais salvas de uma sessão conectada, restaura automaticamente
+  if (fs.existsSync(AUTH_DIR)) {
+    console.log('[BAILEYS-SERVICE] Sessão anterior encontrada, auto-reconectando...');
+    startBaileys(null, 'ANDROID', false);
+  }
 });

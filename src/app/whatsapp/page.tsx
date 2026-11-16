@@ -69,13 +69,17 @@ export default function WhatsAppConfigPage() {
   }
 
   // Polling automático a cada 3 segundos enquanto estiver no status CONNECTING ou DISCONNECTED
+  // Quando estiver CONNECTED, diminui a frequência para 15 segundos para não sobrescrever interações do usuário
   useEffect(() => {
     carregarStatus();
     const interval = setInterval(() => {
-      carregarStatus(true);
+      // Se já estiver conectado, evita polling acelerado que reseta estados de clique
+      if (session?.status !== 'CONNECTED') {
+        carregarStatus(true);
+      }
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [session?.status]);
 
   async function handleGerarQrCode() {
     setLoading(true);

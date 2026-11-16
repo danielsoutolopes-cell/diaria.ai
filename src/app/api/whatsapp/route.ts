@@ -91,8 +91,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'toggle-grupo' && jid) {
-      const groups = toggleGroupMonitored(jid);
-      return NextResponse.json({ success: true, groups });
+      try {
+        const res = await fetch('http://localhost:3001/toggle-group', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jid }),
+        });
+        const data = await res.json();
+        return NextResponse.json(data);
+      } catch (e) {
+        const groups = toggleGroupMonitored(jid);
+        return NextResponse.json({ success: true, groups });
+      }
     }
 
     return NextResponse.json({ error: 'Ação não reconhecida.' }, { status: 400 });
