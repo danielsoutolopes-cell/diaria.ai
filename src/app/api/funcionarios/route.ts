@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const { data, error } = await supabaseAdmin
+    // Tenta selecionar com as novas colunas; se o banco ainda não rodou a migration, faz fallback seguro
+    let { data, error } = await supabaseAdmin
       .from('funcionarios_obra')
       .select(`
         id,
@@ -25,6 +26,29 @@ export async function GET() {
         )
       `)
       .order('nome_trabalhador', { ascending: true });
+
+    if (error && (error.code === '42703' || error.message?.includes('is_encarregado') || error.message?.includes('regime_remuneracao'))) {
+      // Fallback sem as colunas novas caso a migration ainda não tenha sido executada no Supabase
+      const fallback = await supabaseAdmin
+        .from('funcionarios_obra')
+        .select(`
+          id,
+          nome_trabalhador,
+          chave_pix,
+          telefone,
+          obra_id,
+          funcao,
+          valor_diaria,
+          ativo,
+          obras_config (
+            nome
+          )
+        `)
+        .order('nome_trabalhador', { ascending: true });
+      
+      data = fallback.data as any;
+      error = fallback.error;
+    }
 
     if (error) {
       console.error('Erro ao listar funcionários:', error);
