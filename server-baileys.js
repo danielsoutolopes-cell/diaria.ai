@@ -4,8 +4,9 @@ const fs = require('fs');
 const { default: makeWASocket, useMultiFileAuthState, Browsers, DisconnectReason, fetchLatestWaWebVersion } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 
-const AUTH_DIR = path.join(__dirname, '.baileys_service_auth');
-const GROUPS_CONFIG_FILE = path.join(__dirname, 'monitored_groups.json');
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const AUTH_DIR = path.join(DATA_DIR, '.baileys_service_auth');
+const GROUPS_CONFIG_FILE = path.join(DATA_DIR, 'monitored_groups.json');
 
 function loadSavedGroupsConfig() {
   try {

@@ -1,6 +1,17 @@
 const { spawn } = require('child_process');
 
-console.log('[PROD-RUNNER] Iniciando Diária.AI no Render...');
+console.log('[PROD-RUNNER] Iniciando Ponto Patrícia (Diária.AI)...');
+
+// Garante que o diretório persistente exista se DATA_DIR for definido
+const fs = require('fs');
+if (process.env.DATA_DIR && !fs.existsSync(process.env.DATA_DIR)) {
+  try {
+    fs.mkdirSync(process.env.DATA_DIR, { recursive: true });
+    console.log(`[PROD-RUNNER] Diretório de persistência criado em: ${process.env.DATA_DIR}`);
+  } catch (err) {
+    console.error('[PROD-RUNNER] Erro ao criar DATA_DIR:', err);
+  }
+}
 
 // 1. Iniciar Microserviço Baileys em Background
 const baileys = spawn('node', ['server-baileys.js'], {
