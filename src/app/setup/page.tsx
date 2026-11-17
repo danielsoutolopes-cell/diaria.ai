@@ -39,7 +39,7 @@ interface FuncionarioItem {
   obra_id: string | null;
   funcao: string | null;
   is_encarregado?: boolean;
-  regime_remuneracao?: 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA';
+  regime_remuneracao?: 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA' | 'MENSALISTA';
   ciclo_pagamento?: 'SEMANAL' | 'QUINZENAL';
   valor_base_contratual?: number;
   valor_diaria: number;
@@ -82,10 +82,26 @@ export default function SetupPage() {
   const [editFuncPix, setEditFuncPix] = useState('');
   const [editFuncTelefone, setEditFuncTelefone] = useState('');
   const [editFuncValor, setEditFuncValor] = useState('');
-  const [editFuncRegime, setEditFuncRegime] = useState<'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA'>('DIARISTA');
+  const [editFuncValorPiscina, setEditFuncValorPiscina] = useState('');
+  const [editFuncRegime, setEditFuncRegime] = useState<'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA' | 'MENSALISTA'>('DIARISTA');
   const [editFuncCiclo, setEditFuncCiclo] = useState<'SEMANAL' | 'QUINZENAL'>('SEMANAL');
   const [editFuncApelidos, setEditFuncApelidos] = useState('');
   const [salvandoEdicaoFunc, setSalvandoEdicaoFunc] = useState(false);
+
+  // Tabela de Preços Duplos Obra vs. Piscina
+  const [precosDuplos, setPrecosDuplos] = useState<Record<string, { obra: number | null; piscina: number | null }>>({});
+
+  async function carregarPrecosDuplos() {
+    try {
+      const res = await fetch('/api/precos-duplos');
+      const data = await res.json();
+      if (data) {
+        setPrecosDuplos(data.precos || data.padrao || {});
+      }
+    } catch (e) {
+      console.error('Erro ao buscar precos duplos:', e);
+    }
+  }
 
   const [editingObra, setEditingObra] = useState<ObraItem | null>(null);
   const [editObraNome, setEditObraNome] = useState('');
@@ -147,6 +163,7 @@ export default function SetupPage() {
     carregarObras();
     carregarFuncionarios();
     carregarApelidos();
+    carregarPrecosDuplos();
   }, []);
 
   async function handleAddObra(e: React.FormEvent) {
@@ -257,7 +274,14 @@ export default function SetupPage() {
     setEditFuncNome(f.nome_trabalhador);
     setEditFuncPix(f.chave_pix || '');
     setEditFuncTelefone(f.telefone || '');
-    setEditFuncValor(String(f.valor_base_contratual || f.valor_diaria || 150));
+    
+    // Obter valores de Obra e Piscina
+    const precos = precosDuplos[f.id] || precosDuplos[f.nome_trabalhador] || {};
+    const valObra = precos.obra !== undefined ? precos.obra : (f.valor_base_contratual || f.valor_diaria || 180);
+    const valPiscina = precos.piscina !== undefined ? precos.piscina : null;
+
+    setEditFuncValor(valObra !== null ? String(valObra) : '');
+    setEditFuncValorPiscina(valPiscina !== null ? String(valPiscina) : '');
     setEditFuncRegime(f.regime_remuneracao || 'DIARISTA');
     setEditFuncCiclo(f.ciclo_pagamento || 'SEMANAL');
     setEditFuncApelidos((mapaApelidos.funcionarios[f.id] || []).join(', '));
@@ -274,7 +298,10 @@ export default function SetupPage() {
         .map((a) => a.trim())
         .filter(Boolean);
 
-      const val = Number(editFuncValor) || 150;
+      const valObra = editFuncValor ? Number(editFuncValor) : null;
+      const valPiscina = editFuncValorPiscina ? Number(editFuncValorPiscina) : null;
+
+      // 1. Atualizar Funcionário Base
       const res = await fetch('/api/funcionarios', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -283,13 +310,26 @@ export default function SetupPage() {
           nome_trabalhador: editFuncNome,
           chave_pix: editFuncPix,
           telefone: editFuncTelefone || null,
-          valor_diaria: val,
-          valor_base_contratual: val,
+          valor_diaria: valObra || valPiscina || 150,
+          valor_base_contratual: valObra || valPiscina || 150,
           regime_remuneracao: editFuncRegime,
           ciclo_pagamento: editFuncCiclo,
           apelidos: listaApelidos,
         }),
       });
+
+      // 2. Salvar Matriz Obra vs. Piscina
+      const novosPrecos = {
+        ...precosDuplos,
+        [editingFunc.id]: { obra: valObra, piscina: valPiscina },
+        [editFuncNome]: { obra: valObra, piscina: valPiscina },
+      };
+      await fetch('/api/precos-duplos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ precos: novosPrecos }),
+      });
+      setPrecosDuplos(novosPrecos);
 
       const data = await res.json();
       if (data && data.funcionario) {
@@ -637,12 +677,55 @@ export default function SetupPage() {
                           </span>
                         </div>
                       </div>
-                      <span className="text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl">
-                        R$ {Number(f.valor_base_contratual || f.valor_diaria).toFixed(2)}
-                        <span className="text-[10px] text-slate-500 font-normal block text-right">
-                          {f.regime_remuneracao === 'SEMANALISTA' ? '/sem' : f.regime_remuneracao === 'QUINZENALISTA' ? '/quinz' : '/dia'}
-                        </span>
-                      </span>
+                      <div className="flex flex-col items-end gap-1.5">
+                        {(() => {
+                          const p = precosDuplos[f.id] || precosDuplos[f.nome_trabalhador] || {};
+                          const valObra = p.obra !== undefined ? p.obra : (f.valor_base_contratual || f.valor_diaria);
+                          const valPiscina = p.piscina !== undefined ? p.piscina : null;
+                          const isDiego = f.nome_trabalhador.includes('DIEGO');
+
+                          if (isDiego) {
+                            return (
+                              <div className="text-right">
+                                <span className="text-xs font-black text-purple-900 bg-purple-50 border border-purple-200/80 px-2.5 py-1 rounded-xl block">
+                                  R$ 8.700,00 <span className="text-[10px] text-purple-600 font-normal">/mês</span>
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-500 mt-0.5 block">
+                                  (R$ 2.175,00/semana)
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="flex items-center gap-2">
+                              {valObra !== null && (
+                                <div className="text-right">
+                                  <span className="text-[10px] uppercase font-bold text-amber-700 block">Obra</span>
+                                  <span className="text-xs font-black text-amber-950 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-lg">
+                                    R$ {Number(valObra).toFixed(2)}
+                                  </span>
+                                </div>
+                              )}
+                              {valPiscina !== null ? (
+                                <div className="text-right">
+                                  <span className="text-[10px] uppercase font-bold text-sky-700 block">Piscina</span>
+                                  <span className="text-xs font-black text-sky-950 bg-sky-50 border border-sky-200/70 px-2 py-0.5 rounded-lg">
+                                    R$ {Number(valPiscina).toFixed(2)}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="text-right">
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Piscina</span>
+                                  <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">
+                                    -
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
 
                     <div className="pt-2 border-t border-slate-100 space-y-1 text-xs">
@@ -993,18 +1076,38 @@ export default function SetupPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Valor Base (R$)</label>
+                  <label className="text-xs font-bold text-amber-800 flex items-center gap-1">
+                    <Building2 className="w-3.5 h-3.5" />
+                    Valor Obra Civil (R$)
+                  </label>
                   <input
                     type="number"
                     step="0.01"
-                    required
+                    placeholder="Ex: 250.00"
                     value={editFuncValor}
                     onChange={(e) => setEditFuncValor(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-4 py-2.5 bg-amber-50/50 border border-amber-200 rounded-xl text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-sky-800 flex items-center gap-1">
+                    <Waves className="w-3.5 h-3.5" />
+                    Valor Piscina (R$)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Ex: 450.00 ou vazio"
+                    value={editFuncValorPiscina}
+                    onChange={(e) => setEditFuncValorPiscina(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-sky-50/50 border border-sky-200 rounded-xl text-xs font-bold text-sky-950 focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700">Regime</label>
                   <select
@@ -1015,6 +1118,7 @@ export default function SetupPage() {
                     <option value="DIARISTA">Diarista</option>
                     <option value="SEMANALISTA">Semanalista</option>
                     <option value="QUINZENALISTA">Quinzenalista</option>
+                    <option value="MENSALISTA">Mensalista (Diego - Rateio Semanal)</option>
                   </select>
                 </div>
                 <div className="space-y-1">

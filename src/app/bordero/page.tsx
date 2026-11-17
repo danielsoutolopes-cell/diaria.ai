@@ -36,7 +36,7 @@ interface ExtratoFuncionario {
   obra: string;
   chavePix: string;
   diariaPadrao: number;
-  regimeRemuneracao?: 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA';
+  regimeRemuneracao?: 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA' | 'MENSALISTA';
   cicloPagamento?: 'SEMANAL' | 'QUINZENAL';
   valorBaseContratual?: number;
   lancamentos: LinhaLancamento[];
