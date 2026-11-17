@@ -120,9 +120,12 @@ export default function BorderoPage() {
     const pontosMarcados = f.lancamentos.filter((l) => l.tipo === 'PONTO' && l.selecionado);
     const valesMarcados = f.lancamentos.filter((l) => l.tipo === 'VALE' && l.selecionado);
 
-    // Se for Semanalista fixo e houver presença marcada na semana, o bruto é o valor fixo contratual
+    // Se for Semanalista fixo ou Mensalista com rateio semanal
     let totalBruto = pontosMarcados.reduce((acc, curr) => acc + curr.valor, 0);
-    if (f.regimeRemuneracao === 'SEMANALISTA' && (f.valorBaseContratual || 0) > 0) {
+    if (f.regimeRemuneracao === 'MENSALISTA' && (f.valorBaseContratual || 0) > 0) {
+      // Diego ou mensalistas com inclusão no fechamento semanal (dividido por 4 semanas = R$ 2.175,00)
+      totalBruto = Math.round((Number(f.valorBaseContratual) / 4) * 100) / 100;
+    } else if (f.regimeRemuneracao === 'SEMANALISTA' && (f.valorBaseContratual || 0) > 0) {
       totalBruto = Number(f.valorBaseContratual);
     } else if (f.regimeRemuneracao === 'QUINZENALISTA' && (f.valorBaseContratual || 0) > 0) {
       totalBruto = Number(f.valorBaseContratual);
