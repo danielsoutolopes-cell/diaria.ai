@@ -39,9 +39,9 @@ let sock = null;
 // Configurações otimizadas por Sistema Operacional com browsers oficiais reconhecidos pelo WhatsApp
 function getBrowserProfile(targetOs = 'ANDROID') {
   if (targetOs === 'IOS') {
-    return Browsers.macOS('Chrome');
+    return Browsers.macOS('Desktop');
   }
-  return Browsers.ubuntu('Chrome');
+  return Browsers.appropriate('Chrome');
 }
 
 async function cleanAuthDir() {
@@ -82,6 +82,9 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
     browser,
     syncFullHistory: false,
     markOnlineOnConnect: true,
+    connectTimeoutMs: 60000,
+    defaultQueryTimeoutMs: 60000,
+    keepAliveIntervalMs: 10000,
   });
 
   state.status = 'CONNECTING';

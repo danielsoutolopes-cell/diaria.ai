@@ -59,7 +59,17 @@ export default function WhatsAppConfigPage() {
     try {
       const res = await fetch('/api/whatsapp');
       const data = await res.json();
-      if (data.session) setSession(data.session);
+      if (data.session) {
+        setSession((prev) => {
+          // Se o backend mudou de status para CONNECTED, atualiza na hora
+          if (data.session.status === 'CONNECTED') return data.session;
+          // Se já temos um QR Code na tela, NÃO substitui pelo polling para não invalidar a leitura da câmera
+          if (prev.qrCodeUrl && data.session.status === 'CONNECTING' && silencioso) {
+            return { ...prev, status: data.session.status, lastSyncAt: data.session.lastSyncAt };
+          }
+          return data.session;
+        });
+      }
       if (data.groups) setGroups(data.groups);
     } catch (e) {
       console.error(e);
@@ -68,16 +78,15 @@ export default function WhatsAppConfigPage() {
     }
   }
 
-  // Polling automático a cada 3 segundos enquanto estiver no status CONNECTING ou DISCONNECTED
-  // Quando estiver CONNECTED, diminui a frequência para 15 segundos para não sobrescrever interações do usuário
+  // Polling com intervalo seguro (5s) apenas para verificar se CONECTOU,
+  // mas NUNCA dispara novas recargas que façam o QR piscar
   useEffect(() => {
     carregarStatus();
     const interval = setInterval(() => {
-      // Se já estiver conectado, evita polling acelerado que reseta estados de clique
       if (session?.status !== 'CONNECTED') {
         carregarStatus(true);
       }
-    }, 3000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [session?.status]);
 
