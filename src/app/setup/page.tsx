@@ -15,6 +15,9 @@ import {
   Phone,
   Trash2,
   UserCheck,
+  Edit2,
+  X,
+  Save,
 } from 'lucide-react';
 import { TipoObra } from '@/types/database';
 import { supabase } from '@/lib/supabase';
@@ -72,6 +75,25 @@ export default function SetupPage() {
   const [cicloFunc, setCicloFunc] = useState<'SEMANAL' | 'QUINZENAL'>('QUINZENAL');
   const [valorDiariaCustom, setValorDiariaCustom] = useState('');
   const [salvoFunc, setSalvoFunc] = useState(false);
+
+  // Estados de Edição Modal/Inline
+  const [editingFunc, setEditingFunc] = useState<FuncionarioItem | null>(null);
+  const [editFuncNome, setEditFuncNome] = useState('');
+  const [editFuncPix, setEditFuncPix] = useState('');
+  const [editFuncTelefone, setEditFuncTelefone] = useState('');
+  const [editFuncValor, setEditFuncValor] = useState('');
+  const [editFuncRegime, setEditFuncRegime] = useState<'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA'>('DIARISTA');
+  const [editFuncCiclo, setEditFuncCiclo] = useState<'SEMANAL' | 'QUINZENAL'>('SEMANAL');
+  const [editFuncApelidos, setEditFuncApelidos] = useState('');
+  const [salvandoEdicaoFunc, setSalvandoEdicaoFunc] = useState(false);
+
+  const [editingObra, setEditingObra] = useState<ObraItem | null>(null);
+  const [editObraNome, setEditObraNome] = useState('');
+  const [editObraLocal, setEditObraLocal] = useState('');
+  const [editObraTipo, setEditObraTipo] = useState<TipoObra>('PISCINA');
+  const [editObraValor, setEditObraValor] = useState('');
+  const [editObraApelidos, setEditObraApelidos] = useState('');
+  const [salvandoEdicaoObra, setSalvandoEdicaoObra] = useState(false);
 
   // Mapa de Apelidos Carregados
   const [mapaApelidos, setMapaApelidos] = useState<{
@@ -227,6 +249,109 @@ export default function SetupPage() {
       console.error(err);
     } finally {
       setCadastrandoFunc(false);
+    }
+  }
+
+  function handleStartEditFunc(f: FuncionarioItem) {
+    setEditingFunc(f);
+    setEditFuncNome(f.nome_trabalhador);
+    setEditFuncPix(f.chave_pix || '');
+    setEditFuncTelefone(f.telefone || '');
+    setEditFuncValor(String(f.valor_base_contratual || f.valor_diaria || 150));
+    setEditFuncRegime(f.regime_remuneracao || 'DIARISTA');
+    setEditFuncCiclo(f.ciclo_pagamento || 'SEMANAL');
+    setEditFuncApelidos((mapaApelidos.funcionarios[f.id] || []).join(', '));
+  }
+
+  async function handleSalvarEditFunc(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingFunc) return;
+    setSalvandoEdicaoFunc(true);
+
+    try {
+      const listaApelidos = editFuncApelidos
+        .split(/[,;\n]/)
+        .map((a) => a.trim())
+        .filter(Boolean);
+
+      const val = Number(editFuncValor) || 150;
+      const res = await fetch('/api/funcionarios', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingFunc.id,
+          nome_trabalhador: editFuncNome,
+          chave_pix: editFuncPix,
+          telefone: editFuncTelefone || null,
+          valor_diaria: val,
+          valor_base_contratual: val,
+          regime_remuneracao: editFuncRegime,
+          ciclo_pagamento: editFuncCiclo,
+          apelidos: listaApelidos,
+        }),
+      });
+
+      const data = await res.json();
+      if (data && data.funcionario) {
+        setFuncionarios((prev) =>
+          prev.map((item) => (item.id === editingFunc.id ? (data.funcionario as unknown as FuncionarioItem) : item))
+        );
+        setEditingFunc(null);
+        carregarApelidos();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSalvandoEdicaoFunc(false);
+    }
+  }
+
+  function handleStartEditObra(o: ObraItem) {
+    setEditingObra(o);
+    setEditObraNome(o.nome);
+    setEditObraLocal(o.local || '');
+    setEditObraTipo(o.tipo_obra || 'PISCINA');
+    setEditObraValor(String(o.valor_diaria_padrao || (o.tipo_obra === 'PISCINA' ? 150 : 180)));
+    setEditObraApelidos((mapaApelidos.obras[o.id] || []).join(', '));
+  }
+
+  async function handleSalvarEditObra(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingObra) return;
+    setSalvandoEdicaoObra(true);
+
+    try {
+      const listaApelidos = editObraApelidos
+        .split(/[,;\n]/)
+        .map((a) => a.trim())
+        .filter(Boolean);
+
+      const val = Number(editObraValor) || (editObraTipo === 'PISCINA' ? 150 : 180);
+      const res = await fetch('/api/obras', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingObra.id,
+          nome: editObraNome,
+          local: editObraLocal,
+          tipo_obra: editObraTipo,
+          valor_diaria_padrao: val,
+          apelidos: listaApelidos,
+        }),
+      });
+
+      const data = await res.json();
+      if (data && data.obra) {
+        setObras((prev) =>
+          prev.map((item) => (item.id === editingObra.id ? (data.obra as unknown as ObraItem) : item))
+        );
+        setEditingObra(null);
+        carregarApelidos();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSalvandoEdicaoObra(false);
     }
   }
 
@@ -548,6 +673,17 @@ export default function SetupPage() {
                           ))}
                         </div>
                       )}
+
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditFunc(f)}
+                          className="px-3 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 border border-slate-200/80"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          Editar Dados
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -785,11 +921,243 @@ export default function SetupPage() {
                           ))}
                         </div>
                       )}
+
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditObra(o)}
+                          className="px-3 py-1 bg-slate-100 hover:bg-sky-50 hover:text-sky-700 text-slate-700 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 border border-slate-200/80"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          Editar Obra
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL DE EDIÇÃO DE FUNCIONÁRIO ================= */}
+      {editingFunc && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Editar Colaborador</h3>
+                <p className="text-xs text-slate-500">Altere nome, chave PIX, diária contratual e regime.</p>
+              </div>
+              <button
+                onClick={() => setEditingFunc(null)}
+                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvarEditFunc} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Nome Completo *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFuncNome}
+                  onChange={(e) => setEditFuncNome(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Chave PIX *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFuncPix}
+                    onChange={(e) => setEditFuncPix(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Telefone / Zap</label>
+                  <input
+                    type="text"
+                    value={editFuncTelefone}
+                    onChange={(e) => setEditFuncTelefone(e.target.value)}
+                    placeholder="24999999999"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Valor Base (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editFuncValor}
+                    onChange={(e) => setEditFuncValor(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Regime</label>
+                  <select
+                    value={editFuncRegime}
+                    onChange={(e) => setEditFuncRegime(e.target.value as any)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="DIARISTA">Diarista</option>
+                    <option value="SEMANALISTA">Semanalista</option>
+                    <option value="QUINZENALISTA">Quinzenalista</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Ciclo Pgto</label>
+                  <select
+                    value={editFuncCiclo}
+                    onChange={(e) => setEditFuncCiclo(e.target.value as any)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="SEMANAL">Sexta (Semanal)</option>
+                    <option value="QUINZENAL">Quinzenal</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Apelidos de Reconhecimento no Zap</label>
+                <input
+                  type="text"
+                  value={editFuncApelidos}
+                  onChange={(e) => setEditFuncApelidos(e.target.value)}
+                  placeholder="Ex: Gil, Gilvan, Gilzinho"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+                <span className="text-[10px] text-slate-400">Separe os apelidos por vírgula.</span>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingFunc(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={salvandoEdicaoFunc}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {salvandoEdicaoFunc ? 'Salvando...' : 'Salvar Alterações'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL DE EDIÇÃO DE OBRA ================= */}
+      {editingObra && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Editar Canteiro / Obra</h3>
+                <p className="text-xs text-slate-500">Altere o nome, localização, tipo de serviço e diária padrão.</p>
+              </div>
+              <button
+                onClick={() => setEditingObra(null)}
+                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvarEditObra} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Identificação da Obra *</label>
+                <input
+                  type="text"
+                  required
+                  value={editObraNome}
+                  onChange={(e) => setEditObraNome(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Cidade / Localização</label>
+                  <input
+                    type="text"
+                    value={editObraLocal}
+                    onChange={(e) => setEditObraLocal(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Tipo de Obra</label>
+                  <select
+                    value={editObraTipo}
+                    onChange={(e) => setEditObraTipo(e.target.value as TipoObra)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                  >
+                    <option value="PISCINA">Construção de Piscina</option>
+                    <option value="OBRA_CIVIL">Construção Civil</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Diária Padrão da Obra (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={editObraValor}
+                  onChange={(e) => setEditObraValor(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Apelidos no WhatsApp</label>
+                <input
+                  type="text"
+                  value={editObraApelidos}
+                  onChange={(e) => setEditObraApelidos(e.target.value)}
+                  placeholder="Ex: Bahia, Porto Seguro, Piscina Porto Seguro"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                />
+                <span className="text-[10px] text-slate-400">Separe os apelidos por vírgula.</span>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingObra(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={salvandoEdicaoObra}
+                  className="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {salvandoEdicaoObra ? 'Salvando...' : 'Salvar Alterações'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

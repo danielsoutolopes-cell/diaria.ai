@@ -140,3 +140,108 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Falha interna ao criar funcionário' }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const {
+      id,
+      nome_trabalhador,
+      chave_pix,
+      telefone,
+      obra_id,
+      valor_diaria,
+      is_encarregado,
+      regime_remuneracao,
+      ciclo_pagamento,
+      valor_base_contratual,
+      funcao,
+      ativo,
+      apelidos,
+    } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID do funcionário é obrigatório' }, { status: 400 });
+    }
+
+    const payload: Record<string, any> = {};
+    if (nome_trabalhador !== undefined) payload.nome_trabalhador = String(nome_trabalhador).trim();
+    if (chave_pix !== undefined) payload.chave_pix = String(chave_pix).trim();
+    if (telefone !== undefined) payload.telefone = telefone ? String(telefone).trim() : null;
+    if (obra_id !== undefined) payload.obra_id = obra_id || null;
+    if (valor_diaria !== undefined) payload.valor_diaria = Number(valor_diaria) || 150;
+    if (is_encarregado !== undefined) payload.is_encarregado = Boolean(is_encarregado);
+    if (regime_remuneracao !== undefined) payload.regime_remuneracao = regime_remuneracao;
+    if (ciclo_pagamento !== undefined) payload.ciclo_pagamento = ciclo_pagamento;
+    if (valor_base_contratual !== undefined) payload.valor_base_contratual = Number(valor_base_contratual);
+    if (funcao !== undefined) payload.funcao = funcao;
+    if (ativo !== undefined) payload.ativo = Boolean(ativo);
+
+    const res = await supabaseAdmin
+      .from('funcionarios_obra')
+      .update(payload)
+      .eq('id', id)
+      .select(`
+        id,
+        nome_trabalhador,
+        chave_pix,
+        telefone,
+        obra_id,
+        funcao,
+        is_encarregado,
+        valor_diaria,
+        regime_remuneracao,
+        ciclo_pagamento,
+        valor_base_contratual,
+        ativo,
+        obras_config (
+          nome
+        )
+      `)
+      .single();
+
+    if (res.error) {
+      console.error('Erro ao atualizar funcionário:', res.error);
+      return NextResponse.json({ error: res.error.message }, { status: 500 });
+    }
+
+    // Se informou apelidos, atualiza no storage
+    if (Array.isArray(apelidos)) {
+      const { obterApelidosSistema, salvarApelidosSistema } = await import('@/services/apelidosStorage');
+      const mapa = await obterApelidosSistema();
+      mapa.funcionarios[id] = apelidos.map((a: string) => String(a).trim()).filter(Boolean);
+      await salvarApelidosSistema(mapa);
+    }
+
+    return NextResponse.json({ success: true, funcionario: res.data });
+  } catch (err) {
+    console.error('Erro ao atualizar funcionário:', err);
+    return NextResponse.json({ error: 'Falha interna ao atualizar funcionário' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID do funcionário é obrigatório' }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('funcionarios_obra')
+      .update({ ativo: false })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao inativar funcionário:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao inativar funcionário:', err);
+    return NextResponse.json({ error: 'Falha interna' }, { status: 500 });
+  }
+}

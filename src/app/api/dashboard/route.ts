@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // 1. Obras ativas
@@ -10,13 +12,15 @@ export async function GET() {
       .eq('ativo', true);
 
     // 2. Lotes pendentes de validação
-    const { data: lotesPendentes, error: errLotes } = await supabaseAdmin
+    const { data: lotesList, error: errLotes } = await supabaseAdmin
       .from('ponto_lote')
-      .select('id')
-      .eq('status_validacao', 'PENDENTE');
+      .select('id, status_validacao');
+
+    const lotesPendentes = (lotesList || []).filter(l => l.status_validacao === 'PENDENTE').length;
+    console.log('[API-DASHBOARD] lotesList raw:', lotesList?.length, 'Pendentes filtrados:', lotesPendentes, 'Error:', errLotes);
 
     // 3. Lançamentos validados para fechamento semanal
-    const { data: lancamentosValidados, error: errLanc } = await supabaseAdmin
+    const { data: lancamentosValidados } = await supabaseAdmin
       .from('lancamentos_financeiros')
       .select('id, valor_monetario, tipo_lancamento')
       .eq('status', 'VALIDADO');
@@ -29,10 +33,14 @@ export async function GET() {
       .neq('status', 'LIQUIDADO');
 
     // 5. Total de operários cadastrados
-    const { count: totalOperarios } = await supabaseAdmin
+    const { count: totalOperariosCount, data: operariosList } = await supabaseAdmin
       .from('funcionarios_obra')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact' })
       .eq('ativo', true);
+
+    const totalOperarios = totalOperariosCount !== null && totalOperariosCount !== undefined 
+      ? totalOperariosCount 
+      : (operariosList?.length || 0);
 
     const totalVales = (valesSemana || []).reduce((acc, curr) => acc + (Number(curr.valor_monetario) || 0), 0);
     
@@ -50,8 +58,8 @@ export async function GET() {
     return NextResponse.json({
       obrasAtivas: obras?.length || 0,
       obrasLista: obras || [],
-      lotesPendentes: lotesPendentes?.length || 0,
-      totalOperarios: totalOperarios || 0,
+      lotesPendentes: lotesPendentes,
+      totalOperarios: totalOperarios,
       totalVales,
       saldoLiquidoSemana,
     });
