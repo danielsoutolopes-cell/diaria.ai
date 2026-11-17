@@ -36,14 +36,12 @@ let state = {
 let groups = [];
 let sock = null;
 
-// Configurações otimizadas por Sistema Operacional
+// Configurações otimizadas por Sistema Operacional com browsers oficiais reconhecidos pelo WhatsApp
 function getBrowserProfile(targetOs = 'ANDROID') {
   if (targetOs === 'IOS') {
-    // Perfil macOS Desktop Oficial: o WhatsApp no iPhone aceita pareamento imediato
-    return Browsers.macOS('Desktop');
+    return Browsers.macOS('Chrome');
   }
-  // Perfil Chrome Windows/Ubuntu Oficial: aceito instantaneamente no WhatsApp do Android
-  return Browsers.windows('Desktop');
+  return Browsers.ubuntu('Chrome');
 }
 
 async function cleanAuthDir() {
@@ -65,9 +63,10 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
   const auth = await useMultiFileAuthState(AUTH_DIR);
   const browser = getBrowserProfile(targetOs);
   
-  let version = [2, 3000, 1054759074];
+  let version = [2, 3000, 1043857760];
   try {
-    const waVer = await fetchLatestWaWebVersion();
+    const { fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+    const waVer = await fetchLatestBaileysVersion();
     if (waVer && waVer.version) {
       version = waVer.version;
     }
