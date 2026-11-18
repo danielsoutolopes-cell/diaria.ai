@@ -27,6 +27,7 @@ export async function GET() {
           nome
         )
       `)
+      .eq('ativo', true)
       .order('nome_trabalhador', { ascending: true });
 
     if (error && (error.code === '42703' || error.message?.includes('is_encarregado') || error.message?.includes('regime_remuneracao'))) {
