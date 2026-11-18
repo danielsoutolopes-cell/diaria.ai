@@ -297,6 +297,21 @@ export async function POST(req: NextRequest) {
             motivo: ap.motivo,
           });
 
+          // Barreira de Duplicidade: o mesmo trabalhador não pode ter > 1.0 diária no mesmo dia
+          const dataRefPonto = obra.data_referencia || new Date().toISOString().split('T')[0];
+          const { data: pontosMesmoDia } = await supabaseAdmin
+            .from('lancamentos_financeiros')
+            .select('fracao_dia')
+            .eq('tipo_lancamento', 'PONTO')
+            .eq('data_referencia', dataRefPonto)
+            .ilike('nome_trabalhador', ap.nome);
+
+          const somaFracoesDia = (pontosMesmoDia || []).reduce((acc, p) => acc + (Number(p.fracao_dia) || 0), 0);
+          if (somaFracoesDia + (Number(ap.fracao) || 1.0) > 1.0) {
+            console.warn(`[DUPLICIDADE BLOQUEADA] ${ap.nome} já possui ${somaFracoesDia} diária(s) em ${dataRefPonto}.`);
+            continue;
+          }
+
           await supabaseAdmin.from('ponto_detalhe').insert({
             tenant_id: tenantId,
             ponto_lote_id: loteId,

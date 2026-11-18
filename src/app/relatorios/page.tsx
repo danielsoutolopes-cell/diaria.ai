@@ -48,6 +48,8 @@ export default function RelatoriosPage() {
   const [dadosBordero, setDadosBordero] = useState<BorderoItem[]>([]);
   const [dadosObras, setDadosObras] = useState<CustoObraItem[]>([]);
   const [lancamentosDetalhados, setLancamentosDetalhados] = useState<any[]>([]);
+  const [modalExtrato, setModalExtrato] = useState<ItemBordero | null>(null);
+  const [excluindoItemId, setExcluindoItemId] = useState<string | null>(null);
   const [totais, setTotais] = useState({
     totalGeralDiarias: 0,
     totalGeralVales: 0,
@@ -347,7 +349,16 @@ export default function RelatoriosPage() {
               <tbody className="divide-y divide-slate-100">
                 {dadosBordero.map((item, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="p-4 font-bold text-slate-950">{item.nome}</td>
+                    <td className="p-4 font-bold text-slate-950">
+                      <button
+                        type="button"
+                        onClick={() => setModalExtrato(item)}
+                        className="text-left hover:text-emerald-700 hover:underline flex items-center gap-1.5 transition-colors"
+                        title="Clique para ver o extrato dia a dia e remover duplicidades"
+                      >
+                        <span>{item.nome}</span>
+                      </button>
+                    </td>
                     <td className="p-4 text-slate-600">
                       <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[11px] font-semibold text-slate-700">
                         {item.obra}
@@ -492,6 +503,85 @@ export default function RelatoriosPage() {
           </div>
         </div>
       </div>
+
+      {/* ================= MODAL DE EXTRATO DETALHADO DO COLABORADOR ================= */}
+      {modalExtrato && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in duration-150 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-black text-slate-950">{modalExtrato.nome}</h3>
+                <p className="text-xs text-slate-500">
+                  Extrato individual dia a dia • PIX: <span className="font-mono">{modalExtrato.chavePix || 'Não informada'}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalExtrato(null)}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700"
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
+              {lancamentosDetalhados
+                .filter((l) => l.nome_trabalhador?.trim().toLowerCase() === modalExtrato.nome.trim().toLowerCase())
+                .map((l) => (
+                  <div key={l.id} className="py-3 flex items-center justify-between gap-3 text-xs">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-slate-900">{l.data_referencia}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
+                          {(l.obras_config as any)?.nome || 'Geral'}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                            l.tipo_lancamento === 'VALE'
+                              ? 'bg-rose-50 text-rose-700'
+                              : 'bg-emerald-50 text-emerald-700'
+                          }`}
+                        >
+                          {l.tipo_lancamento} ({l.fracao_dia || 1}x)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">{l.observacao || 'Apontamento de campo'}</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="font-black text-sm text-slate-900">
+                        R$ {Number(l.valor_monetario || 0).toFixed(2)}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={excluindoItemId === l.id}
+                        onClick={async () => {
+                          setExcluindoItemId(l.id);
+                          try {
+                            const res = await fetch('/api/lancamentos/excluir', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ lancamentoId: l.id }),
+                            });
+                            if (res.ok) {
+                              await carregarRelatorios();
+                              setModalExtrato(null);
+                            }
+                          } finally {
+                            setExcluindoItemId(null);
+                          }
+                        }}
+                        className="px-2.5 py-1 text-rose-600 hover:bg-rose-50 rounded-lg font-bold text-[11px] border border-rose-200/70 transition-all"
+                      >
+                        {excluindoItemId === l.id ? '...' : 'Excluir'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
