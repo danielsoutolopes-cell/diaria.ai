@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import EspelhoPontoMensal from '@/components/EspelhoPontoMensal';
 import {
   BarChart3,
   Calendar,
@@ -503,6 +504,9 @@ export default function RelatoriosPage() {
           </div>
         </div>
       </div>
+
+      {/* ================= RELATÓRIO 4: ESPELHO DO PONTO (CALENDÁRIO PAISAGEM) ================= */}
+      <EspelhoPontoMensal />
 
       {/* ================= MODAL DE EXTRATO DETALHADO DO COLABORADOR ================= */}
       {modalExtrato && (
