@@ -126,7 +126,17 @@ export async function POST(req: NextRequest) {
       sha256Hash: sha256Original,
     });
 
-    console.log(`[TICKET DE PONTO GERADO]: Lote #${lote.id.slice(0, 8)} homologado por ${usuarioLogado}. Ticket pronto para envio ao grupo.`);
+    console.log(`[TICKET DE PONTO GERADO]: Lote #${lote.id.slice(0, 8)} homologado por ${usuarioLogado}. Enviando via Baileys...`);
+
+    // Disparo real no WhatsApp privado de Daniel e Patrícia via Baileys local
+    const destinatarios = ['5511988139833', '5511978543369'];
+    for (const phone of destinatarios) {
+      fetch('http://127.0.0.1:3001/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message: ticketTexto }),
+      }).catch((err) => console.error(`Erro ao enviar ticket para ${phone}:`, err));
+    }
 
     // 7. REGRA CRÍTICA INVIOLÁVEL: Se foi uma reedição/alteração, SEMPRE notificar Patrícia Grubel
     let alertaPatriciaPayload = null;

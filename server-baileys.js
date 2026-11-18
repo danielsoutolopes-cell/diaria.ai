@@ -271,6 +271,27 @@ const server = http.createServer((req, res) => {
         res.writeHead(200);
         res.end(JSON.stringify({ session: state, groups }));
       }, 4000);
+    } else if (req.url === '/send-message' && req.method === 'POST') {
+      if (!sock || state.status !== 'CONNECTED') {
+        res.writeHead(503);
+        res.end(JSON.stringify({ error: 'WhatsApp não conectado' }));
+        return;
+      }
+      const rawTel = String(parsed.phone || '').replace(/\D/g, '');
+      const text = String(parsed.message || '');
+      if (!rawTel || !text) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'phone e message obrigatórios' }));
+        return;
+      }
+      try {
+        await sock.sendMessage(`${rawTel}@s.whatsapp.net`, { text });
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true }));
+      } catch (err) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: err.message }));
+      }
     } else if (req.url === '/disconnect' && req.method === 'POST') {
       if (sock) {
         try { sock.logout(); } catch(e){}
