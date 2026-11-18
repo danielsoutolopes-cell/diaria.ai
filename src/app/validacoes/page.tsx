@@ -18,11 +18,13 @@ import { ReceiptLightbox } from '@/components/ReceiptLightbox';
 
 interface PendenteItem {
   id: string;
+  lancamentoId?: string;
   loteId: string;
   obra: string;
   data: string;
   trabalhador: string;
   fracao: number;
+  tipo?: 'PONTO' | 'VALE';
   motivo: string;
   origem: string;
   timestampOriginal?: string | null;
@@ -354,19 +356,61 @@ export default function ValidacoesPage() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 self-end md:self-center">
-                  <div className="text-right sm:pr-2">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
-                      A Pagar
-                    </span>
-                    <span className="text-xl font-black text-slate-950">
-                      R$ {valorCalculado.toFixed(2)}
-                    </span>
-                    <span className="text-[11px] text-slate-400 block">
-                      Base: R$ {item.valorDiariaBase.toFixed(2)}
-                    </span>
-                  </div>
+                  {item.tipo === 'VALE' ? (
+                    <div className="flex items-center gap-2 bg-rose-50/70 p-2 rounded-2xl border border-rose-200/80">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-rose-700">
+                          Valor do Vale (R$)
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={item.valorDiariaBase}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            setItens((prev) =>
+                              prev.map((it) => (it.id === item.id ? { ...it, valorDiariaBase: val } : it))
+                            );
+                          }}
+                          className="w-28 px-3 py-1.5 bg-white border border-rose-200 rounded-xl text-sm font-black text-rose-950 focus:ring-2 focus:ring-rose-500"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!item.lancamentoId) return;
+                          await fetch('/api/lancamentos/editar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              lancamentoId: item.lancamentoId,
+                              valor: item.valorDiariaBase,
+                              status: 'VALIDADO',
+                            }),
+                          });
+                          setItens((prev) => prev.filter((it) => it.id !== item.id));
+                        }}
+                        className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                      >
+                        Aprovar Vale
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-right sm:pr-2">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                          A Pagar
+                        </span>
+                        <span className="text-xl font-black text-slate-950">
+                          R$ {valorCalculado.toFixed(2)}
+                        </span>
+                        <span className="text-[11px] text-slate-400 block">
+                          Base: R$ {item.valorDiariaBase.toFixed(2)}
+                        </span>
+                      </div>
 
-                  <div className="flex items-center p-1.5 bg-slate-100 rounded-2xl border border-slate-200/70 gap-1">
+                      <div className="flex items-center p-1.5 bg-slate-100 rounded-2xl border border-slate-200/70 gap-1">
                     <button
                       type="button"
                       onClick={() => handleFracaoChange(item.id, 1.0)}
@@ -403,6 +447,8 @@ export default function ValidacoesPage() {
                       0 Falta
                     </button>
                   </div>
+                    </>
+                  )}
                 </div>
               </div>
             );
