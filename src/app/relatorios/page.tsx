@@ -48,7 +48,7 @@ export default function RelatoriosPage() {
   const [dadosBordero, setDadosBordero] = useState<BorderoItem[]>([]);
   const [dadosObras, setDadosObras] = useState<CustoObraItem[]>([]);
   const [lancamentosDetalhados, setLancamentosDetalhados] = useState<any[]>([]);
-  const [modalExtrato, setModalExtrato] = useState<ItemBordero | null>(null);
+  const [modalExtrato, setModalExtrato] = useState<BorderoItem | null>(null);
   const [excluindoItemId, setExcluindoItemId] = useState<string | null>(null);
   const [totais, setTotais] = useState({
     totalGeralDiarias: 0,
