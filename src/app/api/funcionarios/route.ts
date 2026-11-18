@@ -224,11 +224,84 @@ export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    const transferirParaId = searchParams.get('transferirParaId');
+    const force = searchParams.get('force') === 'true';
 
     if (!id) {
       return NextResponse.json({ error: 'ID do funcionário é obrigatório' }, { status: 400 });
     }
 
+    // 1. Buscar dados do funcionário a ser excluído
+    const { data: funcAlvo, error: errAlvo } = await supabaseAdmin
+      .from('funcionarios_obra')
+      .select('id, nome_trabalhador')
+      .eq('id', id)
+      .single();
+
+    if (errAlvo || !funcAlvo) {
+      return NextResponse.json({ error: 'Colaborador não encontrado' }, { status: 404 });
+    }
+
+    const nomeAlvo = funcAlvo.nome_trabalhador;
+
+    // 2. Verificar se existem apontamentos vinculados (pontos e vales)
+    const [resLanc, resDetalhes] = await Promise.all([
+      supabaseAdmin
+        .from('lancamentos_financeiros')
+        .select('id, tipo_lancamento, valor_monetario, status')
+        .or(`nome_trabalhador.eq."${nomeAlvo}",nome_trabalhador.ilike."%${nomeAlvo}%"`),
+      supabaseAdmin
+        .from('ponto_detalhe')
+        .select('id')
+        .ilike('nome_trabalhador', `%${nomeAlvo}%`),
+    ]);
+
+    const totalLancamentos = (resLanc.data || []).length;
+    const totalDetalhes = (resDetalhes.data || []).length;
+    const totalApontamentos = totalLancamentos + totalDetalhes;
+
+    // 3. Se houver apontamentos e não foi solicitado transferir nem force
+    if (totalApontamentos > 0 && !transferirParaId && !force) {
+      const pontos = (resLanc.data || []).filter((l) => l.tipo_lancamento === 'PONTO').length;
+      const vales = (resLanc.data || []).filter((l) => l.tipo_lancamento === 'VALE').length;
+
+      return NextResponse.json({
+        temVinculos: true,
+        totalApontamentos,
+        pontos,
+        vales,
+        mensagem: `O colaborador "${nomeAlvo}" possui ${totalApontamentos} registro(s) vinculado(s) (${pontos} diárias e ${vales} vales). Deseja transferir esses registros para outro colaborador antes de excluir?`,
+      });
+    }
+
+    // 4. Se informou transferirParaId, reatribui todos os apontamentos para o novo colaborador
+    if (transferirParaId) {
+      const { data: funcDestino } = await supabaseAdmin
+        .from('funcionarios_obra')
+        .select('id, nome_trabalhador')
+        .eq('id', transferirParaId)
+        .single();
+
+      if (!funcDestino) {
+        return NextResponse.json({ error: 'Colaborador de destino não encontrado' }, { status: 404 });
+      }
+
+      const nomeDestino = funcDestino.nome_trabalhador;
+
+      // Atualiza lancamentos_financeiros
+      await supabaseAdmin
+        .from('lancamentos_financeiros')
+        .update({ nome_trabalhador: nomeDestino })
+        .or(`nome_trabalhador.eq."${nomeAlvo}",nome_trabalhador.ilike."%${nomeAlvo}%"`);
+
+      // Atualiza ponto_detalhe
+      await supabaseAdmin
+        .from('ponto_detalhe')
+        .update({ nome_trabalhador: nomeDestino })
+        .ilike('nome_trabalhador', `%${nomeAlvo}%`);
+    }
+
+    // 5. Inativa o colaborador (Soft Delete pericial)
     const { error } = await supabaseAdmin
       .from('funcionarios_obra')
       .update({ ativo: false })
@@ -239,9 +312,14 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      mensagem: transferirParaId
+        ? `Colaborador inativado e registros transferidos com sucesso.`
+        : `Colaborador inativado com sucesso.`,
+    });
   } catch (err) {
-    console.error('Erro ao inativar funcionário:', err);
+    console.error('Erro ao excluir/inativar funcionário:', err);
     return NextResponse.json({ error: 'Falha interna' }, { status: 500 });
   }
 }

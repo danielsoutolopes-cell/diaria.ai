@@ -88,6 +88,19 @@ export default function SetupPage() {
   const [editFuncApelidos, setEditFuncApelidos] = useState('');
   const [salvandoEdicaoFunc, setSalvandoEdicaoFunc] = useState(false);
 
+  // Estados de Exclusão Inteligente com Verificação de Apontamentos
+  const [excluindoFunc, setExcluindoFunc] = useState<FuncionarioItem | null>(null);
+  const [modalExclusao, setModalExclusao] = useState<{
+    aberto: boolean;
+    temVinculos: boolean;
+    mensagem: string;
+    totalApontamentos: number;
+    pontos: number;
+    vales: number;
+    transferirParaId: string;
+    excluindo: boolean;
+  } | null>(null);
+
   // Tabela de Preços Duplos Obra vs. Piscina
   const [precosDuplos, setPrecosDuplos] = useState<Record<string, { obra: number | null; piscina: number | null }>>({});
 
@@ -343,6 +356,59 @@ export default function SetupPage() {
       console.error(err);
     } finally {
       setSalvandoEdicaoFunc(false);
+    }
+  }
+
+  async function handleSolicitarExclusaoFunc(f: FuncionarioItem) {
+    setExcluindoFunc(f);
+    try {
+      const res = await fetch(`/api/funcionarios?id=${f.id}`, { method: 'DELETE' });
+      const data = await res.json();
+
+      if (data.temVinculos) {
+        setModalExclusao({
+          aberto: true,
+          temVinculos: true,
+          mensagem: data.mensagem,
+          totalApontamentos: data.totalApontamentos,
+          pontos: data.pontos,
+          vales: data.vales,
+          transferirParaId: '',
+          excluindo: false,
+        });
+      } else if (data.success) {
+        setFuncionarios((prev) => prev.filter((item) => item.id !== f.id));
+        setExcluindoFunc(null);
+      }
+    } catch (err) {
+      console.error('Erro ao verificar exclusão:', err);
+    }
+  }
+
+  async function handleConfirmarExclusaoComOuSemTransferencia(forcarSemTransferir = false) {
+    if (!excluindoFunc || !modalExclusao) return;
+    setModalExclusao((prev) => (prev ? { ...prev, excluindo: true } : null));
+
+    try {
+      let url = `/api/funcionarios?id=${excluindoFunc.id}`;
+      if (forcarSemTransferir) {
+        url += '&force=true';
+      } else if (modalExclusao.transferirParaId) {
+        url += `&transferirParaId=${modalExclusao.transferirParaId}`;
+      }
+
+      const res = await fetch(url, { method: 'DELETE' });
+      const data = await res.json();
+
+      if (data.success) {
+        setFuncionarios((prev) => prev.filter((item) => item.id !== excluindoFunc.id));
+        setModalExclusao(null);
+        setExcluindoFunc(null);
+      }
+    } catch (err) {
+      console.error('Erro ao confirmar exclusão:', err);
+    } finally {
+      setModalExclusao((prev) => (prev ? { ...prev, excluindo: false } : null));
     }
   }
 
@@ -757,7 +823,17 @@ export default function SetupPage() {
                         </div>
                       )}
 
-                      <div className="pt-2 flex justify-end">
+                      <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => handleSolicitarExclusaoFunc(f)}
+                          className="px-2.5 py-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl text-[11px] font-semibold transition-all flex items-center gap-1"
+                          title="Excluir Colaborador"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Excluir</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => handleStartEditFunc(f)}
@@ -1262,6 +1338,118 @@ export default function SetupPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL DE EXCLUSÃO INTELIGENTE & TRANSFERÊNCIA ================= */}
+      {modalExclusao && excluindoFunc && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2.5 bg-red-50 rounded-2xl border border-red-200/80">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900">Excluir Colaborador</h3>
+                <p className="text-xs text-slate-500">{excluindoFunc.nome_trabalhador}</p>
+              </div>
+            </div>
+
+            {modalExclusao.temVinculos ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200/80 text-xs text-amber-900 leading-relaxed space-y-2">
+                  <p className="font-bold flex items-center gap-1.5">
+                    <span>⚠️ Atenção: Registros Financeiros Encontrados</span>
+                  </p>
+                  <p>
+                    O colaborador possui <strong>{modalExclusao.totalApontamentos} lançamento(s)</strong> no histórico ({modalExclusao.pontos} diárias e {modalExclusao.vales} vales).
+                  </p>
+                  <p className="text-[11px] text-amber-800">
+                    Para não corromper o borderô nem perder o histórico financeiro, selecione um colaborador para <strong>transferir esses lançamentos</strong>:
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Transferir Apontamentos Para:</label>
+                  <select
+                    value={modalExclusao.transferirParaId}
+                    onChange={(e) =>
+                      setModalExclusao((prev) => (prev ? { ...prev, transferirParaId: e.target.value } : null))
+                    }
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">Selecione o novo responsável...</option>
+                    {funcionarios
+                      .filter((f) => f.id !== excluindoFunc.id)
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.nome_trabalhador} ({f.chave_pix || 'Sem PIX'})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    disabled={!modalExclusao.transferirParaId || modalExclusao.excluindo}
+                    onClick={() => handleConfirmarExclusaoComOuSemTransferencia(false)}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    {modalExclusao.excluindo ? 'Transferindo...' : 'Transferir Registros e Excluir'}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={modalExclusao.excluindo}
+                    onClick={() => handleConfirmarExclusaoComOuSemTransferencia(true)}
+                    className="w-full py-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl text-[11px] font-semibold transition-all"
+                  >
+                    Excluir mesmo assim (Manter histórico original)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalExclusao(null);
+                      setExcluindoFunc(null);
+                    }}
+                    className="w-full py-1.5 text-slate-400 hover:text-slate-600 text-xs font-medium"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Tem certeza que deseja inativar o colaborador <strong>{excluindoFunc.nome_trabalhador}</strong>? Ele não possui lançamentos financeiros vinculados.
+                </p>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalExclusao(null);
+                      setExcluindoFunc(null);
+                    }}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={modalExclusao.excluindo}
+                    onClick={() => handleConfirmarExclusaoComOuSemTransferencia(true)}
+                    className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+                  >
+                    {modalExclusao.excluindo ? 'Excluindo...' : 'Confirmar Exclusão'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
