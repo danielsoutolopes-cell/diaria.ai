@@ -363,17 +363,18 @@ export default function ValidacoesPage() {
                           Valor do Vale (R$)
                         </span>
                         <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={item.valorDiariaBase}
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Ex: 100.00"
+                          value={item.valorDiariaBase === 0 ? '' : String(item.valorDiariaBase)}
                           onChange={(e) => {
-                            const val = Number(e.target.value) || 0;
+                            const raw = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '');
+                            const val = raw === '' ? 0 : Number(raw);
                             setItens((prev) =>
-                              prev.map((it) => (it.id === item.id ? { ...it, valorDiariaBase: val } : it))
+                              prev.map((it) => (it.id === item.id ? { ...it, valorDiariaBase: isNaN(val) ? 0 : val } : it))
                             );
                           }}
-                          className="w-28 px-3 py-1.5 bg-white border border-rose-200 rounded-xl text-sm font-black text-rose-950 focus:ring-2 focus:ring-rose-500"
+                          className="w-32 px-3 py-1.5 bg-white border border-rose-200 rounded-xl text-sm font-black text-rose-950 focus:ring-2 focus:ring-rose-500"
                         />
                       </div>
                       <button
@@ -385,8 +386,9 @@ export default function ValidacoesPage() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                               lancamentoId: item.lancamentoId,
-                              valor: item.valorDiariaBase,
+                              novoValor: item.valorDiariaBase,
                               status: 'VALIDADO',
+                              usuarioLogado: usuarioAtual,
                             }),
                           });
                           setItens((prev) => prev.filter((it) => it.id !== item.id));
