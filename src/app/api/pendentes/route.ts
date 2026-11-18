@@ -181,6 +181,39 @@ export async function GET() {
       });
     });
 
+    // 4. Buscar Vales Pendentes em lancamentos_financeiros
+    const { data: valesPendentes } = await supabaseAdmin
+      .from('lancamentos_financeiros')
+      .select(`
+        id,
+        nome_trabalhador,
+        valor_monetario,
+        data_referencia,
+        observacao,
+        ponto_lote_id,
+        obras_config ( nome )
+      `)
+      .eq('tipo_lancamento', 'VALE')
+      .eq('status', 'PENDENTE')
+      .order('created_at', { ascending: false });
+
+    (valesPendentes || []).forEach((v: any) => {
+      itens.push({
+        id: `vale-${v.id}`,
+        lancamentoId: v.id,
+        loteId: v.ponto_lote_id || `vale-${v.id}`,
+        obra: v.obras_config?.nome || 'PORTO SEGURO',
+        data: v.data_referencia,
+        trabalhador: v.nome_trabalhador,
+        fracao: 0,
+        tipo: 'VALE',
+        motivo: v.observacao || 'Pedido de Vale via WhatsApp',
+        origem: 'WhatsApp Oficial',
+        valorDiariaBase: Number(v.valor_monetario || 0),
+        comprovanteUrl: null,
+      });
+    });
+
     return NextResponse.json({ pendentes: itens });
   } catch (err) {
     console.error('Erro na rota /api/pendentes:', err);
