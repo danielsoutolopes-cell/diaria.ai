@@ -151,6 +151,21 @@ export default function ValidacoesPage() {
         return;
       }
 
+      // Aprovar também quaisquer vales pendentes na fila
+      const valesNaFila = itens.filter((i) => i.tipo === 'VALE' && i.lancamentoId);
+      for (const v of valesNaFila) {
+        await fetch('/api/lancamentos/editar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lancamentoId: v.lancamentoId,
+            novoValor: v.valorDiariaBase,
+            status: 'VALIDADO',
+            usuarioLogado: usuarioAtual,
+          }),
+        });
+      }
+
       setSucesso(true);
       setTimeout(() => {
         setItens([]);
@@ -168,7 +183,7 @@ export default function ValidacoesPage() {
   }
 
   const totalCalculado = itens.reduce(
-    (acc, curr) => acc + curr.valorDiariaBase * curr.fracao,
+    (acc, curr) => acc + (curr.tipo === 'VALE' ? curr.valorDiariaBase : curr.valorDiariaBase * curr.fracao),
     0
   );
 
@@ -387,15 +402,13 @@ export default function ValidacoesPage() {
                             body: JSON.stringify({
                               lancamentoId: item.lancamentoId,
                               novoValor: item.valorDiariaBase,
-                              status: 'VALIDADO',
                               usuarioLogado: usuarioAtual,
                             }),
                           });
-                          setItens((prev) => prev.filter((it) => it.id !== item.id));
                         }}
-                        className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition-all shadow-sm"
                       >
-                        Aprovar Vale
+                        OK
                       </button>
                     </div>
                   ) : (
