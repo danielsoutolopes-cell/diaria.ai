@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
     dataInicio.setDate(agora.getDate() - diasAtras);
     const dataInicioIso = dataInicio.toISOString().split('T')[0];
 
-    // 1. Busca lançamentos no período
-    const { data: lancamentos, error: errLanc } = await supabaseAdmin
+    // 1. Busca lançamentos no período (com fallback caso comprovante_url/funcionario_id não existam)
+    let { data: lancamentos, error: errLanc } = await supabaseAdmin
       .from('lancamentos_financeiros')
       .select(`
         id,
@@ -30,7 +30,6 @@ export async function GET(req: NextRequest) {
         status,
         data_referencia,
         comprovante_url,
-        funcionario_id,
         obra_id,
         obras_config (
           nome,
@@ -39,6 +38,30 @@ export async function GET(req: NextRequest) {
       `)
       .gte('data_referencia', dataInicioIso)
       .order('data_referencia', { ascending: false });
+
+    if (errLanc && (errLanc.code === '42703' || errLanc.message?.includes('does not exist'))) {
+      const fallback = await supabaseAdmin
+        .from('lancamentos_financeiros')
+        .select(`
+          id,
+          nome_trabalhador,
+          tipo_lancamento,
+          fracao_dia,
+          valor_monetario,
+          status,
+          data_referencia,
+          obra_id,
+          obras_config (
+            nome,
+            tipo_obra
+          )
+        `)
+        .gte('data_referencia', dataInicioIso)
+        .order('data_referencia', { ascending: false });
+
+      lancamentos = fallback.data as any;
+      errLanc = fallback.error;
+    }
 
     if (errLanc) {
       console.error('Erro ao buscar lancamentos para relatorio:', errLanc);
