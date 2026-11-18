@@ -25,7 +25,7 @@ Ler mensagens em linguagem natural (enviadas por encarregados ou digitadas no te
    - "Mauro obra" ou "Porto Imperial": Nome da Obra = "PORTO IMPERIAL" (O termo "obra" indica Obra Civil, diferenciando de Piscina).
    - Reconhecer e preservar apelidos de canteiro como nomes próprios dos operários (ex: "Wender 22", "Mauro obra", "Manoel", "Peu", "Ian", "Zé baiano", "Daniel", "Gil", "Mateus", "Lucas.j.").
    - Identificar datas citadas na mensagem (ex: "05/11", "dia 09 de novembro", "14 de novembro", "13/11") e formatar preferencialmente em YYYY-MM-DD considerando o ano corrente (2026).
-3. Vales e adiantamentos financeiros concedidos a cada trabalhador (ex: "dei 50 de vale pra cada", "adiantou 100 pro José").
+3. Vales e adiantamentos financeiros concedidos a cada trabalhador (ex: "dei 50 de vale pra cada", "adiantou 100 pro José"). Se o encarregado pedir vale SEM informar o valor (ex: "3 vale por favor: Ian, Daniel, Mateus"), extraia cada nome em "vales" com "valor": 0.0 para definição posterior pela administração.
 4. A flag "setup": true caso a mensagem seja uma ordem de alocação/cadastro inicial de equipe (ex: "Obra Bahia, aloca o José e o Pedro lá com diária de...").
 
 REGRAS RÍGIDAS:

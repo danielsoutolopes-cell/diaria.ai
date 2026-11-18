@@ -333,7 +333,9 @@ export async function POST(req: NextRequest) {
             valor_monetario: vale.valor,
             status: 'PENDENTE',
             data_referencia: new Date().toISOString().split('T')[0],
-            observacao: 'Adiantamento de Vale via WhatsApp Bot',
+            observacao: Number(vale.valor) > 0
+              ? 'Adiantamento de Vale via WhatsApp Bot'
+              : 'Pedido de Vale via WhatsApp (Aguardando definição de valor pela Adm)',
             ponto_lote_id: loteId,
             comprovante_url: comprovanteUrl,
           });
