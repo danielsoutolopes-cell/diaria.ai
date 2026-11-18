@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import EspelhoPontoMensal from '@/components/EspelhoPontoMensal';
+import CalendarioVisualObra from '@/components/CalendarioVisualObra';
 import {
   BarChart3,
   Calendar,
@@ -507,6 +508,9 @@ export default function RelatoriosPage() {
 
       {/* ================= RELATÓRIO 4: ESPELHO DO PONTO (CALENDÁRIO PAISAGEM) ================= */}
       <EspelhoPontoMensal />
+
+      {/* ================= RELATÓRIO 5: CALENDÁRIO VISUAL DE OBRA & CLIMA ================= */}
+      <CalendarioVisualObra />
 
       {/* ================= MODAL DE EXTRATO DETALHADO DO COLABORADOR ================= */}
       {modalExtrato && (
