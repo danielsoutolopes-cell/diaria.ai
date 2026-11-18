@@ -17,6 +17,8 @@ export async function GET() {
         funcao,
         is_encarregado,
         valor_diaria,
+        valor_diaria_obra,
+        valor_diaria_piscina,
         regime_remuneracao,
         ciclo_pagamento,
         valor_base_contratual,
@@ -111,6 +113,8 @@ export async function POST(req: NextRequest) {
         funcao,
         is_encarregado,
         valor_diaria,
+        valor_diaria_obra,
+        valor_diaria_piscina,
         regime_remuneracao,
         ciclo_pagamento,
         valor_base_contratual,
@@ -151,6 +155,8 @@ export async function PUT(req: NextRequest) {
       telefone,
       obra_id,
       valor_diaria,
+      valor_diaria_obra,
+      valor_diaria_piscina,
       is_encarregado,
       regime_remuneracao,
       ciclo_pagamento,
@@ -170,6 +176,8 @@ export async function PUT(req: NextRequest) {
     if (telefone !== undefined) payload.telefone = telefone ? String(telefone).trim() : null;
     if (obra_id !== undefined) payload.obra_id = obra_id || null;
     if (valor_diaria !== undefined) payload.valor_diaria = Number(valor_diaria) || 150;
+    if (valor_diaria_obra !== undefined) payload.valor_diaria_obra = valor_diaria_obra !== null ? Number(valor_diaria_obra) : null;
+    if (valor_diaria_piscina !== undefined) payload.valor_diaria_piscina = valor_diaria_piscina !== null ? Number(valor_diaria_piscina) : null;
     if (is_encarregado !== undefined) payload.is_encarregado = Boolean(is_encarregado);
     if (regime_remuneracao !== undefined) payload.regime_remuneracao = regime_remuneracao;
     if (ciclo_pagamento !== undefined) payload.ciclo_pagamento = ciclo_pagamento;
@@ -190,6 +198,8 @@ export async function PUT(req: NextRequest) {
         funcao,
         is_encarregado,
         valor_diaria,
+        valor_diaria_obra,
+        valor_diaria_piscina,
         regime_remuneracao,
         ciclo_pagamento,
         valor_base_contratual,

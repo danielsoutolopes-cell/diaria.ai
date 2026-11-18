@@ -43,6 +43,8 @@ interface FuncionarioItem {
   ciclo_pagamento?: 'SEMANAL' | 'QUINZENAL';
   valor_base_contratual?: number;
   valor_diaria: number;
+  valor_diaria_obra?: number | null;
+  valor_diaria_piscina?: number | null;
   ativo: boolean;
   obras_config?: { nome: string } | null;
 }
@@ -282,16 +284,24 @@ export default function SetupPage() {
     }
   }
 
+  function formatarTelefoneBR(valor: string) {
+    const nums = valor.replace(/\D/g, '').slice(0, 11);
+    if (nums.length <= 2) return nums;
+    if (nums.length <= 6) return `(${nums.slice(0, 2)}) ${nums.slice(2)}`;
+    if (nums.length <= 10) return `(${nums.slice(0, 2)}) ${nums.slice(2, 6)}-${nums.slice(6)}`;
+    return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
+  }
+
   function handleStartEditFunc(f: FuncionarioItem) {
     setEditingFunc(f);
     setEditFuncNome(f.nome_trabalhador);
     setEditFuncPix(f.chave_pix || '');
-    setEditFuncTelefone(f.telefone || '');
+    setEditFuncTelefone(f.telefone ? formatarTelefoneBR(f.telefone) : '');
     
-    // Obter valores de Obra e Piscina
+    // Obter valores de Obra e Piscina diretamente do banco (com fallback para matriz)
     const precos = precosDuplos[f.id] || precosDuplos[f.nome_trabalhador] || {};
-    const valObra = precos.obra !== undefined ? precos.obra : (f.valor_base_contratual || f.valor_diaria || 180);
-    const valPiscina = precos.piscina !== undefined ? precos.piscina : null;
+    const valObra = f.valor_diaria_obra !== undefined ? f.valor_diaria_obra : (precos.obra !== undefined ? precos.obra : (f.valor_base_contratual || f.valor_diaria || 180));
+    const valPiscina = f.valor_diaria_piscina !== undefined ? f.valor_diaria_piscina : (precos.piscina !== undefined ? precos.piscina : null);
 
     setEditFuncValor(valObra !== null ? String(valObra) : '');
     setEditFuncValorPiscina(valPiscina !== null ? String(valPiscina) : '');
@@ -324,6 +334,8 @@ export default function SetupPage() {
           chave_pix: editFuncPix,
           telefone: editFuncTelefone || null,
           valor_diaria: valObra || valPiscina || 150,
+          valor_diaria_obra: valObra,
+          valor_diaria_piscina: valPiscina,
           valor_base_contratual: valObra || valPiscina || 150,
           regime_remuneracao: editFuncRegime,
           ciclo_pagamento: editFuncCiclo,
@@ -635,7 +647,7 @@ export default function SetupPage() {
                     type="text"
                     placeholder="(11) 9...."
                     value={telefoneFunc}
-                    onChange={(e) => setTelefoneFunc(e.target.value)}
+                    onChange={(e) => setTelefoneFunc(formatarTelefoneBR(e.target.value))}
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
                   />
                 </div>
@@ -746,8 +758,8 @@ export default function SetupPage() {
                       <div className="flex flex-col items-end gap-1.5">
                         {(() => {
                           const p = precosDuplos[f.id] || precosDuplos[f.nome_trabalhador] || {};
-                          const valObra = p.obra !== undefined ? p.obra : (f.valor_base_contratual || f.valor_diaria);
-                          const valPiscina = p.piscina !== undefined ? p.piscina : null;
+                          const valObra = f.valor_diaria_obra !== undefined ? f.valor_diaria_obra : (p.obra !== undefined ? p.obra : (f.valor_base_contratual || f.valor_diaria));
+                          const valPiscina = f.valor_diaria_piscina !== undefined ? f.valor_diaria_piscina : (p.piscina !== undefined ? p.piscina : null);
                           const isDiego = f.nome_trabalhador.includes('DIEGO');
 
                           if (isDiego) {
@@ -1145,8 +1157,8 @@ export default function SetupPage() {
                   <input
                     type="text"
                     value={editFuncTelefone}
-                    onChange={(e) => setEditFuncTelefone(e.target.value)}
-                    placeholder="24999999999"
+                    onChange={(e) => setEditFuncTelefone(formatarTelefoneBR(e.target.value))}
+                    placeholder="(24) 99999-9999"
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
