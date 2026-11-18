@@ -266,6 +266,7 @@ export async function POST(req: NextRequest) {
         .insert({
           tenant_id: tenantId,
           obra_id: obraId,
+          data_referencia: obra.data_referencia || new Date().toISOString().split('T')[0],
           texto_original: cabecalhoPericial,
           status_validacao: 'PENDENTE',
           token_aprovacao: tokenAprovacao,
