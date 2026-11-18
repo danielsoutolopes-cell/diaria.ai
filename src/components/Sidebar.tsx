@@ -29,6 +29,13 @@ const navItems = [
     badge: null,
   },
   {
+    name: 'PitWall F1 (Telemetria)',
+    href: '/pitwall',
+    icon: TrendingUp,
+    badge: 'LIVE',
+    badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+  },
+  {
     name: 'Validações Pendentes',
     href: '/validacoes',
     icon: CalendarCheck2,
