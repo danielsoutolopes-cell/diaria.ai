@@ -476,6 +476,27 @@ export default function WhatsAppConfigPage() {
           {/* Quick Info Box */}
           <div className="space-y-3">
             <button
+              type="button"
+              onClick={async () => {
+                const t0 = performance.now();
+                try {
+                  const res = await fetch('/api/whatsapp');
+                  const ms = Math.round(performance.now() - t0);
+                  const d = await res.json();
+                  const st = d?.session?.status || 'DESCONHECIDO';
+                  const gr = d?.groups?.length || 0;
+                  alert(`✅ Diagnóstico Baileys OK (${ms}ms)\n• Status: ${st}\n• Grupos detectados: ${gr}\n\nSe estiver travado no iOS, clique em "Limpar Memória & Reiniciar Socket" abaixo.`);
+                } catch {
+                  alert('❌ Falha ao contatar a API do Baileys. Clique em "Limpar Memória & Reiniciar Socket".');
+                }
+              }}
+              className="w-full py-2 bg-sky-50 hover:bg-sky-100 text-sky-800 rounded-xl text-[11px] font-bold transition-all border border-sky-200 flex items-center justify-center gap-1.5"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Diagnóstico Rápido (Baileys &amp; iOS)</span>
+            </button>
+
+            <button
               onClick={handleLimparSessaoLocal}
               disabled={loading}
               className="w-full py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-500 rounded-xl text-[11px] font-bold transition-all border border-slate-200 flex items-center justify-center gap-1.5"

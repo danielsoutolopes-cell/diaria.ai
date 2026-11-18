@@ -22,6 +22,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import Link from 'next/link';
+import HelpCenter from '@/components/HelpCenter';
 
 interface SecaoAjuda {
   id: string;
@@ -326,6 +327,9 @@ export default function AjudaPage() {
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
+      {/* Manual Vivo & Guia Rápido */}
+      <HelpCenter />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>

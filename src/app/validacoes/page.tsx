@@ -329,6 +329,19 @@ export default function ValidacoesPage() {
                       <span>{item.motivo}</span>
                     </div>
 
+                    {/* Alerta Preditivo de Duplicidade de Homônimos (mesmo nome em obras diferentes) */}
+                    {itens.some(
+                      (outro) =>
+                        outro.id !== item.id &&
+                        outro.trabalhador.trim().toLowerCase() === item.trabalhador.trim().toLowerCase() &&
+                        outro.obra !== item.obra
+                    ) && (
+                      <div className="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-black flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                        <span>Homônimo / Ambiguidade: presente em múltiplas obras</span>
+                      </div>
+                    )}
+
                     {/* Botão de indicação rápida de condutor/motorista em dia de viagem */}
                     {item.motivo.toLowerCase().includes('viagem') && (
                       <button
