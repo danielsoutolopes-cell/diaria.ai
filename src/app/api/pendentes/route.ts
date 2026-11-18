@@ -93,6 +93,18 @@ export async function GET() {
       ...(paramData?.configuracoes || {}),
     };
 
+    // 2.5 Buscar valores individuais dos colaboradores (Obra Civil vs Piscina)
+    const { data: funcsData } = await supabaseAdmin
+      .from('funcionarios_obra')
+      .select('nome_trabalhador, valor_diaria, valor_diaria_obra, valor_diaria_piscina');
+
+    const mapaFuncs = new Map<string, any>();
+    (funcsData || []).forEach((f) => {
+      if (f.nome_trabalhador) {
+        mapaFuncs.set(f.nome_trabalhador.trim().toUpperCase(), f);
+      }
+    });
+
     const itens: any[] = [];
     (lotes || []).forEach((lote) => {
       const obraNome = (lote as any).obras_config?.nome || 'CANTEIRO VOLANTE';
@@ -111,8 +123,20 @@ export async function GET() {
           (l: any) => l.nome_trabalhador?.toLowerCase() === d.nome_trabalhador?.toLowerCase() && l.comprovante_url
         ) || lancamentos.find((l: any) => l.comprovante_url);
 
+        const nomeUpper = (d.nome_trabalhador || '').trim().toUpperCase();
+        const funcInfo = mapaFuncs.get(nomeUpper) || Array.from(mapaFuncs.values()).find((f) => f.nome_trabalhador.toUpperCase().includes(nomeUpper));
+
+        let valorIndividual = valorBasePadrao;
+        if (funcInfo) {
+          if (tipoObra === 'PISCINA') {
+            valorIndividual = Number(funcInfo.valor_diaria_piscina ?? funcInfo.valor_diaria ?? valorBasePadrao);
+          } else {
+            valorIndividual = Number(funcInfo.valor_diaria_obra ?? funcInfo.valor_diaria ?? valorBasePadrao);
+          }
+        }
+
         const motivo = (d.motivo_excecao || '').toUpperCase();
-        let valorCalculado = valorBasePadrao;
+        let valorCalculado = valorIndividual;
 
         // Aplicação das regras de negócio especiais
         if (motivo.includes('VIAGEM_PASSAGEIRO') || (motivo.includes('VIAGEM') && !motivo.includes('MOTORISTA'))) {
@@ -122,7 +146,7 @@ export async function GET() {
         } else if (motivo.includes('PARADO') || motivo.includes('SEM ACESSO') || motivo.includes('CONDOMINIO')) {
           valorCalculado = regras.dia_parado_padrao; // R$ 120,00
         } else if (motivo.includes('VIAGEM_MOTORISTA')) {
-          valorCalculado = valorBasePadrao; // Diária integral
+          valorCalculado = valorIndividual; // Diária integral
         }
 
         // Extrai metadados periciais do texto_original se existirem
