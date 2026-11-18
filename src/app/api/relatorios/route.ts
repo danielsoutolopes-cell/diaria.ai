@@ -136,6 +136,9 @@ export async function GET(req: NextRequest) {
       }
 
       const fRegistro = agrupamentoFunc.get(nomeChave)!;
+      if (obraNome && !fRegistro.obra.includes(obraNome)) {
+        fRegistro.obra = fRegistro.obra ? `${fRegistro.obra}, ${obraNome}` : obraNome;
+      }
       fRegistro.itens.push(item);
 
       if (item.tipo_lancamento === 'PONTO') {
