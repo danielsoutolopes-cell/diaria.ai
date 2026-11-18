@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
         `📝 *Descrição:* ${messageText}\n` +
         (comprovanteUrl ? `📎 *Comprovante:* ${comprovanteUrl}\n` : '') +
         `\n💬 *Orientações:* Patrícia, alinhe diretamente com o ${nomeSolicitante.split(' ')[0]} para validação.\n` +
-        `🔗 *Painel de Reembolsos:* ${process.env.APP_URL || 'https://diaria-ai.onrender.com'}/reembolsos\n` +
+        `🔗 *Painel de Reembolsos:* ${process.env.APP_URL || 'https://diaria-ai.fly.dev'}/reembolsos\n` +
         `\n_Nota: O remetente NÃO recebeu confirmação por WhatsApp para sigilo de valores._`;
 
       return NextResponse.json({
@@ -355,7 +355,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://diaria-ai.onrender.com';
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://diaria-ai.fly.dev';
     const validationUrl = `${appUrl}/validacoes?token=${tokenAprovacao}`;
 
     // Determina o tipo de evento predominante para enriquecer a mensagem

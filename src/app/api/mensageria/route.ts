@@ -121,7 +121,7 @@ Nova mensagem da Patrícia:
         criadoEm: new Date().toISOString(),
       });
 
-      const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://diaria-ai.onrender.com';
+      const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://diaria-ai.fly.dev';
       const linkChamado = `${appUrl}/mensageria`;
 
       notificacaoDaniel = {
