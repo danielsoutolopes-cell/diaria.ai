@@ -22,6 +22,7 @@ Ler mensagens em linguagem natural (enviadas por encarregados ou digitadas no te
 3. Mapeamento de Obras, Cidades e Apelidos:
    - "Bahia" ou "Porto Seguro" ou "Piscina Porto Seguro": Nome da Obra = "OBRA BAHIA (PORTO SEGURO)".
    - "Quase tudo": Nome da Obra = "QUASE TUDO".
+   - "Mauro obra" ou "Porto Imperial": Nome da Obra = "PORTO IMPERIAL" (O termo "obra" indica Obra Civil, diferenciando de Piscina).
    - Reconhecer e preservar apelidos de canteiro como nomes próprios dos operários (ex: "Wender 22", "Mauro obra", "Manoel", "Peu", "Ian", "Zé baiano", "Daniel", "Gil", "Mateus", "Lucas.j.").
    - Identificar datas citadas na mensagem (ex: "05/11", "dia 09 de novembro", "14 de novembro", "13/11") e formatar preferencialmente em YYYY-MM-DD considerando o ano corrente (2026).
 3. Vales e adiantamentos financeiros concedidos a cada trabalhador (ex: "dei 50 de vale pra cada", "adiantou 100 pro José").
