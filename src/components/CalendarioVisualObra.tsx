@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Printer, CalendarDays, Building2, CloudRain, DollarSign, TrendingUp } from 'lucide-react';
+import { Printer, CalendarDays, Building2, CloudRain, DollarSign, TrendingUp, Send } from 'lucide-react';
+
+interface DestinatarioWhatsApp {
+  nome: string;
+  telefone: string;
+  papel: 'ADMIN' | 'ENCARREGADO' | 'COLABORADOR';
+  podeVerValores: boolean;
+}
 
 interface LinhaEspelho {
   nome: string;
@@ -17,6 +24,62 @@ export default function CalendarioVisualObra() {
   const [diasNoMes, setDiasNoMes] = useState<number>(30);
   const [linhas, setLinhas] = useState<LinhaEspelho[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [destinatarios, setDestinatarios] = useState<DestinatarioWhatsApp[]>([]);
+  const [destinoTel, setDestinoTel] = useState<string>('5511978543369');
+  const [enviandoPdf, setEnviandoPdf] = useState<boolean>(false);
+  const [msgEnvio, setMsgEnvio] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/relatorios/espelho/enviar')
+      .then((r) => r.json())
+      .then((d: { destinatarios?: DestinatarioWhatsApp[] }) => {
+        if (d.destinatarios && d.destinatarios.length > 0) {
+          setDestinatarios(d.destinatarios);
+          setDestinoTel(d.destinatarios[0].telefone);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleEnviarPdfWhatsApp() {
+    if (!destinoTel || linhas.length === 0) return;
+    setEnviandoPdf(true);
+    setMsgEnvio(null);
+    try {
+      const destObj = destinatarios.find((d) => d.telefone === destinoTel);
+      const res = await fetch('/api/relatorios/espelho/enviar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telefone: destinoTel,
+          nomeDestinatario: destObj?.nome,
+          podeVerValores: destObj?.podeVerValores ?? false,
+          mes,
+          diasNoMes,
+          linhas,
+        }),
+      });
+      const d = (await res.json()) as {
+        message?: string;
+        pdfBase64?: string;
+        fileName?: string;
+      };
+      if (d.message) {
+        setMsgEnvio(d.message);
+        setTimeout(() => setMsgEnvio(null), 5000);
+      }
+      if (d.pdfBase64 && d.fileName) {
+        const a = document.createElement('a');
+        a.href = `data:application/pdf;base64,${d.pdfBase64}`;
+        a.download = d.fileName;
+        a.click();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setEnviandoPdf(false);
+    }
+  }
 
   useEffect(() => {
     async function carregar() {
@@ -127,6 +190,30 @@ export default function CalendarioVisualObra() {
             </select>
           </div>
 
+          <div className="flex items-center gap-2 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700">
+            <select
+              value={destinoTel}
+              onChange={(e) => setDestinoTel(e.target.value)}
+              className="bg-slate-800 text-xs font-bold text-white focus:outline-none max-w-[190px]"
+              title="Escolha o destinatário (Patrícia/Daniel recebem com R$; demais recebem sem R$)"
+            >
+              {destinatarios.map((d) => (
+                <option key={d.telefone} value={d.telefone}>
+                  {d.nome}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleEnviarPdfWhatsApp}
+              disabled={enviandoPdf || linhas.length === 0}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-black flex items-center gap-1.5 transition-all disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{enviandoPdf ? 'Enviando...' : 'PDF Zap'}</span>
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => window.print()}
@@ -137,6 +224,12 @@ export default function CalendarioVisualObra() {
           </button>
         </div>
       </div>
+
+      {msgEnvio && (
+        <div className="mx-4 mt-3 p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-xs font-bold text-indigo-900">
+          {msgEnvio}
+        </div>
+      )}
 
       {/* KPIs Financeiros e Climáticos do Mês */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 border-b border-slate-200/80">
