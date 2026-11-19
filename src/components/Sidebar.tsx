@@ -19,7 +19,17 @@ import {
   Shield,
   MessageSquare,
   Receipt,
+  Camera,
+  Building2,
 } from 'lucide-react';
+import {
+  getActiveTenantFromBrowser,
+  isDanielOuPatricia,
+  setActiveTenantInBrowser,
+  TENANTS,
+  type TenantConfig,
+  type TenantSlug,
+} from '@/lib/tenant';
 
 const navItems = [
   {
@@ -37,10 +47,18 @@ const navItems = [
   },
   {
     name: 'Validações Pendentes',
+    intermackName: 'Validações de Efetivo',
     href: '/validacoes',
     icon: CalendarCheck2,
     badge: null,
     badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  },
+  {
+    name: 'Diário de Obra (Fotos)',
+    href: '/diario-obra',
+    icon: Camera,
+    badge: '2-3 Fotos',
+    badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
   },
   {
     name: 'Reembolsos & Caixa Campo',
@@ -48,9 +66,11 @@ const navItems = [
     icon: Receipt,
     badge: 'Despesas',
     badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+    onlyDiarista: true,
   },
   {
     name: 'Lançamentos em Lote (Setup)',
+    intermackName: 'Obras & Empreiteiros',
     href: '/setup',
     icon: Layers,
     badge: null,
@@ -61,9 +81,11 @@ const navItems = [
     icon: FileSpreadsheet,
     badge: 'Quinzenal',
     badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+    onlyDiarista: true,
   },
   {
     name: 'Relatórios & Exportações',
+    intermackName: 'Relatório de Efetivo',
     href: '/relatorios',
     icon: BarChart3,
     badge: 'XLS',
@@ -88,6 +110,13 @@ const navItems = [
     href: '/configuracoes',
     icon: Users,
     badge: null,
+  },
+  {
+    name: 'Configuração Geral (Hub)',
+    href: '/config-geral',
+    icon: ShieldCheck,
+    badge: 'Admin',
+    badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
   },
   {
     name: 'Manual & Ajuda',
@@ -116,6 +145,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [currentUser, setCurrentUser] = React.useState<string>('Patrícia Grubel');
+  const [activeTenant, setActiveTenant] = React.useState<TenantConfig>(TENANTS.jhonton);
 
   React.useEffect(() => {
     const cookies = document.cookie.split('; ');
@@ -124,18 +154,25 @@ export default function Sidebar() {
       const nome = decodeURIComponent(userCookie.split('=')[1]);
       if (nome) setCurrentUser(nome);
     }
+    setActiveTenant(getActiveTenantFromBrowser());
   }, []);
 
-  const isDanielOrPatricia =
-    currentUser.toLowerCase().includes('patr') ||
-    currentUser.toLowerCase().includes('daniel') ||
-    currentUser.includes('11978543369') ||
-    currentUser.includes('11988139833') ||
-    currentUser.includes('11913192703');
+  const isDanielOrPatricia = isDanielOuPatricia(currentUser);
+  const isIntermack = activeTenant.slug === 'intermack';
+
+  function handleTrocarEmpresa(slug: TenantSlug) {
+    if (slug === 'intermack' && !isDanielOrPatricia) return;
+    setActiveTenantInBrowser(slug);
+    setActiveTenant(TENANTS[slug]);
+    window.location.reload();
+  }
 
   const visibleNavItems = navItems.filter((item) => {
-    if (item.href === '/mensageria') {
+    if (item.href === '/mensageria' || item.href === '/config-geral') {
       return isDanielOrPatricia;
+    }
+    if (isIntermack && 'onlyDiarista' in item && item.onlyDiarista) {
+      return false;
     }
     return true;
   });
@@ -164,15 +201,53 @@ export default function Sidebar() {
           <div>
             <div className="flex items-center gap-1.5">
               <h1 className="font-extrabold text-base tracking-tight text-white">
-                Ponto Patrícia
+                {isIntermack ? 'Intermack' : 'Ponto Patrícia'}
               </h1>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800/50">
-                PRO
+              <span
+                className={`text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded border ${
+                  isIntermack
+                    ? 'text-indigo-300 bg-indigo-950/80 border-indigo-700/60'
+                    : 'text-emerald-400 bg-emerald-950/80 border-emerald-800/50'
+                }`}
+              >
+                {isIntermack ? 'EMPREITA' : 'PRO'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-medium">Controle de Campo & Finanças</p>
+            <p className="text-xs text-slate-400 font-medium">
+              {activeTenant.subtitulo}
+            </p>
           </div>
         </div>
+
+        {/* Seletor Multi-Empresa: Exclusivo Patrícia Grubel & Daniel Lopes */}
+        {isDanielOrPatricia && (
+          <div className="mt-4 p-1 bg-slate-900 rounded-xl border border-slate-800 grid grid-cols-2 gap-1">
+            <button
+              type="button"
+              onClick={() => handleTrocarEmpresa('jhonton')}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
+                !isIntermack
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Building2 className="w-3 h-3" />
+              <span>Jhonton</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTrocarEmpresa('intermack')}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
+                isIntermack
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Building2 className="w-3 h-3" />
+              <span>Intermack</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* User / Profile Header */}
@@ -208,23 +283,33 @@ export default function Sidebar() {
         {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
+          const displayName =
+            isIntermack && 'intermackName' in item && item.intermackName
+              ? item.intermackName
+              : item.name;
           return (
             <Link
               key={item.href}
               href={item.href}
               className={`group flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950/50 font-semibold'
+                  ? isIntermack
+                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-950/50 font-semibold'
+                    : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950/50 font-semibold'
                   : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
               }`}
             >
               <div className="flex items-center gap-3">
                 <Icon
                   className={`w-4 h-4 transition-transform group-hover:scale-110 ${
-                    isActive ? 'text-white' : 'text-slate-400 group-hover:text-emerald-400'
+                    isActive
+                      ? 'text-white'
+                      : isIntermack
+                        ? 'text-slate-400 group-hover:text-indigo-400'
+                        : 'text-slate-400 group-hover:text-emerald-400'
                   }`}
                 />
-                <span className="tracking-tight text-xs font-semibold">{item.name}</span>
+                <span className="tracking-tight text-xs font-semibold">{displayName}</span>
               </div>
 
               {item.badge && (

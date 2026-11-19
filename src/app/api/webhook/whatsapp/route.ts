@@ -109,7 +109,64 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const tenantId = '00000000-0000-0000-0000-000000000001'; // Default tenant
+    const MASTER_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+    let tenantId = MASTER_TENANT_ID; // Default tenant (Jhonton)
+
+    // Roteamento Multi-Empresa (1 conta WhatsApp -> N grupos de obras Jhonton / Intermack)
+    const { data: paramCorte } = await supabaseAdmin
+      .from('parametros_sistema')
+      .select('configuracoes')
+      .eq('tenant_id', MASTER_TENANT_ID)
+      .maybeSingle();
+
+    const configsSistema = (paramCorte?.configuracoes || {}) as Record<string, unknown>;
+    const configGeral = (configsSistema.config_geral_global || {}) as {
+      gruposWhatsApp?: Array<{
+        jid: string;
+        empresa: 'jhonton' | 'intermack';
+        obraNome: string;
+        ambiente: 'INTERNO' | 'EXTERNO';
+        ativo: boolean;
+      }>;
+    };
+
+    const grupoMapeado = (configGeral.gruposWhatsApp || []).find(
+      (g) => g.ativo && g.jid && remoteJid && g.jid.trim() === remoteJid.trim()
+    );
+    if (grupoMapeado?.empresa === 'intermack') {
+      tenantId = '00000000-0000-0000-0000-000000000002';
+      console.log(
+        `[ROTEAMENTO MULTI-EMPRESA] Grupo ${remoteJid} roteado para INTERMACK (${grupoMapeado.obraNome} • ${grupoMapeado.ambiente}).`
+      );
+    }
+    const dataCorteOperacional =
+      typeof configsSistema.data_corte_operacional === 'string'
+        ? configsSistema.data_corte_operacional
+        : null;
+
+    const rawMsgTimestamp =
+      body?.data?.messageTimestamp || body?.messageTimestamp || null;
+    if (dataCorteOperacional && rawMsgTimestamp) {
+      const tsMs =
+        Number(rawMsgTimestamp) > 1e12
+          ? Number(rawMsgTimestamp)
+          : Number(rawMsgTimestamp) * 1000;
+      if (!Number.isNaN(tsMs)) {
+        const dataMsgBR = new Date(tsMs).toLocaleDateString('en-CA', {
+          timeZone: 'America/Sao_Paulo',
+        });
+        if (dataMsgBR <= dataCorteOperacional) {
+          console.log(
+            `[CORTE OPERACIONAL] Mensagem ${messageId} de ${dataMsgBR} ignorada (corte <= ${dataCorteOperacional}).`
+          );
+          return NextResponse.json({
+            status: 'ignored',
+            reason: `Mensagem anterior ao ponto de corte operacional (${dataCorteOperacional}).`,
+            messageId,
+          });
+        }
+      }
+    }
 
     // Verificação de Intenção de Reembolso / Despesa de Campo (Combustível, Material, Alimentação, Pedágio)
     const textLower = (messageText || '').toLowerCase();
@@ -297,13 +354,14 @@ export async function POST(req: NextRequest) {
             motivo: ap.motivo,
           });
 
-          // Barreira de Duplicidade: o mesmo trabalhador não pode ter > 1.0 diária no mesmo dia
+          // Barreira de Duplicidade: o mesmo trabalhador não pode ter > 1.0 diária no mesmo dia (ignora registros DESCARTADOS)
           const dataRefPonto = obra.data_referencia || new Date().toISOString().split('T')[0];
           const { data: pontosMesmoDia } = await supabaseAdmin
             .from('lancamentos_financeiros')
             .select('fracao_dia')
             .eq('tipo_lancamento', 'PONTO')
             .eq('data_referencia', dataRefPonto)
+            .neq('status', 'DESCARTADO')
             .ilike('nome_trabalhador', ap.nome);
 
           const somaFracoesDia = (pontosMesmoDia || []).reduce((acc, p) => acc + (Number(p.fracao_dia) || 0), 0);

@@ -46,6 +46,19 @@
 - **Build de Produção**: 100% aprovado (`npm run build`).
 
 ## Últimas Ações (Ciclo Atual)
+- **Arquitetura Multi-Empresa Real (Jhonton + Intermack) & Diário de Obra Expresso (`/diario-obra`)**:
+  - **Camada Multi-Tenant (`src/lib/tenant.ts`)**: Suporte nativo a duas empresas isoladas por `tenant_id`:
+    - **Jhonton** (`...0001`, Modo `DIARISTA`): fluxo completo de diárias, vales, borderô e PIX.
+    - **Intermack** (`...0002`, Modo `EMPREITA`): acesso **exclusivo para Patrícia Grubel e Daniel Lopes**, focado em controle de efetivo do empreiteiro (**Dia Inteiro / Meio Dia**, sem `0 Falta` e sem valores em `R$`) e Diário de Obra.
+  - **Seletor de Empresa na Sidebar (`src/components/Sidebar.tsx`)**: Alternância instantânea Jhonton ↔ Intermack visível apenas para Patrícia e Daniel, com identidade visual distinta (Esmeralda vs Índigo) e menu adaptado ao modo da empresa.
+  - **Validações Adaptadas (`src/app/validacoes/page.tsx`)**: No modo Intermack, exibe apenas `Dia Inteiro` / `Meio Dia` e contabiliza em **Homens-Dia** (zero valores monetários).
+  - **Módulo Diário de Obra (`/diario-obra` & `src/app/api/diario-obra/route.ts`)**: Registro rápido de Obra, Data, Clima, Empreiteiro, Efetivo Presente (puxando das validações do dia ou inclusão manual), upload de **2 a 3 fotos** (Cloudflare R2 com fallback), resumo das atividades, **Relatório PDF Timbrado** pronto para impressão e botão de cópia para WhatsApp.
+- **Validação por Mensagem Enviada, Exclusão Auditada (Soft Delete) e Ponto de Corte Operacional**:
+  - **Ponto de Corte (`POST /api/pendentes/corte`)**: Consolida todos os lotes (`ponto_lote`) e lançamentos (`lancamentos_financeiros`) pendentes até o final do dia anterior como `VALIDADO` e persiste `data_corte_operacional` em `parametros_sistema`.
+  - **Proteção no Webhook (`src/app/api/webhook/whatsapp/route.ts`)**: Mensagens com timestamp anterior ou igual à `data_corte_operacional` são ignoradas automaticamente; barreira de duplicidade ignora registros `DESCARTADO`.
+  - **Agrupamento por Mensagem (`GET /api/pendentes` & `src/app/validacoes/page.tsx`)**: A fila de validações foi evoluída de lista única para **cards independentes por mensagem enviada**, exibindo badge de horário exato (ex.: `06:37`, `08:40`), obra, remetente, visualizador expansível do texto original do WhatsApp e aprovação individual por mensagem.
+  - **Exclusão Auditada (`POST /api/pendentes/descartar`)**: Suporte a exclusão de registro individual (`modo: 'ITEM'`) ou da mensagem inteira (`modo: 'LOTE'`) via Soft Delete (`DESCARTADO`), descartando automaticamente o lote caso todos os seus itens sejam removidos.
+  - **Documentação Atualizada**: `MANUAL_DO_SISTEMA.md`, `src/app/ajuda/page.tsx` e este `HANDOFF.md`.
 - **Central de Mensageria & Solicitação de Features/Relatórios (`/mensageria`)**:
   - Restrição de Acesso Exclusivo: Disponível neste primeiro momento apenas para **Patrícia Grubel** e **Daniel Lopes** (oculto no menu lateral e com guarda de tela contra outros usuários).
   - Implementado chat interativo no frontend (`src/app/mensageria/page.tsx`) com a IA Gemini (`gemini-3.5-flash-lite`).

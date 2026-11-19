@@ -194,11 +194,13 @@ export default function AjudaPage() {
             A tela de <Link href="/validacoes" className="text-emerald-600 font-bold underline">Validações Pendentes</Link> é a central de controle e segurança da folha de pagamento.
           </p>
           <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
+            <li><strong>Validação por Mensagem Enviada (Card por Horário)</strong>: Cada mensagem do WhatsApp (ex.: <code>06:37</code>, <code>08:40</code>) aparece em seu próprio card com botão para ver o texto original, subtotal individual e botão <strong>"Aprovar Mensagem"</strong>.</li>
+            <li><strong>Exclusão de Registro Individual ou Mensagem Inteira</strong>: Use o ícone de lixeira para descartar um colaborador extraído indevidamente ou descartar uma mensagem inteira. A exclusão usa <em>Soft Delete</em> (<code>DESCARTADO</code>), preservando a auditoria e impedindo reenvio.</li>
+            <li><strong>Ponto de Corte Operacional ("Corte até Ontem")</strong>: Consolida todas as pendências anteriores a hoje como <code>VALIDADO</code> e protege o webhook contra mensagens antigas em reconexões do WhatsApp.</li>
             <li><strong>Revisão de Fração</strong>: Confira se a IA classificou 1x diária ou meio período (0.5x).</li>
             <li><strong>Recibos em Lightbox</strong>: Na coluna Anexo/Recibo, clique no clipe de papel para ampliar a foto do comprovante e baixar localmente.</li>
             <li><strong>Trava de Confirmação Prévia ("Já Confirmado")</strong>: Como agora Patrícia e Daniel recebem avisos e operam o sistema, se um lote já foi aprovado por um deles, qualquer tentativa de revalidação exibe o alerta: <em>"O registro já foi confirmado por [Nome]. Quer continuar?"</em></li>
             <li><strong>Alerta Obrigatório para Patrícia</strong>: Sempre que qualquer registro for alterado por outro usuário (como Daniel), a Administradora Patrícia Grubel recebe uma mensagem detalhada no WhatsApp informando quem alterou, colaborador, obra e os novos valores.</li>
-            <li><strong>Aprovação em Lote</strong>: Selecione os pontos confirmados e clique em <strong>"Aprovar Selecionados"</strong>. Eles mudarão para o status <code>VALIDADO</code> e ficarão prontos para pagamento no Borderô.</li>
           </ul>
         </div>
       ),

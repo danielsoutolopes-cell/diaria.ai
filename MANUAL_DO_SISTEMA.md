@@ -3,7 +3,11 @@
 
 ---
 
-## 🏗️ 1. Visão Geral da Solução
+## 🏗️ 1. Visão Geral da Solução (Multi-Empresa: Jhonton & Intermack)
+O **Ponto Patrícia (Diária.AI)** opera em arquitetura **Multi-Empresa (`tenant_id`)**, permitindo gerir duas operações distintas com isolamento total de dados:
+- **Jhonton (Modo Diarista / Folha Própria)**: Controle completo de diárias em R$, vales, borderô quinzenal com PIX dinâmico e reembolsos.
+- **Intermack (Modo Empreita — Acesso Exclusivo Patrícia Grubel & Daniel Lopes)**: Focado em obras executadas por empreiteiros, controlando **efetivo presente (Dia Inteiro ou Meio Dia, sem falta e sem valores em R$)** e geração de **Diário de Obra (RDO)** com 2 a 3 fotos, resumo rápido, PDF timbrado e resumo para WhatsApp em `/diario-obra`.
+
 O **Ponto Patrícia (Diária.AI)** foi arquitetado especialmente para resolver as maiores dores de gestão de campo na construção civil e instalação de piscinas:
 1. **Descentralização de Apontamentos**: Fim das anotações em papel molhado, cadernos rasurados ou mensagens perdidas no WhatsApp.
 2. **Controle Rigoroso de Vales & Saldos Devedores (Decisão 100% Humana)**:
@@ -101,15 +105,24 @@ Dentro do painel web, você conta com um chat interno que executa as mesmas regr
 ## 🛡️ 4. Regra Human-in-the-Loop & Governança Multi-Admin (Patrícia & Daniel)
 **Regra Fundamental de Engenharia**: A IA nunca lança dinheiro como pago diretamente.
 
-1. Todas as mensagens recebidas via WhatsApp ou Terminal de IA entram na tela **Validações Pendentes** com status `PENDENTE`.
-2. A Administradora (Patrícia Grubel) ou a Diretoria revisam as caixas de seleção, nomes, obras e valores.
-3. Se houver divergência, podem editar frações ou valores.
-4. **Prevenção de Conflito Multi-Admin ("Já Confirmado")**:
+1. Todas as mensagens recebidas via WhatsApp ou Terminal de IA entram na tela **Validações Pendentes** (`/validacoes`) com status `PENDENTE`.
+2. **Validação Dividida por Mensagem Enviada (1 Card = 1 Mensagem)**:
+   - Cada mensagem recebida no WhatsApp gera um card independente identificado pelo **horário exato de envio** (ex.: `06:37`, `08:40`), data, obra e remetente.
+   - É possível expandir o **texto original enviado no WhatsApp** diretamente no card para conferência humana antes de aprovar.
+   - Cada card possui seu próprio subtotal e botão **"Aprovar Mensagem (HH:MM)"**, evitando misturar apontamentos de horários diferentes.
+3. **Exclusão Auditada (Soft Delete) na Validação**:
+   - Cada colaborador ou vale dentro de uma mensagem possui botão de **Excluir** (lixeira) para remover eventuais registros incorretos, duplicados ou extraídos de ruído no grupo.
+   - Também é possível **Descartar a Mensagem Inteira** pelo botão no cabeçalho do card.
+   - Os itens excluídos são marcados como `DESCARTADO` (soft delete) com autoria e carimbo de data/hora, saindo imediatamente da fila e do Borderô sem perder a trilha de auditoria e sem bloquear novos apontamentos do mesmo colaborador no dia.
+4. **Ponto de Corte Operacional ("Corte até Ontem")**:
+   - Permite consolidar em 1 clique todas as mensagens e lançamentos pendentes até o final do dia anterior como `VALIDADO`, mantendo a fila limpa apenas com as mensagens novas.
+   - A `data_corte_operacional` fica salva em `parametros_sistema`, impedindo que reconexões do Baileys/WhatsApp reintroduzam mensagens antigas na fila.
+5. **Prevenção de Conflito Multi-Admin ("Já Confirmado")**:
    - Como agora dois gestores (Patrícia Grubel e Daniel Lopes) recebem os avisos e têm acesso ao sistema, se um lote já foi validado anteriormente por um deles, qualquer tentativa de revalidação ou alteração exibe uma tela de guarda:
      > *"O registro já foi confirmado por [NOME]. Quer continuar e alterar?"*
-5. **Alerta Obrigatório & Exclusivo para Patrícia Grubel**:
+6. **Alerta Obrigatório & Exclusivo para Patrícia Grubel**:
    - **REGRA CRÍTICA INVIOLÁVEL**: Sempre que qualquer registro já confirmado for editado ou alterado por qualquer usuário (seja Daniel Lopes ou outro operador), a Administradora Central **Patrícia Grubel** recebe imediatamente uma notificação exclusiva no WhatsApp contendo o autor da edição, colaborador, canteiro, motivo da alteração e o ajuste de valor (antes vs depois).
-6. Ao clicar em **"Aprovar Selecionados"**, os lançamentos passam para o status `VALIDADO` e ficam liberados para pagamento no Borderô.
+7. Ao clicar em **"Aprovar Mensagem"**, os lançamentos daquela mensagem passam para o status `VALIDADO` e ficam liberados para pagamento no Borderô.
 
 ---
 
