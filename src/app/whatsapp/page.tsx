@@ -54,6 +54,17 @@ export default function WhatsAppConfigPage() {
   const [celularInput, setCelularInput] = useState('11988139833');
   const [codigoCopiado, setCodigoCopiado] = useState(false);
 
+  // Modal de vínculo rápido: Grupo -> Empresa + Obra + Ambiente
+  const [modalVinculo, setModalVinculo] = useState<{
+    jid: string;
+    nomeGrupo: string;
+    empresa: 'jhonton' | 'intermack';
+    obraNome: string;
+    ambiente: 'INTERNO' | 'EXTERNO';
+  } | null>(null);
+  const [salvandoVinculo, setSalvandoVinculo] = useState(false);
+  const [avisoVinculo, setAvisoVinculo] = useState<string | null>(null);
+
   async function carregarStatus(silencioso = false) {
     if (!silencioso) setLoading(true);
     try {
@@ -147,6 +158,9 @@ export default function WhatsAppConfigPage() {
   }
 
   async function handleToggleGrupo(jid: string) {
+    const alvo = groups.find((g) => g.jid === jid);
+    const vaiMonitorar = alvo ? !alvo.monitored : true;
+
     setGroups((prev) =>
       prev.map((g) => (g.jid === jid ? { ...g, monitored: !g.monitored } : g))
     );
@@ -157,8 +171,100 @@ export default function WhatsAppConfigPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'toggle-grupo', jid }),
       });
+
+      if (vaiMonitorar && alvo) {
+        setModalVinculo({
+          jid: alvo.jid,
+          nomeGrupo: alvo.name,
+          empresa: 'intermack',
+          obraNome: alvo.name.toUpperCase(),
+          ambiente: 'INTERNO',
+        });
+      }
     } catch (e) {
       console.error(e);
+    }
+  }
+
+  async function handleSalvarVinculoGrupo() {
+    if (!modalVinculo || !modalVinculo.obraNome.trim()) return;
+    setSalvandoVinculo(true);
+    try {
+      // 1. Garante que a obra exista no cadastro da empresa selecionada
+      await fetch('/api/obras', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-diaria-tenant': modalVinculo.empresa,
+        },
+        body: JSON.stringify({
+          nome: modalVinculo.obraNome.trim().toUpperCase(),
+          local:
+            modalVinculo.ambiente === 'INTERNO'
+              ? 'Reforma Interna (Apto)'
+              : 'Canteiro de Obras',
+          tipo_obra:
+            modalVinculo.empresa === 'intermack' ? 'OBRA_CIVIL' : 'PISCINA',
+        }),
+      }).catch(() => {});
+
+      // 2. Salva o roteamento no Hub de Configuração Geral
+      const resGet = await fetch('/api/config-geral');
+      const dGet = (await resGet.json()) as {
+        configGeral?: {
+          gruposWhatsApp?: Array<{
+            id: string;
+            jid: string;
+            nomeGrupo: string;
+            empresa: 'jhonton' | 'intermack';
+            obraNome: string;
+            ambiente: 'INTERNO' | 'EXTERNO';
+            ativo: boolean;
+          }>;
+        };
+      };
+      const existentes = dGet.configGeral?.gruposWhatsApp || [];
+      const filtrados = existentes.filter((g) => g.jid !== modalVinculo.jid);
+      const novoMapa = [
+        {
+          id: `grp-${Date.now()}`,
+          jid: modalVinculo.jid,
+          nomeGrupo: modalVinculo.nomeGrupo,
+          empresa: modalVinculo.empresa,
+          obraNome: modalVinculo.obraNome.trim().toUpperCase(),
+          ambiente: modalVinculo.ambiente,
+          ativo: true,
+        },
+        ...filtrados,
+      ];
+
+      await fetch('/api/config-geral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gruposWhatsApp: novoMapa }),
+      });
+
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.jid === modalVinculo.jid
+            ? {
+                ...g,
+                obraNome: `${modalVinculo.empresa.toUpperCase()} • ${modalVinculo.obraNome
+                  .trim()
+                  .toUpperCase()}`,
+              }
+            : g
+        )
+      );
+      setAvisoVinculo(
+        `Grupo "${modalVinculo.nomeGrupo}" vinculado à ${modalVinculo.empresa.toUpperCase()} (${modalVinculo.obraNome.trim().toUpperCase()})!`
+      );
+      setTimeout(() => setAvisoVinculo(null), 5000);
+      setModalVinculo(null);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSalvandoVinculo(false);
     }
   }
 
@@ -587,6 +693,24 @@ export default function WhatsAppConfigPage() {
                   </div>
 
                   <div className="flex items-center gap-3 self-end sm:self-center">
+                    {grupo.monitored && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setModalVinculo({
+                            jid: grupo.jid,
+                            nomeGrupo: grupo.name,
+                            empresa: 'intermack',
+                            obraNome: grupo.name.toUpperCase(),
+                            ambiente: 'INTERNO',
+                          })
+                        }
+                        className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 text-[11px] font-bold transition-all"
+                      >
+                        Vincular Obra
+                      </button>
+                    )}
+
                     <span
                       className={`text-xs font-bold ${
                         grupo.monitored ? 'text-emerald-700' : 'text-slate-400'
@@ -616,6 +740,115 @@ export default function WhatsAppConfigPage() {
           )}
         </div>
       </div>
+
+      {avisoVinculo && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-emerald-700 text-white text-xs font-bold shadow-xl">
+          ✅ {avisoVinculo}
+        </div>
+      )}
+
+      {/* Modal Rápido de Vínculo: Grupo -> Empresa + Obra + Ambiente */}
+      {modalVinculo && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                Roteamento Automático Multi-Empresa
+              </span>
+              <h3 className="text-lg font-black text-slate-950 mt-1.5">
+                Vincular Grupo à Obra
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Grupo: <strong>{modalVinculo.nomeGrupo}</strong>
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Empresa
+                </label>
+                <select
+                  value={modalVinculo.empresa}
+                  onChange={(e) => {
+                    const emp = e.target.value as 'jhonton' | 'intermack';
+                    setModalVinculo((p) =>
+                      p
+                        ? {
+                            ...p,
+                            empresa: emp,
+                            ambiente: emp === 'intermack' ? 'INTERNO' : 'EXTERNO',
+                          }
+                        : null
+                    );
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900"
+                >
+                  <option value="intermack">Intermack (Modo Empreita)</option>
+                  <option value="jhonton">Jhonton (Modo Diarista)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Nome Oficial da Obra (cria automaticamente se não existir)
+                </label>
+                <input
+                  type="text"
+                  value={modalVinculo.obraNome}
+                  onChange={(e) =>
+                    setModalVinculo((p) =>
+                      p ? { ...p, obraNome: e.target.value } : null
+                    )
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Ambiente da Obra
+                </label>
+                <select
+                  value={modalVinculo.ambiente}
+                  onChange={(e) =>
+                    setModalVinculo((p) =>
+                      p
+                        ? {
+                            ...p,
+                            ambiente: e.target.value as 'INTERNO' | 'EXTERNO',
+                          }
+                        : null
+                    )
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900"
+                >
+                  <option value="INTERNO">Interno / Apto (Chuva não impacta)</option>
+                  <option value="EXTERNO">Externo / Campo (Chuva impacta)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setModalVinculo(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+              >
+                Agora não
+              </button>
+              <button
+                type="button"
+                onClick={handleSalvarVinculoGrupo}
+                disabled={salvandoVinculo}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md disabled:opacity-50"
+              >
+                {salvandoVinculo ? 'Salvando...' : 'Vincular e Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

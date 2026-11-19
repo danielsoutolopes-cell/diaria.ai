@@ -185,18 +185,23 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       'Cadastre a obra com seu nome oficial e adicione apelidos curtos usados pela equipe no WhatsApp.',
   },
   '/whatsapp': {
-    titulo: 'Conexão do Bot (WhatsApp)',
+    titulo: 'Conexão do Bot & Vínculo de Grupos',
     resumo:
-      'Emparelhamento da conta WhatsApp via Pairing Code (8 dígitos) ou QR Code e monitoramento de grupos.',
+      'Emparelhamento da conta WhatsApp via Pairing Code (8 dígitos) ou QR Code e vinculação direta de cada grupo à empresa e obra.',
     funcoes: [
       {
         nome: 'Pairing Code & QR Code',
         descricao:
           'Conecte seu aparelho em "Aparelhos Conectados" e sincronize os grupos ativos.',
       },
+      {
+        nome: 'Vínculo Rápido Grupo → Empresa & Obra',
+        descricao:
+          'Ao ativar o monitoramento de um grupo (ou clicar em "Vincular Obra"), escolha a empresa, o nome da obra e o ambiente (Interno/Externo) em 1 passo.',
+      },
     ],
     exemplo:
-      'Informe o número do celular, gere o código de 8 dígitos e digite no WhatsApp do aparelho para conectar.',
+      'Ative o monitoramento do grupo de uma reforma, selecione o modo Empreita + ambiente Interno e clique em "Vincular e Salvar" — a obra é criada e roteada automaticamente.',
   },
 };
 
