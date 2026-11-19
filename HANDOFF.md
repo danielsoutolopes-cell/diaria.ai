@@ -46,8 +46,11 @@
 - **Build de Produção**: 100% aprovado (`npm run build`).
 
 ## Regra Permanente de Documentação (OBRIGATÓRIA)
-- **Sempre atualizar Manuais, Guias e Telas de Ajuda**: A cada nova funcionalidade, correção relevante ou mudança de fluxo, é obrigatório atualizar `MANUAL_DO_SISTEMA.md`, `src/app/ajuda/page.tsx` e este `HANDOFF.md`.
-- **Padrão White-Label / Genérico**: Os manuais, guias e telas de ajuda voltados ao usuário final devem usar linguagem **genérica** (ex.: *Empresa A — Modo Diarista*, *Empresa B — Modo Empreita*, *Obra Residencial*, *Encarregado*), **sem citar nomes reais de empresas ou clientes específicos**, e sempre incluir **pequenos exemplos práticos de uso**.
+- **Sempre atualizar Manuais, Guias, Ajuda Contextual e Tela de Ajuda**: A cada nova funcionalidade, nova rota, correção relevante ou mudança de fluxo, é obrigatório atualizar:
+  1. `src/components/ContextualHelp.tsx` (**Ajuda Contextual por Tela** — botão `? Ajuda desta tela` presente em todas as rotas com funções e exemplo prático daquela rota específica);
+  2. `MANUAL_DO_SISTEMA.md` e `src/app/ajuda/page.tsx`;
+  3. Este `HANDOFF.md`.
+- **Padrão White-Label / Genérico**: Os manuais, guias e ajudas voltados ao usuário final devem usar linguagem **genérica** (ex.: *Empresa Modo Diarista*, *Empresa Modo Empreita*, *Obra Residencial*, *Encarregado*), **sem citar nomes reais de empresas ou clientes específicos**, e sempre incluir **pequenos exemplos práticos de uso**.
 
 ## Últimas Ações (Ciclo Atual)
 - **Arquitetura Multi-Empresa Real (Jhonton + Intermack) & Diário de Obra Expresso (`/diario-obra`)**:

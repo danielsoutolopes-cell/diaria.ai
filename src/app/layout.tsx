@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
 import RegisterServiceWorker from '@/components/RegisterServiceWorker';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
+import ContextualHelp from '@/components/ContextualHelp';
 import { DeviceProvider } from '@/contexts/DeviceContext';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -43,6 +44,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <DeviceProvider>
           <RegisterServiceWorker />
+          <ContextualHelp />
           <PWAInstallBanner />
           <div className="flex flex-col lg:flex-row min-h-screen max-w-[100vw] overflow-x-hidden">
             <MobileHeader />
