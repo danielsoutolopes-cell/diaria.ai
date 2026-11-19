@@ -53,6 +53,7 @@ export default function RelatoriosPage() {
   const [lancamentosDetalhados, setLancamentosDetalhados] = useState<any[]>([]);
   const [modalExtrato, setModalExtrato] = useState<BorderoItem | null>(null);
   const [excluindoItemId, setExcluindoItemId] = useState<string | null>(null);
+  const [buscaBordero, setBuscaBordero] = useState<string>('');
   const [totais, setTotais] = useState({
     totalGeralDiarias: 0,
     totalGeralVales: 0,
@@ -326,75 +327,130 @@ export default function RelatoriosPage() {
         </div>
 
         {loading ? (
-          <div className="p-12 text-center space-y-3">
-            <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin mx-auto" />
-            <p className="text-xs text-slate-500">Calculando demonstrativo...</p>
+          <div className="p-6 space-y-3 animate-pulse">
+            <div className="h-10 bg-slate-100 rounded-xl" />
+            <div className="h-12 bg-slate-50 rounded-xl" />
+            <div className="h-12 bg-slate-50 rounded-xl" />
+            <div className="h-12 bg-slate-50 rounded-xl" />
           </div>
         ) : dadosBordero.length === 0 ? (
           <div className="p-10 text-center text-slate-400 text-xs">
             Nenhum lançamento encontrado para o período {periodo}.
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold">
-                <tr>
-                  <th className="p-4">Colaborador</th>
-                  <th className="p-4">Canteiro Principal</th>
-                  <th className="p-4">Chave PIX</th>
-                  <th className="p-4 text-center">Diárias</th>
-                  <th className="p-4 text-right">Bruto</th>
-                  <th className="p-4 text-right">Vales</th>
-                  <th className="p-4 text-right">Líquido a Pagar</th>
-                  <th className="p-4 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {dadosBordero.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="p-4 font-bold text-slate-950">
-                      <button
-                        type="button"
-                        onClick={() => setModalExtrato(item)}
-                        className="text-left hover:text-emerald-700 hover:underline flex items-center gap-1.5 transition-colors"
-                        title="Clique para ver o extrato dia a dia e remover duplicidades"
-                      >
-                        <span>{item.nome}</span>
-                      </button>
-                    </td>
-                    <td className="p-4 text-slate-600">
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[11px] font-semibold text-slate-700">
-                        {item.obra}
-                      </span>
-                    </td>
-                    <td className="p-4 font-mono text-[11px] text-slate-600">
-                      {item.chavePix || <span className="text-amber-600 italic">Não informada</span>}
-                    </td>
-                    <td className="p-4 text-center font-bold text-slate-800">{item.totalDiariasQtd}x</td>
-                    <td className="p-4 text-right font-medium text-slate-700">
-                      R$ {item.totalDiariasValor.toFixed(2)}
-                    </td>
-                    <td className="p-4 text-right font-bold text-rose-600">
-                      {item.totalValesValor > 0 ? `- R$ ${item.totalValesValor.toFixed(2)}` : '—'}
-                    </td>
-                    <td className="p-4 text-right font-black text-sm text-emerald-700">
-                      R$ {item.liquidoPagar.toFixed(2)}
-                    </td>
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleEnviarExtratoTrabalhador(item)}
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
-                        title="Enviar extrato individual via WhatsApp"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        ) : (() => {
+          const termo = buscaBordero.trim().toLowerCase();
+          const filtradosBordero = termo
+            ? dadosBordero.filter(
+                (it) =>
+                  it.nome.toLowerCase().includes(termo) ||
+                  it.obra.toLowerCase().includes(termo)
+              )
+            : dadosBordero;
+
+          return (
+            <div>
+              {/* Barra de Busca & Contagem (UX/UI SaaS Seção 3.2) */}
+              <div className="px-6 py-3 bg-slate-50/80 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-[220px] max-w-md">
+                  <input
+                    type="text"
+                    value={buscaBordero}
+                    onChange={(e) => setBuscaBordero(e.target.value)}
+                    placeholder="Filtrar por colaborador ou obra..."
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                  {buscaBordero && (
+                    <button
+                      type="button"
+                      onClick={() => setBuscaBordero('')}
+                      className="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-[11px] font-bold text-slate-600 shrink-0"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+                <span className="text-[11px] font-semibold text-slate-500 tabular-nums">
+                  Mostrando {filtradosBordero.length} de {dadosBordero.length} colaborador(es)
+                </span>
+              </div>
+
+              {filtradosBordero.length === 0 ? (
+                <div className="p-10 text-center space-y-2">
+                  <p className="text-xs text-slate-500">
+                    Nenhum resultado encontrado para <strong>&quot;{buscaBordero}&quot;</strong>.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setBuscaBordero('')}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold"
+                  >
+                    Limpar filtros
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold shadow-xs">
+                      <tr>
+                        <th className="p-4">Colaborador</th>
+                        <th className="p-4">Canteiro Principal</th>
+                        <th className="p-4">Chave PIX</th>
+                        <th className="p-4 text-right">Diárias</th>
+                        <th className="p-4 text-right">Bruto</th>
+                        <th className="p-4 text-right">Vales</th>
+                        <th className="p-4 text-right">Líquido a Pagar</th>
+                        <th className="p-4 text-center">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filtradosBordero.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="p-4 font-bold text-slate-950">
+                            <button
+                              type="button"
+                              onClick={() => setModalExtrato(item)}
+                              className="text-left hover:text-emerald-700 hover:underline flex items-center gap-1.5 transition-colors"
+                              title="Clique para ver o extrato dia a dia e remover duplicidades"
+                            >
+                              <span>{item.nome}</span>
+                            </button>
+                          </td>
+                          <td className="p-4 text-slate-600">
+                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[11px] font-semibold text-slate-700">
+                              {item.obra}
+                            </span>
+                          </td>
+                          <td className="p-4 font-mono text-[11px] text-slate-600">
+                            {item.chavePix || <span className="text-amber-600 italic">Não informada</span>}
+                          </td>
+                          <td className="p-4 text-right font-bold text-slate-800 tabular-nums">{item.totalDiariasQtd}x</td>
+                          <td className="p-4 text-right font-medium text-slate-700 tabular-nums">
+                            R$ {item.totalDiariasValor.toFixed(2)}
+                          </td>
+                          <td className="p-4 text-right font-bold text-rose-600 tabular-nums">
+                            {item.totalValesValor > 0 ? `- R$ ${item.totalValesValor.toFixed(2)}` : '—'}
+                          </td>
+                          <td className="p-4 text-right font-black text-sm text-emerald-700 tabular-nums">
+                            R$ {item.liquidoPagar.toFixed(2)}
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => handleEnviarExtratoTrabalhador(item)}
+                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                              title="Enviar extrato individual via WhatsApp"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* ================= RELATÓRIO 2: CUSTO POR CANTEIRO / OBRA ================= */}
