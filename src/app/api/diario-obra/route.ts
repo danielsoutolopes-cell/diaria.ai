@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getActiveTenantFromRequest } from '@/lib/tenant';
 import { uploadToR2 } from '@/services/r2Storage';
+import { gerarPdfDiarioBase64 } from '@/lib/pdfDiario';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -79,8 +81,9 @@ export async function GET(req: NextRequest) {
 }
 
 interface DiarioPostBody {
-  action: 'salvar' | 'excluir' | 'efetivo-dia';
+  action: 'salvar' | 'excluir' | 'efetivo-dia' | 'refinar' | 'enviar-whatsapp';
   id?: string;
+  destinoJid?: string;
   obraNome?: string;
   ambiente?: 'INTERNO' | 'EXTERNO';
   data?: string;
@@ -98,6 +101,28 @@ export async function POST(req: NextRequest) {
   try {
     const activeTenant = getActiveTenantFromRequest(req);
     const body = (await req.json()) as DiarioPostBody;
+
+    // 0. Refinar rascunho de resumo com IA (Gemini)
+    if (body.action === 'refinar') {
+      const rascunho = (body.resumo || '').trim();
+      if (!rascunho) {
+        return NextResponse.json({ error: 'Escreva um rascunho primeiro.' }, { status: 400 });
+      }
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return NextResponse.json({
+          success: true,
+          resumoRefinado: rascunho,
+          aviso: 'GEMINI_API_KEY não configurada; mantendo texto original.',
+        });
+      }
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+      const prompt = `Reescreva o rascunho abaixo de um Diário de Obra (${activeTenant.nome}, Obra: ${body.obraNome || 'Reforma'}) em português claro, profissional e objetivo para enviar ao cliente final. Mantenha no máximo 4 frases curtas ou 3-4 tópicos diretos. Não invente informações nem mencione valores financeiros.\n\nRascunho:\n${rascunho}`;
+      const result = await model.generateContent(prompt);
+      const texto = result.response.text().trim();
+      return NextResponse.json({ success: true, resumoRefinado: texto || rascunho });
+    }
 
     // 1. Puxar efetivo validado do dia (sem valores financeiros)
     if (body.action === 'efetivo-dia') {
@@ -136,6 +161,57 @@ export async function POST(req: NextRequest) {
     }
 
     const { paramId, configs, diarios } = await lerDiariosDoTenant(activeTenant.id);
+
+    // 2.5 Enviar Diário de Obra em PDF (Base64) para grupo/contato no WhatsApp via Baileys
+    if (body.action === 'enviar-whatsapp' && body.id) {
+      const diario = diarios.find((d) => d.id === body.id);
+      if (!diario) {
+        return NextResponse.json({ error: 'Diário não encontrado.' }, { status: 404 });
+      }
+
+      const { base64, fileName } = gerarPdfDiarioBase64(diario);
+      const destino = (body.destinoJid || '').trim() || '5511978543369';
+      const baileysBase =
+        process.env.BAILEYS_API_URL ||
+        process.env.WHATSAPP_API_URL ||
+        'https://diaria-ai.onrender.com';
+
+      const legenda =
+        `📋 *DIÁRIO DE OBRA — ${diario.empresaNome.toUpperCase()}*\n` +
+        `🏗️ *Obra:* ${diario.obraNome} | 📅 ${diario.data}\n` +
+        `👥 *Efetivo:* ${diario.efetivo.length} profissional(is)`;
+
+      let enviado = false;
+      try {
+        const resDoc = await fetch(`${baileysBase}/send-document`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: destino,
+            phone: destino,
+            jid: destino,
+            fileName,
+            mimetype: 'application/pdf',
+            base64,
+            caption: legenda,
+          }),
+        });
+        enviado = resDoc.ok;
+      } catch (errSend) {
+        console.error('Erro ao disparar PDF via Baileys:', errSend);
+      }
+
+      return NextResponse.json({
+        success: true,
+        enviadoViaWhatsApp: enviado,
+        destino,
+        fileName,
+        pdfBase64: base64,
+        message: enviado
+          ? `PDF (${fileName}) enviado com sucesso para o WhatsApp!`
+          : `PDF (${fileName}) gerado em Base64. Verifique se a instância Baileys está conectada para disparo automático.`,
+      });
+    }
 
     // 2. Excluir um diário
     if (body.action === 'excluir' && body.id) {

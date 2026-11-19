@@ -73,6 +73,68 @@ export default function DiarioObraPage() {
   const [diarioSelecionado, setDiarioSelecionado] =
     useState<DiarioObraRegistro | null>(null);
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
+  const [refinandoIA, setRefinandoIA] = useState(false);
+  const [enviandoZapId, setEnviandoZapId] = useState<string | null>(null);
+  const [destinoZap, setDestinoZap] = useState('');
+  const [avisoEnvio, setAvisoEnvio] = useState<string | null>(null);
+
+  async function handleRefinarResumoIA() {
+    if (!resumo.trim()) return;
+    setRefinandoIA(true);
+    try {
+      const res = await fetch('/api/diario-obra', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'refinar',
+          obraNome,
+          resumo,
+        }),
+      });
+      const d = (await res.json()) as { resumoRefinado?: string };
+      if (d.resumoRefinado) setResumo(d.resumoRefinado);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefinandoIA(false);
+    }
+  }
+
+  async function handleEnviarPdfWhatsApp(diario: DiarioObraRegistro) {
+    setEnviandoZapId(diario.id);
+    setAvisoEnvio(null);
+    try {
+      const res = await fetch('/api/diario-obra', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'enviar-whatsapp',
+          id: diario.id,
+          destinoJid: destinoZap.trim() || undefined,
+        }),
+      });
+      const d = (await res.json()) as {
+        message?: string;
+        pdfBase64?: string;
+        fileName?: string;
+      };
+      if (d.message) {
+        setAvisoEnvio(d.message);
+        setTimeout(() => setAvisoEnvio(null), 5000);
+      }
+      // Também oferece download automático do PDF gerado caso queira encaminhar manualmente
+      if (d.pdfBase64 && d.fileName) {
+        const link = document.createElement('a');
+        link.href = `data:application/pdf;base64,${d.pdfBase64}`;
+        link.download = d.fileName;
+        link.click();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setEnviandoZapId(null);
+    }
+  }
 
   const isIntermack = activeTenant.slug === 'intermack';
 
@@ -518,9 +580,20 @@ export default function DiarioObraPage() {
 
           {/* Resumo Rápido */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700">
-              Resumo Rápido das Atividades *
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700">
+                Resumo Rápido das Atividades *
+              </label>
+              <button
+                type="button"
+                onClick={handleRefinarResumoIA}
+                disabled={refinandoIA || !resumo.trim()}
+                className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-[11px] font-bold flex items-center gap-1 disabled:opacity-50"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>{refinandoIA ? 'Refinando...' : 'Refinar com IA'}</span>
+              </button>
+            </div>
             <textarea
               required
               rows={3}
@@ -562,9 +635,23 @@ export default function DiarioObraPage() {
 
         {/* Histórico de Diários */}
         <div className="lg:col-span-5 space-y-4">
-          <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">
-            Diários Registrados ({diarios.length})
-          </h2>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">
+              Diários Registrados ({diarios.length})
+            </h2>
+            <input
+              type="text"
+              placeholder="JID do Grupo ou Telefone p/ envio do PDF (opcional)"
+              value={destinoZap}
+              onChange={(e) => setDestinoZap(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700"
+            />
+            {avisoEnvio && (
+              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-900">
+                {avisoEnvio}
+              </div>
+            )}
+          </div>
 
           {loading ? (
             <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center text-xs text-slate-500">
@@ -613,6 +700,19 @@ export default function DiarioObraPage() {
                     >
                       <Printer className="w-3.5 h-3.5" />
                       <span>Ver / Imprimir PDF</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleEnviarPdfWhatsApp(d)}
+                      disabled={enviandoZapId === d.id}
+                      className="py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold flex items-center gap-1.5"
+                      title="Gerar PDF em Base64 e enviar para o grupo do WhatsApp"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>
+                        {enviandoZapId === d.id ? 'Enviando...' : 'PDF Zap'}
+                      </span>
                     </button>
 
                     <button

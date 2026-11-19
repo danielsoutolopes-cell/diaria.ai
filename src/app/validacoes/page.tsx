@@ -117,7 +117,9 @@ export default function ValidacoesPage() {
   async function carregarPendentes() {
     setLoading(true);
     try {
-      const res = await fetch('/api/pendentes');
+      const res = await fetch(`/api/pendentes?t=${Date.now()}`, {
+        cache: 'no-store',
+      });
       const data = (await res.json()) as {
         mensagens?: MensagemGrupo[];
         dataCorteOperacional?: string | null;

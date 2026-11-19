@@ -77,16 +77,25 @@ export async function POST(req: NextRequest) {
       .update({ status: 'VALIDADO' })
       .eq('ponto_lote_id', lote.id);
 
-    // 5. Marcar lote como validado registrando o autor da ação
+    // 5. Marcar lote como validado registrando o autor da ação (com fallback defensivo)
     const agora = new Date().toISOString();
-    await supabaseAdmin
+    const usuarioLimpoPre = decodeURIComponent(String(usuarioLogado)).replace(/%20/g, ' ').trim();
+    const { error: errUpdateLote } = await supabaseAdmin
       .from('ponto_lote')
       .update({
         status_validacao: 'VALIDADO',
-        validado_por: usuarioLogado,
+        validado_por: usuarioLimpoPre,
         validado_em: agora,
       })
       .eq('id', lote.id);
+
+    if (errUpdateLote) {
+      console.warn('[VALIDAR] Fallback update status_validacao em ponto_lote:', errUpdateLote.message);
+      await supabaseAdmin
+        .from('ponto_lote')
+        .update({ status_validacao: 'VALIDADO' })
+        .eq('id', lote.id);
+    }
 
     // 6. GERAÇÃO DO TICKET DE MARCAÇÃO DE PONTO HOMOLOGADO (SEM VALORES EM R$)
     const obraNome = (lote as any).obras_config?.nome || 'CANTEIRO DE OBRAS';
@@ -109,14 +118,19 @@ export async function POST(req: NextRequest) {
       .select('nome_trabalhador, fracao_dia, motivo_excecao')
       .eq('ponto_lote_id', lote.id);
 
+    const usuarioLimpo = decodeURIComponent(String(usuarioLogado)).replace(/%20/g, ' ').trim();
     const ticketTexto = formatarTicketPontoWhatsApp({
       loteId: lote.id,
       obraNome: obraNome,
       dataReferencia: lote.data_referencia,
       apontadoPorTelefone: remetenteTel,
       dataHoraEnvioOriginal: timestampEnvio,
-      homologadoPor: usuarioLogado,
-      dataHoraHomologacao: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      homologadoPor: usuarioLimpo,
+      dataHoraHomologacao: new Date().toLocaleTimeString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
       apontamentos: (detalhesLote || []).map((d) => ({
         nome: d.nome_trabalhador,
         fracao: Number(d.fracao_dia) || 1.0,

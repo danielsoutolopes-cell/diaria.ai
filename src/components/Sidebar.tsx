@@ -61,6 +61,13 @@ const navItems = [
     badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
   },
   {
+    name: 'Propostas & Medição IA',
+    href: '/medicoes',
+    icon: Sparkles,
+    badge: 'IA',
+    badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+  },
+  {
     name: 'Reembolsos & Caixa Campo',
     href: '/reembolsos',
     icon: Receipt,
@@ -151,8 +158,14 @@ export default function Sidebar() {
     const cookies = document.cookie.split('; ');
     const userCookie = cookies.find((c) => c.startsWith('diaria_user='));
     if (userCookie) {
-      const nome = decodeURIComponent(userCookie.split('=')[1]);
-      if (nome) setCurrentUser(nome);
+      const raw = userCookie.split('=')[1] || '';
+      let nome = raw;
+      try {
+        nome = decodeURIComponent(decodeURIComponent(raw));
+      } catch {
+        nome = decodeURIComponent(raw).replace(/%20/g, ' ');
+      }
+      if (nome) setCurrentUser(nome.trim());
     }
     setActiveTenant(getActiveTenantFromBrowser());
   }, []);
@@ -254,7 +267,7 @@ export default function Sidebar() {
       <div className="px-5 py-4 mx-4 mt-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800/50 border border-slate-800 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">
-            P
+            {currentUser.trim().charAt(0).toUpperCase() || 'P'}
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="text-xs font-bold text-slate-200 truncate">{currentUser}</h4>

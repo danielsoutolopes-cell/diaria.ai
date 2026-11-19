@@ -57,6 +57,25 @@ export default function ConfigGeralPage() {
   const [novaEmpresa, setNovaEmpresa] = useState<'jhonton' | 'intermack'>('intermack');
   const [novaObra, setNovaObra] = useState('');
   const [novoAmbiente, setNovoAmbiente] = useState<'INTERNO' | 'EXTERNO'>('INTERNO');
+  const [gruposBaileys, setGruposBaileys] = useState<
+    Array<{ jid: string; name: string }>
+  >([]);
+  const [carregandoGrupos, setCarregandoGrupos] = useState(false);
+
+  async function handleCarregarGruposWhatsApp() {
+    setCarregandoGrupos(true);
+    try {
+      const res = await fetch('/api/whatsapp');
+      const data = (await res.json()) as {
+        groups?: Array<{ jid: string; name: string }>;
+      };
+      setGruposBaileys(data.groups || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCarregandoGrupos(false);
+    }
+  }
 
   useEffect(() => {
     const cookies = document.cookie.split('; ');
@@ -246,10 +265,45 @@ export default function ConfigGeralPage() {
             <MessageSquare className="w-4 h-4 text-emerald-600" />
             <span>Roteamento de Grupos do WhatsApp (1 Conta → Cada Obra = 1 Grupo)</span>
           </div>
-          <span className="text-[11px] font-bold text-slate-500">
-            {config.gruposWhatsApp.length} grupo(s) mapeado(s)
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCarregarGruposWhatsApp}
+              disabled={carregandoGrupos}
+              className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-[11px] font-bold transition-all"
+            >
+              {carregandoGrupos ? 'Buscando grupos...' : 'Puxar Grupos do WhatsApp'}
+            </button>
+            <span className="text-[11px] font-bold text-slate-500">
+              {config.gruposWhatsApp.length} grupo(s) mapeado(s)
+            </span>
+          </div>
         </div>
+
+        {/* Lista rápida de grupos puxados do WhatsApp */}
+        {gruposBaileys.length > 0 && (
+          <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2">
+            <span className="text-[11px] font-black text-emerald-900 block">
+              Clique em um grupo conectado para preencher o JID automaticamente:
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {gruposBaileys.map((g) => (
+                <button
+                  key={g.jid}
+                  type="button"
+                  onClick={() => {
+                    setNovoJid(g.jid);
+                    setNovoNomeGrupo(g.name);
+                    if (!novaObra) setNovaObra(g.name);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-100 border border-emerald-200 text-[11px] font-bold text-slate-800"
+                >
+                  {g.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Form para adicionar novo grupo */}
         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 grid grid-cols-1 sm:grid-cols-12 gap-3">

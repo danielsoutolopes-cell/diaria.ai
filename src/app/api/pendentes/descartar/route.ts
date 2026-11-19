@@ -3,13 +3,31 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { getActiveTenantFromRequest } from '@/lib/tenant';
 
 interface DescartarRequestBody {
-  modo: 'ITEM' | 'LOTE';
+  modo: 'ITEM' | 'LOTE' | 'RESTAURAR';
   loteId?: string;
   detalheId?: string;
   lancamentoId?: string;
   trabalhador?: string;
   motivo?: string;
   usuarioLogado?: string;
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const activeTenant = getActiveTenantFromRequest(req);
+    const { data: descartados } = await supabaseAdmin
+      .from('lancamentos_financeiros')
+      .select('id, nome_trabalhador, fracao_dia, data_referencia, observacao, ponto_lote_id, created_at, obras_config ( nome )')
+      .eq('tenant_id', activeTenant.id)
+      .eq('status', 'DESCARTADO')
+      .order('created_at', { ascending: false })
+      .limit(40);
+
+    return NextResponse.json({ descartados: descartados || [] });
+  } catch (error) {
+    console.error('Erro em GET /api/pendentes/descartar:', error);
+    return NextResponse.json({ descartados: [] });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -27,11 +45,34 @@ export async function POST(req: NextRequest) {
       usuarioLogado = 'Patrícia Grubel',
     } = body;
 
-    if (!modo || (modo !== 'ITEM' && modo !== 'LOTE')) {
+    if (!modo || (modo !== 'ITEM' && modo !== 'LOTE' && modo !== 'RESTAURAR')) {
       return NextResponse.json(
-        { error: 'Modo inválido. Use ITEM ou LOTE.' },
+        { error: 'Modo inválido. Use ITEM, LOTE ou RESTAURAR.' },
         { status: 400 }
       );
+    }
+
+    // MODO RESTAURAR: devolve um lançamento descartado para PENDENTE
+    if (modo === 'RESTAURAR' && lancamentoId) {
+      await supabaseAdmin
+        .from('lancamentos_financeiros')
+        .update({ status: 'PENDENTE' })
+        .eq('tenant_id', tenantId)
+        .eq('id', lancamentoId);
+
+      if (loteId && !loteId.startsWith('vale-')) {
+        await supabaseAdmin
+          .from('ponto_lote')
+          .update({ status_validacao: 'PENDENTE' })
+          .eq('tenant_id', tenantId)
+          .eq('id', loteId);
+      }
+
+      return NextResponse.json({
+        success: true,
+        modo: 'RESTAURAR',
+        message: 'Registro restaurado para a fila de validação!',
+      });
     }
 
     const agoraISO = new Date().toISOString();

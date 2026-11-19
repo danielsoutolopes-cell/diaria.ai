@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { normalizarNomeObraCanonica } from '@/lib/normalizarObra';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,7 +75,7 @@ export async function GET() {
     (lancamentos || []).forEach((l) => {
       const nome = l.nome_trabalhador || 'Trabalhador';
       if (!gruposMap.has(nome)) {
-        const obraNome = (l as any).obras_config?.nome || 'CANTEIRO VOLANTE';
+        const obraNome = normalizarNomeObraCanonica((l as any).obras_config?.nome);
         const chavePix = (l as any).funcionarios_obra?.chave_pix || 'Chave não informada';
         const diariaPadrao = Number((l as any).funcionarios_obra?.valor_diaria) || 150;
         const regime = (l as any).funcionarios_obra?.regime_remuneracao || 'DIARISTA';

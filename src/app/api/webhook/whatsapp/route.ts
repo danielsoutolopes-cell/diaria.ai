@@ -279,14 +279,18 @@ export async function POST(req: NextRequest) {
     let ultimoLoteId: string | undefined = undefined;
 
     for (const obra of extracao.obras) {
+      // Se o grupo estiver mapeado na Configuração Geral, prioriza o nome oficial da obra do grupo
+      const nomeObraFinal = grupoMapeado?.obraNome || obra.nome_obra;
+
       // 1. Localizar ou registrar obra
       let obraId: string | null = null;
       const { data: obraExistente } = await supabaseAdmin
         .from('obras_config')
         .select('id')
-        .ilike('nome', `%${obra.nome_obra}%`)
+        .eq('tenant_id', tenantId)
+        .ilike('nome', `%${nomeObraFinal}%`)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (obraExistente?.id) {
         obraId = obraExistente.id;
@@ -295,9 +299,9 @@ export async function POST(req: NextRequest) {
           .from('obras_config')
           .insert({
             tenant_id: tenantId,
-            nome: obra.nome_obra.toUpperCase(),
-            local: 'Canteiro Volante',
-            tipo_obra: 'PISCINA',
+            nome: nomeObraFinal.toUpperCase(),
+            local: grupoMapeado?.ambiente === 'INTERNO' ? 'Reforma Interna (Apto)' : 'Canteiro Volante',
+            tipo_obra: grupoMapeado?.empresa === 'intermack' ? 'OBRA_CIVIL' : 'PISCINA',
           })
           .select('id')
           .single();

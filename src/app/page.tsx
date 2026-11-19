@@ -37,8 +37,19 @@ export default function DashboardPage() {
     saldoLiquidoSemana: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [usuarioAtual, setUsuarioAtual] = useState<string>('Patrícia Grubel');
 
   useEffect(() => {
+    const cookies = document.cookie.split('; ');
+    const userCookie = cookies.find((c) => c.startsWith('diaria_user='));
+    if (userCookie) {
+      const raw = userCookie.split('=')[1] || '';
+      try {
+        setUsuarioAtual(decodeURIComponent(decodeURIComponent(raw)).trim());
+      } catch {
+        setUsuarioAtual(decodeURIComponent(raw).replace(/%20/g, ' ').trim());
+      }
+    }
     async function carregarMetricas() {
       try {
         const res = await fetch('/api/dashboard');
@@ -63,13 +74,25 @@ export default function DashboardPage() {
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
               Ambiente Executivo VIP
             </span>
-            <span className="text-xs text-slate-500 font-medium">• Sexta-feira, 14 de Novembro</span>
+            <span className="text-xs text-slate-500 font-medium capitalize">
+              •{' '}
+              {new Date().toLocaleDateString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+              })}
+            </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black text-slate-950 tracking-tight">
-            Olá, Patrícia ✨
+            {usuarioAtual.toLowerCase().includes('daniel')
+              ? 'Olá, Daniel 🚀'
+              : `Olá, ${usuarioAtual.split(' ')[0] || 'Patrícia'} ✨`}
           </h1>
           <p className="text-sm text-slate-600 mt-1 max-w-xl leading-relaxed">
-            Seu centro de comando financeiro e de pessoal está pronto. Nenhuma diária é liquidada sem seu aval direto.
+            {usuarioAtual.toLowerCase().includes('daniel')
+              ? 'Painel de Diretoria & Operações Multi-Empresa pronto. Acompanhe obras, efetivo, validações e medições em tempo real.'
+              : 'Seu centro de comando financeiro e de pessoal está pronto. Nenhuma diária é liquidada sem seu aval direto.'}
           </p>
         </div>
 
