@@ -17,6 +17,7 @@ import {
   QrCode,
 } from 'lucide-react';
 import TerminalIA from '@/components/TerminalIA';
+import OnboardingChecklist from '@/components/OnboardingChecklist';
 
 interface DashboardMetrics {
   obrasAtivas: number;
@@ -113,6 +114,9 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Checklist Acionável de Primeiros Passos (Recolhível) */}
+      <OnboardingChecklist />
 
       {/* Hero: O 'Cofre Executivo' da Patrícia */}
       <div className="luxury-card-gradient rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl">

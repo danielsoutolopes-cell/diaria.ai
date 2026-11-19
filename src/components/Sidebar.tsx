@@ -287,7 +287,24 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-1.5">
+      <nav className="flex-1 px-4 py-5 space-y-1.5">
+        {/* Atalho visual da Paleta de Comandos (Ctrl + K) */}
+        <button
+          type="button"
+          onClick={() =>
+            window.dispatchEvent(
+              new KeyboardEvent('keydown', { key: 'k', ctrlKey: true })
+            )
+          }
+          className="w-full mb-3 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium flex items-center justify-between transition-colors"
+          title="Abrir busca rápida de telas e ações"
+        >
+          <span>Busca rápida...</span>
+          <kbd className="text-[10px] font-mono bg-slate-950 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300">
+            Ctrl K
+          </kbd>
+        </button>
+
         <div className="text-[11px] font-semibold tracking-wider uppercase text-slate-400 px-3 mb-2 flex items-center justify-between">
           <span>Módulos de Gestão</span>
           <TrendingUp className="w-3 h-3 text-slate-400" />
