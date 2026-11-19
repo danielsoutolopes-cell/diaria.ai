@@ -215,6 +215,27 @@ export default function CaixaCampoPanel() {
     void carregar();
   }
 
+  function handleCopiarExtratoZap(c: ContaEncarregado) {
+    const linhas = c.movimentos
+      .map(
+        (m) =>
+          `${m.tipo === 'ENTRADA_PIX' ? '🟢 +' : '🔴 −'}R$ ${Number(m.valor).toFixed(2)} | ${m.data} (${m.hora}) — ${m.descricao}`
+      )
+      .join('\n');
+    const resumoSaldo =
+      c.saldoEmMaos > 0
+        ? `Troco em mãos: R$ ${c.saldoEmMaos.toFixed(2)}`
+        : c.saldoEmMaos < 0
+          ? `Reembolso a receber: R$ ${Math.abs(c.saldoEmMaos).toFixed(2)}`
+          : 'Saldo zerado ✓';
+    const texto =
+      `📋 *EXTRATO CAIXA DE CAMPO — ${c.encarregado.toUpperCase()}*\n` +
+      `Recebido: R$ ${c.totalRecebido.toFixed(2)} | Notas: R$ ${c.totalComprovado.toFixed(2)}\n` +
+      `⚖️ *${resumoSaldo}*\n\n${linhas}`;
+    void navigator.clipboard.writeText(texto);
+    mostrarAviso(`Extrato de ${c.encarregado} copiado para o WhatsApp!`);
+  }
+
   async function handleAprovar(id: string) {
     await fetch('/api/caixa-campo', {
       method: 'POST',
@@ -438,6 +459,15 @@ export default function CaixaCampoPanel() {
                         ? `Reembolso a Pagar: R$ ${Math.abs(c.saldoEmMaos).toFixed(2)}`
                         : 'Saldo Zerado ✓'}
                   </span>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopiarExtratoZap(c)}
+                    className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold"
+                    title="Copiar extrato formatado para enviar no WhatsApp"
+                  >
+                    📋 Copiar Zap
+                  </button>
 
                   {c.saldoEmMaos !== 0 && (
                     <>

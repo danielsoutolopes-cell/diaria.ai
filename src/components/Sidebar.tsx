@@ -153,6 +153,7 @@ export default function Sidebar() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = React.useState<string>('Patrícia Grubel');
   const [activeTenant, setActiveTenant] = React.useState<TenantConfig>(TENANTS.jhonton);
+  const [pendentesBadge, setPendentesBadge] = React.useState<number>(0);
 
   React.useEffect(() => {
     const cookies = document.cookie.split('; ');
@@ -168,6 +169,13 @@ export default function Sidebar() {
       if (nome) setCurrentUser(nome.trim());
     }
     setActiveTenant(getActiveTenantFromBrowser());
+
+    fetch('/api/dashboard', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d: { lotesPendentes?: number }) => {
+        if (typeof d.lotesPendentes === 'number') setPendentesBadge(d.lotesPendentes);
+      })
+      .catch(() => {});
   }, []);
 
   const isDanielOrPatricia = isDanielOuPatricia(currentUser);
@@ -342,15 +350,19 @@ export default function Sidebar() {
                 <span className="tracking-tight text-xs font-semibold">{displayName}</span>
               </div>
 
-              {item.badge && (
+              {(item.badge || (item.href === '/validacoes' && pendentesBadge > 0)) && (
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                     isActive
                       ? 'bg-white/20 text-white border-white/30'
-                      : item.badgeColor || 'bg-slate-800 text-slate-400 border-slate-700'
+                      : item.href === '/validacoes' && pendentesBadge > 0
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        : item.badgeColor || 'bg-slate-800 text-slate-400 border-slate-700'
                   }`}
                 >
-                  {item.badge}
+                  {item.href === '/validacoes' && pendentesBadge > 0
+                    ? pendentesBadge
+                    : item.badge}
                 </span>
               )}
             </Link>

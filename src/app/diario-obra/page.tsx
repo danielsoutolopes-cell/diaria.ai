@@ -77,6 +77,53 @@ export default function DiarioObraPage() {
   const [enviandoZapId, setEnviandoZapId] = useState<string | null>(null);
   const [destinoZap, setDestinoZap] = useState('');
   const [avisoEnvio, setAvisoEnvio] = useState<string | null>(null);
+  const [mapaGruposObra, setMapaGruposObra] = useState<
+    Array<{ jid: string; obraNome: string }>
+  >([]);
+
+  useEffect(() => {
+    fetch('/api/config-geral')
+      .then((r) => r.json())
+      .then(
+        (d: {
+          configGeral?: {
+            gruposWhatsApp?: Array<{ jid: string; obraNome: string; ativo?: boolean }>;
+          };
+        }) => {
+          const ativos = (d.configGeral?.gruposWhatsApp || []).filter(
+            (g) => g.ativo !== false
+          );
+          setMapaGruposObra(ativos);
+        }
+      )
+      .catch(() => {});
+  }, []);
+
+  // Auto-preenche o JID do grupo vinculado quando a obra muda
+  useEffect(() => {
+    if (!obraNome.trim() || mapaGruposObra.length === 0) return;
+    const match = mapaGruposObra.find(
+      (g) =>
+        g.obraNome.toUpperCase() === obraNome.trim().toUpperCase() ||
+        g.obraNome.toUpperCase().includes(obraNome.trim().toUpperCase())
+    );
+    if (match?.jid) {
+      setDestinoZap(match.jid);
+    }
+  }, [obraNome, mapaGruposObra]);
+
+  function handleRepetirUltimoEfetivo() {
+    const ultimo =
+      diarios.find(
+        (d) =>
+          obraNome.trim() &&
+          d.obraNome.toUpperCase().includes(obraNome.trim().toUpperCase()) &&
+          d.efetivo.length > 0
+      ) || diarios.find((d) => d.efetivo.length > 0);
+    if (ultimo && ultimo.efetivo.length > 0) {
+      setEfetivo(ultimo.efetivo);
+    }
+  }
 
   async function handleRefinarResumoIA() {
     if (!resumo.trim()) return;
@@ -450,17 +497,29 @@ export default function DiarioObraPage() {
               <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
                 Efetivo Presente ({efetivo.length})
               </span>
-              <button
-                type="button"
-                onClick={handlePuxarEfetivo}
-                disabled={puxandoEfetivo}
-                className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-[11px] font-bold text-slate-700 flex items-center gap-1.5"
-              >
-                <RefreshCw
-                  className={`w-3 h-3 ${puxandoEfetivo ? 'animate-spin' : ''}`}
-                />
-                <span>Puxar das Validações do Dia</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {diarios.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleRepetirUltimoEfetivo}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-[11px] font-bold text-indigo-800"
+                    title="Copia os nomes do último diário registrado para esta obra"
+                  >
+                    Repetir Último Diário
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handlePuxarEfetivo}
+                  disabled={puxandoEfetivo}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-[11px] font-bold text-slate-700 flex items-center gap-1.5"
+                >
+                  <RefreshCw
+                    className={`w-3 h-3 ${puxandoEfetivo ? 'animate-spin' : ''}`}
+                  />
+                  <span>Puxar das Validações</span>
+                </button>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2">

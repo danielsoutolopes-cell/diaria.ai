@@ -72,6 +72,7 @@ export default function ValidacoesPage() {
     tipo: 'sucesso' | 'aviso';
     titulo: string;
     descricao: string;
+    undoAction?: () => void;
   } | null>(null);
   const [usuarioAtual, setUsuarioAtual] = useState<string>('Patrícia Grubel');
   const [activeTenant, setActiveTenant] = useState<TenantConfig>(TENANTS.jhonton);
@@ -138,11 +139,16 @@ export default function ValidacoesPage() {
     carregarPendentes();
   }, []);
 
-  function mostrarFeedback(tipo: 'sucesso' | 'aviso', titulo: string, descricao: string) {
-    setFeedbackBanner({ tipo, titulo, descricao });
+  function mostrarFeedback(
+    tipo: 'sucesso' | 'aviso',
+    titulo: string,
+    descricao: string,
+    undoAction?: () => void
+  ) {
+    setFeedbackBanner({ tipo, titulo, descricao, undoAction });
     setTimeout(() => {
       setFeedbackBanner(null);
-    }, 4500);
+    }, undoAction ? 6500 : 4500);
   }
 
   // Lista plana de todos os itens para detecção de homônimos entre obras
@@ -314,7 +320,22 @@ export default function ValidacoesPage() {
             mostrarFeedback(
               'aviso',
               `Registro de ${item.trabalhador} excluído`,
-              `Removido da validação da mensagem das ${grupo.horarioMensagem} (soft delete registrado).`
+              `Removido da validação da mensagem das ${grupo.horarioMensagem} (soft delete registrado).`,
+              item.lancamentoId
+                ? async () => {
+                    await fetch('/api/pendentes/descartar', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        modo: 'RESTAURAR',
+                        loteId: grupo.loteId,
+                        lancamentoId: item.lancamentoId,
+                      }),
+                    });
+                    setFeedbackBanner(null);
+                    void carregarPendentes();
+                  }
+                : undefined
             );
           }
         } catch (e) {
@@ -504,10 +525,19 @@ export default function ValidacoesPage() {
               <Trash2 className="w-4 h-4" />
             )}
           </div>
-          <div>
+          <div className="flex-1">
             <h4 className="font-bold text-sm">{feedbackBanner.titulo}</h4>
             <p className="text-xs opacity-90">{feedbackBanner.descricao}</p>
           </div>
+          {feedbackBanner.undoAction && (
+            <button
+              type="button"
+              onClick={feedbackBanner.undoAction}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black shrink-0"
+            >
+              Desfazer
+            </button>
+          )}
         </div>
       )}
 
