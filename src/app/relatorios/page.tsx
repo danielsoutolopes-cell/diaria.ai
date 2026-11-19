@@ -22,6 +22,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { exportarParaExcel, LinhaBorderoExport, LinhaCustoObraExport, LinhaExtratoAnaliticoExport } from '@/lib/exportExcel';
+import CalendarioValesCaixa from '@/components/CalendarioValesCaixa';
 
 interface BorderoItem {
   nome: string;
@@ -511,6 +512,9 @@ export default function RelatoriosPage() {
 
       {/* ================= RELATÓRIO 5: CALENDÁRIO VISUAL DE OBRA & CLIMA ================= */}
       <CalendarioVisualObra />
+
+      {/* ================= RELATÓRIO 6: CALENDÁRIO DE VALES, REEMBOLSOS & CAIXA DE CAMPO ================= */}
+      <CalendarioValesCaixa />
 
       {/* ================= MODAL DE EXTRATO DETALHADO DO COLABORADOR ================= */}
       {modalExtrato && (
