@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
       novoValor,
       novaData,
       novaObservacao,
+      status,
       usuarioLogado = 'Patrícia Grubel',
       confirmarSobrescrita = false,
     } = body;
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
     if (novoValor !== undefined) updates.valor_monetario = Number(novoValor);
     if (novaData) updates.data_referencia = novaData;
     if (novaObservacao !== undefined) updates.observacao = novaObservacao;
+    if (status) updates.status = status;
 
     const { data: atualizado, error: errUp } = await supabaseAdmin
       .from('lancamentos_financeiros')

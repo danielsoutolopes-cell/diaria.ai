@@ -1,7 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Send, Bot, User, Sparkles, Loader2, CheckCircle2, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  Send,
+  Bot,
+  User,
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+  ArrowRight,
+  AlertCircle,
+  Check,
+  Trash2,
+} from 'lucide-react';
 import { NLPExtracaoResponse } from '@/types/database';
 import { processarMensagemNLP } from '@/actions/nlp';
 
@@ -11,72 +23,191 @@ interface ChatMessage {
   text: string;
   timestamp: string;
   data?: NLPExtracaoResponse;
+  faltando?: string[];
+  confirmado?: boolean;
+  cancelado?: boolean;
+  textoOriginalAcumulado?: string;
 }
 
 const quickPrompts = [
-  'Obra Bahia, José e Pedro trabalharam de manhã e dei 50 de vale pra cada',
-  'Jabaquara: choveu após o almoço, equipe dispensada às 13h',
-  'Aloca o Miguel em Alphaville com diária de piscina e vale de R$ 100',
+  'Vale de R$ 100,00 para o Peu, Obra Porto Seguro, hoje',
+  'Obra Bahia, José e Pedro trabalharam o dia todo',
 ];
+
+function verificarPendenciasExtracao(extracao: NLPExtracaoResponse): string[] {
+  const pendencias: string[] = [];
+  if (!extracao.obras || extracao.obras.length === 0) {
+    pendencias.push('Não consegui identificar nenhuma obra, colaborador ou vale na mensagem.');
+    return pendencias;
+  }
+
+  for (const obra of extracao.obras) {
+    const nomeObra = (obra.nome_obra || '').trim().toUpperCase();
+    if (!nomeObra || nomeObra === 'GERAL' || nomeObra === 'A IDENTIFICAR') {
+      pendencias.push('Faltou informar o **nome da Obra** (ex.: Porto Seguro, Quase Tudo).');
+    }
+    const temApontamento = (obra.apontamentos?.length || 0) > 0;
+    const temVale = (obra.vales?.length || 0) > 0;
+    if (!temApontamento && !temVale) {
+      pendencias.push(`Na obra ${obra.nome_obra}, faltou informar os nomes dos colaboradores ou vales.`);
+    }
+    for (const vale of obra.vales || []) {
+      if (!vale.valor || Number(vale.valor) <= 0) {
+        pendencias.push(`Faltou informar o **valor em R$** do vale para ${vale.nome}.`);
+      }
+    }
+  }
+  return pendencias;
+}
 
 export default function TerminalIA() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      sender: 'bot',
-      text: 'Olá, Patrícia ✨! Sou seu assistente de Inteligência Artificial de Campo. Você pode ditar ou digitar qualquer apontamento em linguagem natural de obra que eu traduzo instantaneamente em diárias, frações por chuva e vales.',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ]);
+  const [enviandoValidacaoId, setEnviandoValidacaoId] = useState<string | null>(null);
+  const [contextoRascunho, setContextoRascunho] = useState<string>('');
+  const [usuarioAtual, setUsuarioAtual] = useState<string>('Patrícia Grubel');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  useEffect(() => {
+    const cookies = document.cookie.split('; ');
+    const userCookie = cookies.find((c) => c.startsWith('diaria_user='));
+    let nome = 'Patrícia Grubel';
+    if (userCookie) {
+      const raw = userCookie.split('=')[1] || '';
+      try {
+        nome = decodeURIComponent(decodeURIComponent(raw)).trim();
+      } catch {
+        nome = decodeURIComponent(raw).replace(/%20/g, ' ').trim();
+      }
+    }
+    setUsuarioAtual(nome);
+    const primeiroNome = nome.split(' ')[0] || 'Patrícia';
+    setMessages([
+      {
+        id: 'welcome',
+        sender: 'bot',
+        text: `Olá, ${primeiroNome} ✨! Sou seu assistente de campo com Pré-Validação inteligente. Digite seu apontamento ou vale: eu confiro se falta alguma informação e só envio para a fila de Validação depois do seu "De Acordo".`,
+        timestamp: new Date().toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      },
+    ]);
+  }, []);
 
   async function handleSend(texto?: string) {
     const userText = (texto || input).trim();
     if (!userText || loading) return;
 
     setInput('');
+    const hora = new Date().toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
       text: userText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: hora,
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
 
+    const textoAcumulado = contextoRascunho
+      ? `${contextoRascunho}\nComplemento do usuário: ${userText}`
+      : userText;
+
     try {
-      // Invocação direta da Server Action do Next.js 14
-      const resultado = await processarMensagemNLP(userText);
+      const resultado = await processarMensagemNLP(textoAcumulado);
 
       if (resultado.success && resultado.extracao) {
         const extracao = resultado.extracao;
+        const faltando = verificarPendenciasExtracao(extracao);
+        setContextoRascunho(textoAcumulado);
+
         const botMsg: ChatMessage = {
           id: `bot-${Date.now()}`,
           sender: 'bot',
-          text: `Entendido perfeitamente! Extraí ${extracao.obras?.length || 0} canteiro(s) da sua mensagem. Os dados foram organizados e aguardam sua aprovação na tela de Validações.`,
+          text:
+            faltando.length > 0
+              ? 'Quase lá! Antes de subir para a fila de Validação, notei que faltou alguma informação — basta responder abaixo para eu completar:'
+              : 'Tudo completo! Confira o rascunho abaixo e clique em "De Acordo" para enviar para a fila de Validação (ou digite qualquer ajuste):',
           data: extracao,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          faltando,
+          textoOriginalAcumulado: textoAcumulado,
+          timestamp: hora,
         };
         setMessages((prev) => [...prev, botMsg]);
       } else {
         throw new Error(resultado.error || 'Erro no processamento');
       }
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
           id: `bot-err-${Date.now()}`,
           sender: 'bot',
-          text: 'Houve uma oscilação na conexão com o Gemini via Server Action. Por favor, tente novamente.',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          text: 'Houve uma oscilação na conexão com o Gemini. Por favor, tente novamente.',
+          timestamp: hora,
         },
       ]);
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleDeAcordo(msg: ChatMessage) {
+    if (!msg.data) return;
+    setEnviandoValidacaoId(msg.id);
+    try {
+      const res = await fetch('/api/terminal/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          extracao: msg.data,
+          mensagemOriginal: msg.textoOriginalAcumulado || msg.text,
+          usuarioLogado: usuarioAtual,
+        }),
+      });
+      const d = (await res.json()) as { success?: boolean; message?: string };
+      if (d.success) {
+        setContextoRascunho('');
+        setMessages((prev) => [
+          ...prev.map((m) => (m.id === msg.id ? { ...m, confirmado: true } : m)),
+          {
+            id: `ok-${Date.now()}`,
+            sender: 'bot',
+            text: `✅ Confirmado! ${d.message || 'Enviado para a fila de Validação com sucesso.'}`,
+            timestamp: new Date().toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          },
+        ]);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setEnviandoValidacaoId(null);
+    }
+  }
+
+  function handleCancelarRascunho(msgId: string) {
+    setContextoRascunho('');
+    setMessages((prev) => [
+      ...prev.map((m) => (m.id === msgId ? { ...m, cancelado: true } : m)),
+      {
+        id: `cancel-${Date.now()}`,
+        sender: 'bot',
+        text: 'Rascunho cancelado. Nada foi gravado no banco de dados.',
+        timestamp: new Date().toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      },
+    ]);
   }
 
   return (
@@ -95,17 +226,21 @@ export default function TerminalIA() {
 
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-sm tracking-tight text-white">Assistente Executivo de Campo</h3>
+              <h3 className="font-bold text-sm tracking-tight text-white">
+                Assistente Executivo de Campo
+              </h3>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
-                Next.js Server Actions
+                Pré-Validação IA
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">NLP Multi-Contexto • Gemini 1.5 Flash</p>
+            <p className="text-[11px] text-slate-400">
+              NLP Multi-Contexto • Gemini 3.5 Flash
+            </p>
           </div>
         </div>
 
         <span className="text-[11px] text-slate-400 hidden sm:inline-block">
-          Omnichannel WhatsApp + Web
+          Só sobe após De Acordo
         </span>
       </div>
 
@@ -125,7 +260,11 @@ export default function TerminalIA() {
                   : 'bg-slate-900 text-emerald-400 border border-slate-800'
               }`}
             >
-              {m.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+              {m.sender === 'user' ? (
+                <User className="w-4 h-4" />
+              ) : (
+                <Bot className="w-4 h-4" />
+              )}
             </div>
 
             <div
@@ -137,80 +276,110 @@ export default function TerminalIA() {
             >
               <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
 
-              {/* Renderização de Extração */}
+              {/* Alertas de informações faltantes */}
+              {m.faltando && m.faltando.length > 0 && !m.cancelado && (
+                <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-1">
+                  {m.faltando.map((f, i) => (
+                    <p
+                      key={i}
+                      className="text-xs font-semibold text-amber-900 flex items-start gap-1.5"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <span>{f}</span>
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {/* Card de Rascunho + Botões De Acordo / Cancelar */}
               {m.data?.obras && m.data.obras.length > 0 && (
                 <div className="mt-3.5 pt-3.5 border-t border-slate-100 space-y-3">
                   {m.data.obras.map((obra, idx) => (
                     <div
                       key={idx}
-                      className="bg-gradient-to-b from-slate-50 to-white rounded-xl p-3.5 border border-slate-200/80 text-xs text-slate-700 shadow-sm"
+                      className="bg-gradient-to-b from-slate-50 to-white rounded-xl p-3.5 border border-slate-200/80 text-xs text-slate-700 shadow-sm space-y-2"
                     >
-                      <div className="font-bold text-emerald-800 flex items-center gap-1.5 mb-2 text-xs">
+                      <div className="font-bold text-emerald-800 flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                         <span>Obra: {obra.nome_obra}</span>
-                        {obra.setup && (
-                          <span className="ml-auto text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-semibold">
-                            Setup Inicial
-                          </span>
-                        )}
                       </div>
 
                       {obra.apontamentos?.length > 0 && (
-                        <div className="mb-2.5">
+                        <div>
                           <span className="font-semibold text-slate-900 block mb-1">
-                            Presenças Extraídas:
+                            Diárias:
                           </span>
-                          <div className="space-y-1">
+                          <ul className="space-y-0.5 pl-2">
                             {obra.apontamentos.map((ap, i) => (
-                              <div
-                                key={i}
-                                className="flex items-center justify-between bg-slate-100/70 px-2.5 py-1 rounded-lg"
-                              >
-                                <span className="font-medium text-slate-800">{ap.nome}</span>
-                                <div className="flex items-center gap-2">
-                                  {ap.motivo && (
-                                    <span className="text-[11px] text-slate-500 italic">
-                                      {ap.motivo}
-                                    </span>
-                                  )}
-                                  <span className="font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded text-[11px]">
-                                    {ap.fracao}x diária
-                                  </span>
-                                </div>
-                              </div>
+                              <li key={i}>
+                                • <strong>{ap.nome}</strong> — {ap.fracao}x{' '}
+                                {ap.motivo ? `(${ap.motivo})` : ''}
+                              </li>
                             ))}
-                          </div>
+                          </ul>
                         </div>
                       )}
 
                       {obra.vales?.length > 0 && (
                         <div>
-                          <span className="font-semibold text-slate-900 block mb-1">
-                            Vales Registrados:
+                          <span className="font-semibold text-rose-800 block mb-1">
+                            Vales:
                           </span>
-                          <div className="space-y-1">
+                          <ul className="space-y-0.5 pl-2">
                             {obra.vales.map((v, i) => (
-                              <div
-                                key={i}
-                                className="flex items-center justify-between bg-rose-50/70 border border-rose-100 px-2.5 py-1 rounded-lg"
-                              >
-                                <span className="font-medium text-rose-900">{v.nome}</span>
-                                <span className="font-bold text-rose-700">
-                                  R$ {v.valor.toFixed(2)}
-                                </span>
-                              </div>
+                              <li key={i}>
+                                • <strong>{v.nome}</strong> — R${' '}
+                                {Number(v.valor || 0).toFixed(2)}
+                              </li>
                             ))}
-                          </div>
+                          </ul>
                         </div>
                       )}
                     </div>
                   ))}
+
+                  {!m.confirmado && !m.cancelado && (
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleDeAcordo(m)}
+                        disabled={enviandoValidacaoId === m.id}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>
+                          {enviandoValidacaoId === m.id
+                            ? 'Enviando...'
+                            : 'De Acordo — Enviar para Validação'}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleCancelarRascunho(m.id)}
+                        className="px-3 py-2 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-600 hover:text-rose-700 text-xs font-bold flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Cancelar</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {m.confirmado && (
+                    <Link
+                      href="/validacoes"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:underline"
+                    >
+                      <span>Abrir Fila de Validações</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
                 </div>
               )}
 
               <span
-                className={`block text-[10px] mt-2 ${
-                  m.sender === 'user' ? 'text-emerald-100 text-right' : 'text-slate-400'
+                className={`text-[10px] block mt-1.5 ${
+                  m.sender === 'user' ? 'text-emerald-100' : 'text-slate-400'
                 }`}
               >
                 {m.timestamp}
@@ -220,53 +389,59 @@ export default function TerminalIA() {
         ))}
 
         {loading && (
-          <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 w-fit text-slate-600 text-xs shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-slate-500 pl-11">
             <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-            <span className="font-medium">O Gemini 1.5 Flash está analisando via Server Action...</span>
+            <span>Analisando e conferindo informações...</span>
           </div>
         )}
       </div>
 
-      {/* Suggested Quick Pills */}
-      <div className="px-5 py-2.5 bg-slate-100/70 border-t border-slate-200/60 flex items-center gap-2 overflow-x-auto text-xs">
-        <span className="text-[11px] text-slate-500 font-semibold shrink-0">Sugestões rápidas:</span>
-        {quickPrompts.map((q, idx) => (
-          <button
-            key={idx}
-            type="button"
-            onClick={() => handleSend(q)}
-            className="px-3 py-1 rounded-full bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200/80 transition-all shrink-0 text-xs flex items-center gap-1 shadow-sm font-medium"
-          >
-            <span>{q.slice(0, 36)}...</span>
-            <ArrowRight className="w-3 h-3 text-slate-400" />
-          </button>
-        ))}
-      </div>
+      {/* Quick Prompts & Input */}
+      <div className="p-4 bg-white border-t border-slate-200/80 space-y-3">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="text-[11px] font-semibold text-slate-400 shrink-0">
+            Sugestões:
+          </span>
+          {quickPrompts.map((p, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSend(p)}
+              className="text-[11px] px-3 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-800 border border-slate-200/70 transition-colors shrink-0"
+            >
+              {p}
+            </button>
+          ))}
+        </div>
 
-      {/* Input */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSend();
-        }}
-        className="p-3 bg-white border-t border-slate-200 flex gap-2"
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Digite ou cole mensagens de WhatsApp das obras..."
-          className="flex-1 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all placeholder:text-slate-400"
-        />
-        <button
-          type="submit"
-          disabled={loading || !input.trim()}
-          className="px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-2xl hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-bold transition-all shadow-md shadow-emerald-700/20"
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleSend();
+          }}
+          className="flex items-center gap-2"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          <span>Enviar</span>
-        </button>
-      </form>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={
+              contextoRascunho
+                ? 'Responda o que faltou ou digite um ajuste...'
+                : 'Ex: Vale de R$ 100,00 para o Peu, Obra Porto Seguro, hoje...'
+            }
+            className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-slate-900"
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold flex items-center gap-2 shadow-sm disabled:opacity-50"
+          >
+            <Send className="w-4 h-4" />
+            <span>Enviar</span>
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
