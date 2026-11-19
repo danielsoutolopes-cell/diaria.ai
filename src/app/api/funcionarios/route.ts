@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     // Tenta selecionar com as novas colunas; se o banco ainda não rodou a migration, faz fallback seguro
     let { data, error } = await supabaseAdmin
       .from('funcionarios_obra')
@@ -27,6 +29,7 @@ export async function GET() {
           nome
         )
       `)
+      .eq('tenant_id', activeTenant.id)
       .eq('ativo', true)
       .order('nome_trabalhador', { ascending: true });
 
@@ -47,6 +50,7 @@ export async function GET() {
             nome
           )
         `)
+        .eq('tenant_id', activeTenant.id)
         .order('nome_trabalhador', { ascending: true });
       
       data = fallback.data as any;
@@ -67,6 +71,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const body = await req.json();
     const {
       nome_trabalhador,
@@ -80,8 +85,8 @@ export async function POST(req: NextRequest) {
       valor_base_contratual,
       funcao = 'OPERACIONAL',
       apelidos,
-      tenant_id = '00000000-0000-0000-0000-000000000001',
     } = body;
+    const tenant_id = activeTenant.id;
 
     if (!nome_trabalhador || !chave_pix) {
       return NextResponse.json({ error: 'Nome e Chave PIX são obrigatórios' }, { status: 400 });

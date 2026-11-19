@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
 import {
   normalizarNomeObraCanonica,
   normalizarNomeTrabalhadorCanonico,
@@ -9,6 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const { searchParams } = new URL(req.url);
     const periodo = searchParams.get('periodo') || 'semanal'; // 'semanal' | 'quinzenal' | 'mensal'
 
@@ -40,6 +42,8 @@ export async function GET(req: NextRequest) {
           tipo_obra
         )
       `)
+      .eq('tenant_id', activeTenant.id)
+      .neq('status', 'DESCARTADO')
       .gte('data_referencia', dataInicioIso)
       .order('data_referencia', { ascending: false });
 
@@ -60,7 +64,9 @@ export async function GET(req: NextRequest) {
             tipo_obra
           )
         `)
-        .gte('data_referencia', dataInicioIso)
+        .eq('tenant_id', activeTenant.id)
+      .neq('status', 'DESCARTADO')
+      .gte('data_referencia', dataInicioIso)
         .order('data_referencia', { ascending: false });
 
       lancamentos = fallback.data as any;

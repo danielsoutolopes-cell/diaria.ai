@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
 import {
   normalizarNomeObraCanonica,
   normalizarNomeTrabalhadorCanonico,
@@ -7,8 +8,9 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     let lancamentos: any[] | null = null;
     let queryError: any = null;
 
@@ -33,6 +35,7 @@ export async function GET() {
           valor_diaria
         )
       `)
+      .eq('tenant_id', activeTenant.id)
       .eq('status', 'VALIDADO')
       .order('data_referencia', { ascending: true });
 
@@ -58,7 +61,8 @@ export async function GET() {
             valor_diaria
           )
         `)
-        .eq('status', 'VALIDADO')
+        .eq('tenant_id', activeTenant.id)
+      .eq('status', 'VALIDADO')
         .order('data_referencia', { ascending: true });
 
       lancamentos = resFallback.data;

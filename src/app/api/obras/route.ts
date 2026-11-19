@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const { data, error } = await supabaseAdmin
       .from('obras_config')
       .select('*')
+      .eq('tenant_id', activeTenant.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -24,8 +27,10 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const body = await req.json();
-    const { nome, local, tipo_obra, valor_diaria_padrao, apelidos, tenant_id = '00000000-0000-0000-0000-000000000001' } = body;
+    const { nome, local, tipo_obra, valor_diaria_padrao, apelidos } = body;
+    const tenant_id = activeTenant.id;
 
     if (!nome) {
       return NextResponse.json({ error: 'Nome da obra é obrigatório' }, { status: 400 });

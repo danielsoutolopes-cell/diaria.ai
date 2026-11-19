@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { normalizarNomeTrabalhadorCanonico } from '@/lib/normalizarObra';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const { searchParams } = new URL(req.url);
     const mes = searchParams.get('mes') || new Date().toISOString().slice(0, 7); // YYYY-MM
     const obraId = searchParams.get('obraId') || 'TODAS';
@@ -31,6 +33,7 @@ export async function GET(req: NextRequest) {
         obra_id,
         obras_config ( id, nome, tipo_obra )
       `)
+      .eq('tenant_id', activeTenant.id)
       .eq('tipo_lancamento', 'PONTO')
       .neq('status', 'DESCARTADO')
       .gte('data_referencia', dataInicio)
@@ -85,6 +88,7 @@ export async function GET(req: NextRequest) {
     const { data: obras } = await supabaseAdmin
       .from('obras_config')
       .select('id, nome')
+      .eq('tenant_id', activeTenant.id)
       .eq('ativo', true)
       .order('nome', { ascending: true });
 
