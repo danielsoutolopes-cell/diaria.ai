@@ -390,7 +390,7 @@ export async function POST(req: NextRequest) {
             fracao_dia: ap.fracao,
             valor_monetario: calculo.valorFinal, // Valor calculado com base no canteiro e fração (0 para semanalista)
             status: 'PENDENTE',
-            data_referencia: new Date().toISOString().split('T')[0],
+            data_referencia: dataRefPonto,
             observacao: ap.motivo ? `${ap.motivo} | ${calculo.descricaoRegra}` : calculo.descricaoRegra,
             ponto_lote_id: loteId,
             comprovante_url: null,
