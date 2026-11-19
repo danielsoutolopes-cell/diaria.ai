@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { normalizarNomeObraCanonica } from '@/lib/normalizarObra';
+import {
+  normalizarNomeObraCanonica,
+  normalizarNomeTrabalhadorCanonico,
+} from '@/lib/normalizarObra';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,7 +118,7 @@ export async function GET(req: NextRequest) {
     let totalGeralVales = 0;
 
     (lancamentos || []).forEach((item) => {
-      const nomeLimpo = item.nome_trabalhador.trim();
+      const nomeLimpo = normalizarNomeTrabalhadorCanonico(item.nome_trabalhador);
       const nomeChave = nomeLimpo.toLowerCase();
       const infoFunc = mapaFuncs.get(nomeChave) || { chavePix: 'Não informada', telefone: null };
       const obraNome = normalizarNomeObraCanonica((item.obras_config as any)?.nome);

@@ -22,3 +22,37 @@ export function normalizarNomeObraCanonica(nomeBruto: string | null | undefined)
 
   return limpo;
 }
+
+/**
+ * Unifica variações e apelidos de colaboradores nos relatórios e borderô
+ * para evitar linhas duplicadas da mesma pessoa (ex: José baiano + ZÉ BAIANO).
+ */
+export function normalizarNomeTrabalhadorCanonico(
+  nomeBruto: string | null | undefined
+): string {
+  const original = (nomeBruto || '').trim();
+  if (!original) return 'Trabalhador';
+
+  const semAcento = original
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (semAcento === 'JOSE BAIANO' || semAcento === 'ZE BAIANO') {
+    return 'ZÉ BAIANO';
+  }
+  if (
+    semAcento === 'LUCAS. J.' ||
+    semAcento === 'LUCAS J.' ||
+    semAcento === 'LUCAS J'
+  ) {
+    return 'LUCAS J.';
+  }
+  if (semAcento === 'WENDER 22' || semAcento === 'WENDER') {
+    return 'WENDER';
+  }
+
+  return original;
+}

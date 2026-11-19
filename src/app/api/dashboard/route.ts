@@ -1,41 +1,63 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
+    const tenantId = activeTenant.id;
+
     // 1. Obras ativas
-    const { data: obras, error: errObras } = await supabaseAdmin
+    const { data: obras } = await supabaseAdmin
       .from('obras_config')
       .select('id, nome, local, tipo_obra')
+      .eq('tenant_id', tenantId)
       .eq('ativo', true);
 
-    // 2. Lotes pendentes de validação
-    const { data: lotesList, error: errLotes } = await supabaseAdmin
+    // 2. Lotes pendentes + Vales avulsos pendentes (alinhado 1:1 com /api/pendentes)
+    const { data: lotesList } = await supabaseAdmin
       .from('ponto_lote')
-      .select('id, status_validacao');
+      .select('id, status_validacao')
+      .eq('tenant_id', tenantId)
+      .eq('status_validacao', 'PENDENTE');
 
-    const lotesPendentes = (lotesList || []).filter(l => l.status_validacao === 'PENDENTE').length;
-    console.log('[API-DASHBOARD] lotesList raw:', lotesList?.length, 'Pendentes filtrados:', lotesPendentes, 'Error:', errLotes);
+    const { data: valesPendentesList } = await supabaseAdmin
+      .from('lancamentos_financeiros')
+      .select('id, ponto_lote_id')
+      .eq('tenant_id', tenantId)
+      .eq('tipo_lancamento', 'VALE')
+      .eq('status', 'PENDENTE');
+
+    const lotesPendentesIds = new Set((lotesList || []).map((l) => l.id));
+    const valesAvulsosPendentes = (valesPendentesList || []).filter(
+      (v) => !v.ponto_lote_id || !lotesPendentesIds.has(v.ponto_lote_id)
+    ).length;
+
+    const lotesPendentes = lotesPendentesIds.size + valesAvulsosPendentes;
 
     // 3. Lançamentos validados para fechamento semanal
     const { data: lancamentosValidados } = await supabaseAdmin
       .from('lancamentos_financeiros')
       .select('id, valor_monetario, tipo_lancamento')
+      .eq('tenant_id', tenantId)
       .eq('status', 'VALIDADO');
 
-    // 4. Vales da semana
+    // 4. Vales da semana (ignorando liquidados e descartados)
     const { data: valesSemana } = await supabaseAdmin
       .from('lancamentos_financeiros')
       .select('valor_monetario')
+      .eq('tenant_id', tenantId)
       .eq('tipo_lancamento', 'VALE')
-      .neq('status', 'LIQUIDADO');
+      .neq('status', 'LIQUIDADO')
+      .neq('status', 'DESCARTADO');
 
     // 5. Total de operários cadastrados
     const { count: totalOperariosCount, data: operariosList } = await supabaseAdmin
       .from('funcionarios_obra')
       .select('id', { count: 'exact' })
+      .eq('tenant_id', tenantId)
       .eq('ativo', true);
 
     const totalOperarios = totalOperariosCount !== null && totalOperariosCount !== undefined 

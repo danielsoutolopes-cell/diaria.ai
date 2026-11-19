@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { normalizarNomeObraCanonica } from '@/lib/normalizarObra';
+import {
+  normalizarNomeObraCanonica,
+  normalizarNomeTrabalhadorCanonico,
+} from '@/lib/normalizarObra';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,7 +76,7 @@ export async function GET() {
     const gruposMap = new Map<string, any>();
 
     (lancamentos || []).forEach((l) => {
-      const nome = l.nome_trabalhador || 'Trabalhador';
+      const nome = normalizarNomeTrabalhadorCanonico(l.nome_trabalhador);
       if (!gruposMap.has(nome)) {
         const obraNome = normalizarNomeObraCanonica((l as any).obras_config?.nome);
         const chavePix = (l as any).funcionarios_obra?.chave_pix || 'Chave não informada';
