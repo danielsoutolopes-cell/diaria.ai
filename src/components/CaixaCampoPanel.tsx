@@ -390,9 +390,10 @@ export default function CaixaCampoPanel() {
 
         {/* Contas por Encarregado / Colaborador */}
         {loading ? (
-          <p className="text-xs text-slate-500 text-center py-4">
-            Carregando contas de campo...
-          </p>
+          <div className="space-y-3 animate-pulse">
+            <div className="h-14 rounded-2xl bg-slate-100" />
+            <div className="h-24 rounded-2xl bg-slate-100" />
+          </div>
         ) : contas.length === 0 ? (
           <p className="text-xs text-slate-500 text-center py-4">
             Nenhum movimento de Caixa de Campo registrado ainda.
@@ -487,7 +488,7 @@ export default function CaixaCampoPanel() {
 
                     <div className="flex items-center gap-2.5">
                       <span
-                        className={`font-black text-sm ${
+                        className={`font-black text-sm tabular-nums ${
                           m.tipo === 'ENTRADA_PIX'
                             ? 'text-emerald-700'
                             : 'text-rose-700'

@@ -512,11 +512,15 @@ export default function ValidacoesPage() {
       )}
 
       {loading ? (
-        <div className="bg-white p-14 text-center rounded-3xl border border-slate-200/90 shadow-sm space-y-3">
-          <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin mx-auto" />
-          <p className="text-sm text-slate-500">
-            Buscando mensagens pendentes no banco de dados...
-          </p>
+        <div className="space-y-4 animate-pulse">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/90 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-36 bg-slate-200 rounded-xl" />
+              <div className="h-7 w-28 bg-slate-100 rounded-xl" />
+            </div>
+            <div className="h-16 bg-slate-100 rounded-2xl" />
+            <div className="h-16 bg-slate-100 rounded-2xl" />
+          </div>
         </div>
       ) : mensagens.length === 0 ? (
         <div className="bg-white p-14 text-center rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
