@@ -179,7 +179,7 @@ export default function ReembolsosPage() {
               <Receipt className="w-5 h-5" />
             </span>
             <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-              Gestão de Despesas & Caixa de Campo
+              3. Pedidos de Reembolso via WhatsApp (Aprovação Avulsa)
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
               Alinhamento Patrícia x Joabson

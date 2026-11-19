@@ -267,11 +267,20 @@ export default function CaixaCampoPanel() {
           </div>
         )}
 
-        {/* Form rápido com Dropdowns de Colaborador e Obra */}
-        <form
-          onSubmit={handleRegistrar}
-          className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 grid grid-cols-1 sm:grid-cols-12 gap-2.5"
-        >
+        {/* Seção 1: Novo Lançamento */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-black flex items-center justify-center">
+              1
+            </span>
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+              Novo Lançamento (PIX Enviado ou Nota Fiscal)
+            </h3>
+          </div>
+          <form
+            onSubmit={handleRegistrar}
+            className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 grid grid-cols-1 sm:grid-cols-12 gap-2.5"
+          >
           <select
             value={encarregado}
             onChange={(e) => setEncarregado(e.target.value)}
@@ -343,14 +352,20 @@ export default function CaixaCampoPanel() {
           >
             <Plus className="w-4 h-4" />
           </button>
-        </form>
+          </form>
+        </div>
 
-        {/* Filtro Dropdown de Colaboradores com Lançamentos em Aberto */}
+        {/* Seção 2: Extrato por Colaborador (Saldos & Liquidação) */}
         {contas.length > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs font-black uppercase tracking-wider text-slate-500">
-              Extrato de Conta Corrente ({contas.length})
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
+                2
+              </span>
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                Extrato por Colaborador • Saldos & Liquidação ({contas.length})
+              </h3>
+            </div>
             <select
               value={filtroConta}
               onChange={(e) => setFiltroConta(e.target.value)}
