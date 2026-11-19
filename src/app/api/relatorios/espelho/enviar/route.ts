@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { gerarPdfEspelhoBase64, type LinhaEspelhoPDF } from '@/lib/pdfEspelho';
+import {
+  gerarPdfEspelhoBase64,
+  gerarPdfCalendarioBase64,
+  type LinhaEspelhoPDF,
+} from '@/lib/pdfEspelho';
 import { uploadToR2 } from '@/services/r2Storage';
 
 export const dynamic = 'force-dynamic';
@@ -78,6 +82,7 @@ interface EnviarEspelhoBody {
   telefone: string;
   nomeDestinatario?: string;
   podeVerValores?: boolean;
+  tipoRelatorio?: 'ESPELHO' | 'CALENDARIO';
   mes: string;
   diasNoMes: number;
   linhas: LinhaEspelhoPDF[];
@@ -99,12 +104,20 @@ export async function POST(req: NextRequest) {
       telLimpo.includes('11978543369') || telLimpo.includes('11988139833');
     const incluirValores = Boolean(isAdmin && body.podeVerValores !== false);
 
-    const { base64, fileName } = gerarPdfEspelhoBase64({
-      mes: body.mes,
-      diasNoMes: body.diasNoMes,
-      linhas: body.linhas || [],
-      incluirValores,
-    });
+    const { base64, fileName } =
+      body.tipoRelatorio === 'CALENDARIO'
+        ? gerarPdfCalendarioBase64({
+            mes: body.mes,
+            diasNoMes: body.diasNoMes,
+            linhas: body.linhas || [],
+            incluirValores,
+          })
+        : gerarPdfEspelhoBase64({
+            mes: body.mes,
+            diasNoMes: body.diasNoMes,
+            linhas: body.linhas || [],
+            incluirValores,
+          });
 
     // 1. Sobe o PDF no Cloudflare R2 para ter link permanente caso precise de fallback
     let pdfUrl: string | null = null;

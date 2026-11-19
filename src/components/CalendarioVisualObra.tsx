@@ -54,6 +54,7 @@ export default function CalendarioVisualObra() {
           telefone: destinoTel,
           nomeDestinatario: destObj?.nome,
           podeVerValores: destObj?.podeVerValores ?? false,
+          tipoRelatorio: 'CALENDARIO',
           mes,
           diasNoMes,
           linhas,
