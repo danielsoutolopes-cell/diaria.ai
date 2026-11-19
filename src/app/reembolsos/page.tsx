@@ -19,6 +19,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { PedidoReembolso, PagamentoReembolso } from '@/types/database';
+import CaixaCampoPanel from '@/components/CaixaCampoPanel';
 
 export default function ReembolsosPage() {
   const [reembolsos, setReembolsos] = useState<PedidoReembolso[]>([]);
@@ -167,6 +168,9 @@ export default function ReembolsosPage() {
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
+      {/* Conta Corrente de Caixa de Campo (Prestação de Contas por Encarregado) */}
+      <CaixaCampoPanel />
+
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm">
         <div className="space-y-1">
