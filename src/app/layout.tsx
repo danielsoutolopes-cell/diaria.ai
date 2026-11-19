@@ -7,6 +7,7 @@ import RegisterServiceWorker from '@/components/RegisterServiceWorker';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
 import ContextualHelp from '@/components/ContextualHelp';
 import CommandPalette from '@/components/CommandPalette';
+import NetworkStatusBar from '@/components/NetworkStatusBar';
 import { DeviceProvider } from '@/contexts/DeviceContext';
 
 const inter = Inter({ subsets: ['latin'] });

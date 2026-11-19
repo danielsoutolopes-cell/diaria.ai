@@ -1,0 +1,218 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 5434 >>
+stream
+0.05 0.10 0.18 rg 0 812 595 30 re f
+1 1 1 rg BT /F2 9 Tf 1 0 0 1 42 823 Tm (GADAP HUB - ARQUITETURA OMNICHANNEL WHATSAPP + IA & INTEGRACAO SAAS) Tj ET
+0.04 0.35 0.25 rg
+BT /F2 15 Tf 1 0 0 1 42 785 Tm (Arquitetura Omnichannel \(WhatsApp + IA\) & Plano de) Tj ET
+BT /F2 15 Tf 1 0 0 1 42 765 Tm (Integracao no GADAP HUB) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 735 Tm (Documento Tecnico & Estrategico) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 722 Tm (Origem: Plataforma Diaria.AI \(Micro-ERP de Campo Multi-Tenant\)) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 709 Tm (Destino: Replicacao e Integracao no GADAP HUB \(https://gapad-hub.vercel.app/\)) Tj ET
+0.82 0.86 0.90 RG 0.6 w 42 690 m 553 690 l S
+0.06 0.12 0.24 rg
+BT /F2 12 Tf 1 0 0 1 42 668 Tm (1. Motor WhatsApp Open-Source \(Baileys   Zero Custo Meta\)) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 644 Tm (A comunicacao de campo opera sobre a biblioteca open-source Baileys rodando em servico) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 631 Tm (dedicado \(local 127.0.0.1:3001 no Fly.io / instancia persistente\):) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 618 Tm (- Zero taxas por conversa: Sem dependencia da Cloud API paga da Meta e sem aprovacao) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 605 Tm (previa de templates.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 592 Tm (- Suporte nativo a Grupos \(@g.us\): Captura texto, legendas e fotos \(imageMessage\)) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 579 Tm (diretamente nos grupos operacionais.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 566 Tm (- Emparelhamento Hibrido: Suporta QR Code e Pairing Code \(8 digitos\)   eliminando falhas) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 553 Tm (de camera em iOS/iPhone.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 540 Tm (- Arquitetura 1 Conta   N Grupos/Empresas: Uma unica conta WhatsApp monitora dezenas de) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 527 Tm (grupos simultaneamente. O Hub de Configuracao Geral \(/config-geral\) mapeia cada groupJid) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 514 Tm (  { empresa \(tenant_id\), obra, ambiente }.) Tj ET
+0.82 0.86 0.90 RG 0.6 w 42 495 m 553 495 l S
+0.06 0.12 0.24 rg
+BT /F2 12 Tf 1 0 0 1 42 473 Tm (2. Webhook Inteligente & Blindagens Operacionais) Tj ET
+BT /F2 12 Tf 1 0 0 1 42 457 Tm (\(`/api/webhook/whatsapp`\)) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 433 Tm (Cada mensagem recebida no webhook passa por 6 camadas de protecao antes de virar um) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 420 Tm (registro:) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 407 Tm (1. Mutex & Deduplicacao \(messageId + remoteJid\): Impede processamento duplicado em) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 394 Tm (reconexoes do WhatsApp.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 381 Tm (2. Ponto de Corte Operacional \(data_corte_operacional\): Ignora automaticamente mensagens) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 368 Tm (com timestamp anterior ao corte inicial, impedindo reentrada de historico antigo.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 355 Tm (3. Roteamento Multi-Empresa Automatico: Consulta o mapa de grupos pelo remoteJid e) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 342 Tm (define automaticamente o tenant_id \(ex.: Empresa A vs Empresa B\) e o nome oficial da) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 329 Tm (unidade/obra   mesmo se o usuario esquecer de citar o nome na mensagem.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 316 Tm (4. Extracao NLP & Vision \(Gemini 3.5 Flash\): Traduz linguagem natural informal em JSON) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 303 Tm (estruturado \(diarias, fracoes, excecoes climaticas/viagem, vales, notas fiscais e) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 290 Tm (comprovantes de PIX\).) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 277 Tm (5. Auditoria Pericial & Cloudflare R2: Midias sao enviadas ao bucket S3 compativel) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 264 Tm (\(Cloudflare R2\) com carimbo temporal de Brasilia \(America/Sao_Paulo\) e hash) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 251 Tm (criptografico SHA-256.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 238 Tm (6. Sigilo Financeiro Bilateral: O remetente/encarregado recebe apenas confirmacao) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 225 Tm (operacional sem valores em R$; valores monetarios e links de aprovacao vao) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 212 Tm (exclusivamente para a Administracao.) Tj ET
+0.82 0.86 0.90 RG 0.6 w 42 193 m 553 193 l S
+0.06 0.12 0.24 rg
+BT /F2 12 Tf 1 0 0 1 42 171 Tm (3. Terminal Omnichannel & IA \(Pre-Validacao com "De Acordo"\)) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 147 Tm (Na interface web \(TerminalIA.tsx + /api/terminal/confirmar\), o assistente opera em 2) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 134 Tm (etapas conversacionais:) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 121 Tm (- Etapa 1   Rascunho & Checklist de Completude \(Nada vai para o banco ainda\): A IA) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 108 Tm (analisa a mensagem, acumula contexto multi-turno e verifica se faltou alguma informacao) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 95 Tm (obrigatoria \(obra, colaboradores, valor de vale\). Se faltar, pergunta objetivamente no) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 82 Tm (chat.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 69 Tm (- Etapa 2   Confirmacao Explicita \("De Acordo"\): Somente apos o clique em "De Acordo  ) Tj ET
+0.45 0.50 0.58 rg BT /F1 8 Tf 1 0 0 1 42 26 Tm (Documento Oficial GADAP HUB | Pagina 1 de 3 | Gerado em 19/11/2026) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 5924 >>
+stream
+0.05 0.10 0.18 rg 0 812 595 30 re f
+1 1 1 rg BT /F2 9 Tf 1 0 0 1 42 823 Tm (GADAP HUB - ARQUITETURA OMNICHANNEL WHATSAPP + IA & INTEGRACAO SAAS) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 785 Tm (Enviar para Validacao" o sistema grava no Supabase \(ponto_lote, ponto_detalhe e) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 772 Tm (lancamentos_financeiros\) respeitando o tenant_id ativo.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 759 Tm (- Extensoes de IA ja validadas em producao:) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 746 Tm (- Refinar Resumo com IA: transforma anotacoes curtas de campo em texto executivo no) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 733 Tm (Diario de Obra \(/diario-obra\).) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 720 Tm (- Leitura de Notas & PIX \(Gemini Vision\): extrai tipo, valor e categoria direto da foto) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 707 Tm (no Caixa de Campo \(/reembolsos\).) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 694 Tm (- Leitura de Propostas & Medicao IA \(/medicoes\): le PDF/foto da proposta, extrai) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 681 Tm (etapas/pesos e cruza Diarios + Homens-Dia para estimar % concluido em linguagem simples) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 668 Tm (para nao-engenheiros.) Tj ET
+0.82 0.86 0.90 RG 0.6 w 42 649 m 553 649 l S
+0.06 0.12 0.24 rg
+BT /F2 12 Tf 1 0 0 1 42 627 Tm (4. Fluxo Human-in-the-Loop, Governanca & Relatorios PDF Zap) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 603 Tm (- Validacao por Mensagem Enviada: 1 card = 1 mensagem \(com horario exato, texto original) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 590 Tm (expansivel e aprovacao independente\).) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 577 Tm (- Exclusao Auditada \(Soft Delete DESCARTADO\): Nunca perde historico e permite) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 564 Tm (restauracao em 1 clique.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 551 Tm (- Guarda Multi-Admin \(409 Conflict\): Impede sobrescrita silenciosa entre administradores) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 538 Tm (e notifica a administradora central em qualquer alteracao pos-aprovacao.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 525 Tm (- Disparo Direto de PDF Base64 no WhatsApp \(PDF Zap\): Geracao vetorial leve em Base64) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 512 Tm (\(sem Puppeteer\) para Diario de Obra, Espelho do Ponto \(Relatorio 4\) e Calendario Visual) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 499 Tm (7 colunas \(Relatorio 5\), disparado via Baileys local \(127.0.0.1:3001/send-document com) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 486 Tm (fallback /send-message + link R2\), respeitando sigilo automatico por destinatario.) Tj ET
+0.82 0.86 0.90 RG 0.6 w 42 467 m 553 467 l S
+0.06 0.12 0.24 rg
+BT /F2 12 Tf 1 0 0 1 42 445 Tm (5. Plano de Integracao no GADAP HUB) Tj ET
+BT /F2 12 Tf 1 0 0 1 42 429 Tm (\(`https://gapad-hub.vercel.app/`\)) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 405 Tm (Para integrar este SaaS ao GADAP HUB e escala-lo para N empresas e outras) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 392 Tm (verticais/solucoes, siga este roadmap em 4 passos:) Tj ET
+0.18 0.25 0.55 rg
+BT /F2 10.5 Tf 1 0 0 1 42 373 Tm (Passo 1   Catalogo Dinamico de Tenants \(Substituir Mapa Estatico\)) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 359 Tm (- Criar tabela tenants no Supabase compartilhado do GADAP HUB:) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 346 Tm (- id \(UUID\), slug, nome_exibicao, modo_operacao \('DIARISTA' | 'EMPREITA' | 'SERVICOS' |) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 333 Tm ('CUSTOM'\), modulos_ativos \(JSONB\), cor_primaria, logo_url, ativo.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 320 Tm (- Trocar o mapa fixo TENANTS em src/lib/tenant.ts por consulta com cache curto a tabela) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 307 Tm (tenants. Assim, qualquer nova empresa cadastrada no GADAP HUB nasce pronta em segundos) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 294 Tm (sem deploy!) Tj ET
+0.18 0.25 0.55 rg
+BT /F2 10.5 Tf 1 0 0 1 42 275 Tm (Passo 2   Identidade & SSO Unificados \(GADAP HUB   Modulos\)) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 261 Tm (- O GADAP HUB atua como provedor de sessao \(Supabase Auth / JWT assinado\).) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 248 Tm (- Ao clicar no card "Diaria.AI / Gestao de Campo" dentro do GADAP HUB, o Hub redireciona) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 235 Tm (com token/sessao compartilhada passando user_id, role e tenant_id ativo \(via subdominio) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 222 Tm (compartilhado, ex.: hub.gadap.com.br + diaria.gadap.com.br, ou rota proxy /apps/diaria\).) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 209 Tm (- As permissoes \(RBAC\) passam a ser lidas da tabela tenant_memberships \(user_id,) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 196 Tm (tenant_id, role\) do GADAP HUB.) Tj ET
+0.18 0.25 0.55 rg
+BT /F2 10.5 Tf 1 0 0 1 42 177 Tm (Passo 3   Motor WhatsApp + IA como Servico Compartilhado do GADAP HUB) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 163 Tm (- Extrair o servico Baileys + Webhook Router para um microsservico central do GADAP HUB) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 150 Tm (\(gadap-omnichannel-gateway\):) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 137 Tm (- 1 conta WhatsApp por empresa \(ou conta compartilhada\) roteada por remoteJid   {) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 124 Tm (produto: 'diaria' | 'crm' | 'financeiro' | 'suporte', tenant_id }.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 111 Tm (- O Terminal IA com "De Acordo" vira um componente reutilizavel \(@gadap/ai-terminal\) que) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 98 Tm (recebe apenas o *schema de extracao* e o *endpoint de confirmacao* de cada produto do) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 85 Tm (Hub!) Tj ET
+0.18 0.25 0.55 rg
+BT /F2 10.5 Tf 1 0 0 1 42 66 Tm (Passo 4   Empacotamento White-Label, Billing & Observabilidade) Tj ET
+0.45 0.50 0.58 rg BT /F1 8 Tf 1 0 0 1 42 26 Tm (Documento Oficial GADAP HUB | Pagina 2 de 3 | Gerado em 19/11/2026) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 1090 >>
+stream
+0.05 0.10 0.18 rg 0 812 595 30 re f
+1 1 1 rg BT /F2 9 Tf 1 0 0 1 42 823 Tm (GADAP HUB - ARQUITETURA OMNICHANNEL WHATSAPP + IA & INTEGRACAO SAAS) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 785 Tm (- White-Label nativo: Todos os manuais, ContextualHelp.tsx, PDFs e cabecalhos ja usam) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 772 Tm (linguagem generica e puxam nome_exibicao / cor_primaria do tenant ativo.) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 759 Tm (- Feature Flags por Plano: Controlar via tenants.modulos_ativos quais recursos cada) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 746 Tm (cliente do GADAP HUB contratou \(whatsapp_bot, diario_obra, medicoes_ia, caixa_campo,) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 733 Tm (fechamento_pix\).) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 9.5 Tf 1 0 0 1 42 720 Tm (- Offline-First pronto \(IndexedDB Outbox + NetworkStatusBar\): Reaproveitavel em qualquer) Tj ET
+BT /F1 9.5 Tf 1 0 0 1 42 707 Tm (aplicativo de campo do ecossistema GADAP HUB.) Tj ET
+0.45 0.50 0.58 rg BT /F1 8 Tf 1 0 0 1 42 26 Tm (Documento Oficial GADAP HUB | Pagina 3 de 3 | Gerado em 19/11/2026) Tj ET
+endstream
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000272 00000 n 
+0000000408 00000 n 
+0000005894 00000 n 
+0000006030 00000 n 
+0000012006 00000 n 
+0000012143 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R >>
+startxref
+13286
+%%EOF
