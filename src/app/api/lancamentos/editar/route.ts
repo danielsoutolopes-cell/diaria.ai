@@ -73,6 +73,15 @@ export async function POST(req: NextRequest) {
       throw errUp;
     }
 
+    // Se o lançamento foi VALIDADO e pertence a um ponto_lote, também marca o lote como VALIDADO
+    // (evita que mensagens contendo apenas VALE voltem para a fila de validação)
+    if (status === 'VALIDADO' && lanc.ponto_lote_id) {
+      await supabaseAdmin
+        .from('ponto_lote')
+        .update({ status_validacao: 'VALIDADO' })
+        .eq('id', lanc.ponto_lote_id);
+    }
+
     // 4. REGRA CRÍTICA INVIOLÁVEL: SEMPRE Notificar a Patrícia Grubel quando qualquer edição for feita
     const obraNome = (lanc as any).obras_config?.nome || 'Canteiro Geral';
     const alertaPatricia = formatarAlertaEdicaoPatricia({
