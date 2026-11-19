@@ -1,15 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Menu,
   X,
   Sparkles,
-  Smartphone,
-  Laptop,
-  CheckCircle2,
   CalendarCheck2,
   Layers,
   FileSpreadsheet,
@@ -17,71 +14,195 @@ import {
   BarChart3,
   MessageSquare,
   QrCode,
-  Users,
   HelpCircle,
-  Shield,
   ShieldCheck,
+  Camera,
+  Receipt,
+  Building2,
 } from 'lucide-react';
 import { useDevice } from '@/contexts/DeviceContext';
+import {
+  getActiveTenantFromBrowser,
+  isDanielOuPatricia,
+  setActiveTenantInBrowser,
+  TENANTS,
+  type TenantConfig,
+  type TenantSlug,
+} from '@/lib/tenant';
 
 export default function MobileHeader() {
-  const { isMobile, deviceType, viewportWidth } = useDevice();
+  const { isMobile, viewportWidth } = useDevice();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<string>('Patrícia Grubel');
+  const [activeTenant, setActiveTenant] = useState<TenantConfig>(TENANTS.jhonton);
   const pathname = usePathname();
 
-  const mobileNavItems = [
+  useEffect(() => {
+    const cookies = document.cookie.split('; ');
+    const userCookie = cookies.find((c) => c.startsWith('diaria_user='));
+    if (userCookie) {
+      const raw = userCookie.split('=')[1] || '';
+      try {
+        setCurrentUser(decodeURIComponent(decodeURIComponent(raw)).trim());
+      } catch {
+        setCurrentUser(decodeURIComponent(raw).replace(/%20/g, ' ').trim());
+      }
+    }
+    setActiveTenant(getActiveTenantFromBrowser());
+  }, []);
+
+  const isAdmin = isDanielOuPatricia(currentUser);
+  const isIntermack = activeTenant.slug === 'intermack';
+
+  function handleTrocarEmpresa(slug: TenantSlug) {
+    if (slug === 'intermack' && !isAdmin) return;
+    setActiveTenantInBrowser(slug);
+    setActiveTenant(TENANTS[slug]);
+    setMenuOpen(false);
+    window.location.reload();
+  }
+
+  const allNavItems = [
     { name: 'Visão Geral & Caixa', href: '/', icon: LayoutDashboard },
-    { name: 'Validações Pendentes', href: '/validacoes', icon: CalendarCheck2 },
-    { name: 'Lançamentos em Lote (Setup)', href: '/setup', icon: Layers },
-    { name: 'Fechamento (Borderô)', href: '/bordero', icon: FileSpreadsheet },
-    { name: 'Relatórios & Exportações', href: '/relatorios', icon: BarChart3 },
-    { name: 'Mensageria & Pedidos IA', href: '/mensageria', icon: MessageSquare },
+    {
+      name: isIntermack ? 'Validações de Efetivo' : 'Validações Pendentes',
+      href: '/validacoes',
+      icon: CalendarCheck2,
+    },
+    { name: 'Diário de Obra (2-3 Fotos)', href: '/diario-obra', icon: Camera },
+    { name: 'Propostas & Medição IA', href: '/medicoes', icon: Sparkles },
+    {
+      name: 'Caixa de Campo & Reembolsos',
+      href: '/reembolsos',
+      icon: Receipt,
+      onlyDiarista: true,
+    },
+    {
+      name: isIntermack ? 'Obras & Empreiteiros' : 'Lançamentos em Lote (Setup)',
+      href: '/setup',
+      icon: Layers,
+    },
+    {
+      name: 'Fechamento & Pagamentos (PIX)',
+      href: '/bordero',
+      icon: FileSpreadsheet,
+      onlyDiarista: true,
+    },
+    {
+      name: isIntermack ? 'Relatório de Efetivo' : 'Relatórios & Exportações',
+      href: '/relatorios',
+      icon: BarChart3,
+    },
+    {
+      name: 'Mensageria & Pedidos IA',
+      href: '/mensageria',
+      icon: MessageSquare,
+      adminOnly: true,
+    },
     { name: 'WhatsApp Bot', href: '/whatsapp', icon: QrCode },
+    {
+      name: 'Configuração Geral (Hub)',
+      href: '/config-geral',
+      icon: ShieldCheck,
+      adminOnly: true,
+    },
     { name: 'Manual & Ajuda', href: '/ajuda', icon: HelpCircle },
   ];
 
-  return (
-    <header className="lg:hidden sticky top-0 z-40 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800 text-white px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-[1.5px] shadow-md shadow-emerald-500/20">
-          <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-emerald-400" />
-          </div>
-        </div>
-        <div>
-          <div className="flex items-center gap-1.5">
-            <h1 className="font-extrabold text-sm tracking-tight text-white">
-              Ponto Patrícia
-            </h1>
-            <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/40">
-              {isMobile ? 'Mobile' : 'Tablet'}
-            </span>
-          </div>
-          <p className="text-[10px] text-slate-400">Micro-ERP de Campo</p>
-        </div>
-      </div>
+  const mobileNavItems = allNavItems.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false;
+    if (isIntermack && item.onlyDiarista) return false;
+    return true;
+  });
 
-      <div className="flex items-center gap-2">
+  return (
+    <>
+      <header className="lg:hidden sticky top-0 z-50 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800 text-white px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-9 h-9 rounded-xl p-[1.5px] shadow-md ${
+              isIntermack
+                ? 'bg-gradient-to-tr from-indigo-600 to-blue-400'
+                : 'bg-gradient-to-tr from-emerald-600 to-teal-400'
+            }`}
+          >
+            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+              <Sparkles
+                className={`w-4 h-4 ${
+                  isIntermack ? 'text-indigo-400' : 'text-emerald-400'
+                }`}
+              />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h1 className="font-extrabold text-sm tracking-tight text-white">
+                {isIntermack ? 'Intermack' : 'Ponto Patrícia'}
+              </h1>
+              <span
+                className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+                  isIntermack
+                    ? 'bg-indigo-950 text-indigo-300 border-indigo-700/50'
+                    : 'bg-emerald-950 text-emerald-400 border-emerald-800/40'
+                }`}
+              >
+                {isMobile ? 'Mobile' : 'Tablet'}
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400">{activeTenant.subtitulo}</p>
+          </div>
+        </div>
+
         <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 hover:text-white"
-          aria-label="Abrir Menu"
+          type="button"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 hover:text-white active:scale-95 transition-transform"
+          aria-label={menuOpen ? 'Fechar Menu' : 'Abrir Menu'}
         >
           {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
-      </div>
+      </header>
 
-      {/* Drawer Mobile */}
+      {/* Drawer Mobile FORA do <header> (evita clipping causado por backdrop-blur) */}
       {menuOpen && (
-        <div className="fixed inset-0 top-[57px] bg-slate-950/95 z-50 p-4 space-y-2 overflow-y-auto animate-in fade-in duration-200">
-          <div className="p-3 mb-2 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs text-slate-300">
+        <div className="lg:hidden fixed inset-x-0 top-[61px] bottom-0 bg-slate-950 z-[60] p-4 space-y-3 overflow-y-auto">
+          <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs text-slate-300">
             <span className="flex items-center gap-1.5 font-bold text-emerald-400">
-              <ShieldCheck className="w-4 h-4" /> Administradora Central
+              <ShieldCheck className="w-4 h-4" /> {currentUser}
             </span>
             <span className="text-[10px] text-slate-500">{viewportWidth}px</span>
           </div>
 
-          <nav className="space-y-1">
+          {isAdmin && (
+            <div className="p-1 bg-slate-900 rounded-xl border border-slate-800 grid grid-cols-2 gap-1">
+              <button
+                type="button"
+                onClick={() => handleTrocarEmpresa('jhonton')}
+                className={`py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
+                  !isIntermack
+                    ? 'bg-emerald-600 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Jhonton</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTrocarEmpresa('intermack')}
+                className={`py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
+                  isIntermack
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Intermack</span>
+              </button>
+            </div>
+          )}
+
+          <nav className="space-y-1 pb-8">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -90,13 +211,15 @@ export default function MobileHeader() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
                     isActive
-                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950'
+                      ? isIntermack
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'bg-emerald-600 text-white shadow-md'
                       : 'text-slate-300 hover:bg-slate-900'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4 shrink-0" />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -104,6 +227,6 @@ export default function MobileHeader() {
           </nav>
         </div>
       )}
-    </header>
+    </>
   );
 }
