@@ -50,6 +50,7 @@
   1. `src/components/ContextualHelp.tsx` (**Ajuda Contextual por Tela** — botão `? Ajuda desta tela` presente em todas as rotas com funções e exemplo prático daquela rota específica);
   2. `MANUAL_DO_SISTEMA.md` e `src/app/ajuda/page.tsx`;
   3. Este `HANDOFF.md`.
+- **Padrão UX/UI SaaS**: Todas as telas, dashboards, tabelas e fluxos devem seguir obrigatoriamente `UX_UI_SAAS_GUIDELINES.md`.
 - **Padrão White-Label / Genérico**: Os manuais, guias e ajudas voltados ao usuário final devem usar linguagem **genérica** (ex.: *Empresa Modo Diarista*, *Empresa Modo Empreita*, *Obra Residencial*, *Encarregado*), **sem citar nomes reais de empresas ou clientes específicos**, e sempre incluir **pequenos exemplos práticos de uso**.
 
 ## Últimas Ações (Ciclo Atual)
