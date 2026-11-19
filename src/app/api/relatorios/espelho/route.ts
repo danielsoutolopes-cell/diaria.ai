@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { normalizarNomeTrabalhadorCanonico } from '@/lib/normalizarObra';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,7 @@ export async function GET(req: NextRequest) {
         obras_config ( id, nome, tipo_obra )
       `)
       .eq('tipo_lancamento', 'PONTO')
+      .neq('status', 'DESCARTADO')
       .gte('data_referencia', dataInicio)
       .lte('data_referencia', dataFim)
       .order('nome_trabalhador', { ascending: true });
@@ -56,7 +58,8 @@ export async function GET(req: NextRequest) {
     >();
 
     (lancamentos || []).forEach((l: any) => {
-      const nome = (l.nome_trabalhador || 'Trabalhador').trim();
+      const nome = normalizarNomeTrabalhadorCanonico(l.nome_trabalhador);
+      const chave = nome.toUpperCase();
       const dia = Number(String(l.data_referencia).split('-')[2]);
       const obsUpper = (l.observacao || '').toUpperCase();
 
@@ -67,10 +70,10 @@ export async function GET(req: NextRequest) {
       else if (Number(l.fracao_dia) === 0.5) tipo = 'MEIO';
       else if (Number(l.fracao_dia) === 0) tipo = 'FALTA';
 
-      if (!mapa.has(nome)) {
-        mapa.set(nome, { nome, dias: {}, totalDias: 0, totalValor: 0 });
+      if (!mapa.has(chave)) {
+        mapa.set(chave, { nome, dias: {}, totalDias: 0, totalValor: 0 });
       }
-      const reg = mapa.get(nome)!;
+      const reg = mapa.get(chave)!;
       const fracao = Number(l.fracao_dia ?? 1);
       const valor = Number(l.valor_monetario || 0);
 
