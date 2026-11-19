@@ -71,6 +71,42 @@ export default function AjudaPage() {
       ),
     },
     {
+      id: 'exemplos-praticos',
+      titulo: '1B. Exemplos Práticos do Dia a Dia (Guia Rápido)',
+      icone: CheckCircle2,
+      descricao: 'Passo a passo com exemplos reais de uso: Assistente IA, Caixa de Campo, Diário de Obra, Medição IA e PDF no WhatsApp',
+      conteudo: (
+        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-1">
+              <span className="font-black text-emerald-950 block">1. Assistente IA com &quot;De Acordo&quot;</span>
+              <p className="text-[11px] text-emerald-900">
+                <strong>Exemplo:</strong> Digite <em>&quot;Vale de R$ 100 para o João, Obra Residencial, hoje&quot;</em>. A IA verifica se faltou alguma informação e só envia para Validação após você clicar em <strong>De Acordo</strong>.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 space-y-1">
+              <span className="font-black text-indigo-950 block">2. Caixa de Campo &amp; Reembolsos</span>
+              <p className="text-[11px] text-indigo-900">
+                <strong>Exemplo:</strong> A empresa envia R$ 400 de PIX para materiais; o encarregado lança R$ 289,18 em notinhas (lidas por foto com IA). Fica <strong>Troco em Mãos: R$ 110,82</strong> — separado do salário, com botão para <em>Devolver Troco</em> ou <em>Levar p/ Fechamento</em>.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200/80 space-y-1">
+              <span className="font-black text-sky-950 block">3. Diário de Obra &amp; Medição IA</span>
+              <p className="text-[11px] text-sky-900">
+                <strong>Exemplo:</strong> Suba o PDF da proposta em <strong>Propostas &amp; Medição IA</strong>. No fim do dia, salve o Diário de Obra com 2 a 3 fotos e clique em <strong>Estimar Avanço com IA</strong> para ver o % concluído em linguagem simples.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-1">
+              <span className="font-black text-amber-950 block">4. Relatórios 4, 5 e 6 + PDF no WhatsApp</span>
+              <p className="text-[11px] text-amber-900">
+                <strong>Exemplo:</strong> No Espelho do Ponto (Relatório 4) ou Calendário Visual (Relatório 5), escolha o destinatário no seletor e clique em <strong>PDF Zap</strong>. Administradores recebem com valores; equipe recebe versão operacional sem R$.
+              </p>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
       id: 'pwa',
       titulo: '2. Como Instalar o App no Celular (PWA) e Usar Biometria',
       icone: Smartphone,

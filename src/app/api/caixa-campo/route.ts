@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
 }
 
 interface CaixaPostBody {
-  action: 'registrar' | 'aprovar' | 'excluir' | 'ler-nota-ia';
+  action: 'registrar' | 'aprovar' | 'excluir' | 'ler-nota-ia' | 'levar-fechamento';
   id?: string;
   encarregado?: string;
   obra?: string;
@@ -224,6 +224,68 @@ Retorne APENAS JSON puro (sem markdown):
       const atualizados = movimentos.filter((m) => m.id !== body.id);
       await salvarCaixaCampo(activeTenant.id, paramId, configs, atualizados);
       return NextResponse.json({ success: true });
+    }
+
+    // Levar saldo (troco ou reembolso) opcionalmente para o Fechamento & Pagamentos (PIX)
+    if (body.action === 'levar-fechamento' && body.encarregado && body.valor) {
+      const valorAbs = Math.abs(Number(body.valor));
+      const isTrocoADescontar = Number(body.valor) > 0;
+      const hojeBR = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+      });
+
+      const { data: obraRow } = await supabaseAdmin
+        .from('obras_config')
+        .select('id')
+        .eq('tenant_id', activeTenant.id)
+        .ilike('nome', `%${body.obra || ''}%`)
+        .limit(1)
+        .maybeSingle();
+
+      await supabaseAdmin.from('lancamentos_financeiros').insert({
+        tenant_id: activeTenant.id,
+        obra_id: obraRow?.id || null,
+        nome_trabalhador: body.encarregado.split('(')[0].trim().toUpperCase(),
+        tipo_lancamento: isTrocoADescontar ? 'VALE' : 'PONTO',
+        fracao_dia: 0,
+        valor_monetario: valorAbs,
+        status: 'VALIDADO',
+        data_referencia: hojeBR,
+        observacao: isTrocoADescontar
+          ? `Compensação de Troco de Caixa de Campo (${body.obra || 'Obra'})`
+          : `Crédito de Reembolso de Caixa de Campo (${body.obra || 'Obra'})`,
+      });
+
+      // Zera o saldo na Conta Corrente registrando a transferência para o Fechamento
+      const fechamentoMov: MovimentoCaixaCampo = {
+        id: crypto.randomUUID(),
+        encarregado: body.encarregado,
+        obra: (body.obra || 'GERAL').toUpperCase(),
+        data: hojeBR,
+        hora: new Date().toLocaleTimeString('pt-BR', {
+          timeZone: 'America/Sao_Paulo',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        tipo: isTrocoADescontar ? 'DEVOLUCAO_TROCO' : 'ENTRADA_PIX',
+        categoria: 'Transferido p/ Fechamento',
+        descricao: isTrocoADescontar
+          ? 'Saldo de troco transferido para Fechamento & Pagamentos (PIX)'
+          : 'Reembolso transferido como crédito para Fechamento & Pagamentos (PIX)',
+        valor: valorAbs,
+        status: 'APROVADO',
+        enviadoPor: 'Administração',
+        criadoEm: new Date().toISOString(),
+      };
+
+      await salvarCaixaCampo(activeTenant.id, paramId, configs, [
+        fechamentoMov,
+        ...movimentos,
+      ]);
+      return NextResponse.json({
+        success: true,
+        message: 'Saldo levado para Fechamento & Pagamentos (PIX) e conta corrente zerada!',
+      });
     }
 
     return NextResponse.json({ error: 'Ação inválida.' }, { status: 400 });

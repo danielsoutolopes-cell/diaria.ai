@@ -45,6 +45,10 @@
   - `MANUAL_DO_SISTEMA.md` completo e tela interativa `/ajuda` no menu lateral.
 - **Build de Produção**: 100% aprovado (`npm run build`).
 
+## Regra Permanente de Documentação (OBRIGATÓRIA)
+- **Sempre atualizar Manuais, Guias e Telas de Ajuda**: A cada nova funcionalidade, correção relevante ou mudança de fluxo, é obrigatório atualizar `MANUAL_DO_SISTEMA.md`, `src/app/ajuda/page.tsx` e este `HANDOFF.md`.
+- **Padrão White-Label / Genérico**: Os manuais, guias e telas de ajuda voltados ao usuário final devem usar linguagem **genérica** (ex.: *Empresa A — Modo Diarista*, *Empresa B — Modo Empreita*, *Obra Residencial*, *Encarregado*), **sem citar nomes reais de empresas ou clientes específicos**, e sempre incluir **pequenos exemplos práticos de uso**.
+
 ## Últimas Ações (Ciclo Atual)
 - **Arquitetura Multi-Empresa Real (Jhonton + Intermack) & Diário de Obra Expresso (`/diario-obra`)**:
   - **Camada Multi-Tenant (`src/lib/tenant.ts`)**: Suporte nativo a duas empresas isoladas por `tenant_id`:

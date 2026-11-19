@@ -68,7 +68,7 @@ const navItems = [
     badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
   },
   {
-    name: 'Reembolsos & Caixa Campo',
+    name: 'Caixa de Campo & Reembolsos',
     href: '/reembolsos',
     icon: Receipt,
     badge: 'Despesas',
@@ -83,7 +83,7 @@ const navItems = [
     badge: null,
   },
   {
-    name: 'Fechamento (Borderô)',
+    name: 'Fechamento & Pagamentos (PIX)',
     href: '/bordero',
     icon: FileSpreadsheet,
     badge: 'Quinzenal',

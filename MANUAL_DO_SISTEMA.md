@@ -3,12 +3,24 @@
 
 ---
 
-## 🏗️ 1. Visão Geral da Solução (Multi-Empresa: Jhonton & Intermack)
-O **Ponto Patrícia (Diária.AI)** opera em arquitetura **Multi-Empresa (`tenant_id`)**, permitindo gerir duas operações distintas com isolamento total de dados:
-- **Jhonton (Modo Diarista / Folha Própria)**: Controle completo de diárias em R$, vales, borderô quinzenal com PIX dinâmico e reembolsos.
-- **Intermack (Modo Empreita — Acesso Exclusivo Patrícia Grubel & Daniel Lopes)**: Focado em obras executadas por empreiteiros, controlando **efetivo presente (Dia Inteiro ou Meio Dia, sem falta e sem valores em R$)** e geração de **Diário de Obra (RDO)** com 2 a 3 fotos, resumo rápido, PDF timbrado e resumo para WhatsApp em `/diario-obra`.
+## 🏗️ 1. Visão Geral da Solução (Arquitetura Multi-Empresa)
+O **Diária.AI** opera em arquitetura **Multi-Empresa (`tenant_id`)** com isolamento total de dados, permitindo gerir operações com perfis diferentes no mesmo painel:
+- **Perfil Diarista / Folha Própria (Ex.: Empresa de Obras de Campo)**: Controle completo de diárias em R$, vales pessoais, **Fechamento & Pagamentos (PIX)**, **Caixa de Campo & Reembolsos** e relatórios financeiros.
+- **Perfil Empreita / Controle de Efetivo (Ex.: Empresa de Reformas Internas)**: Focado em obras executadas por empreiteiros, controlando **efetivo presente (Dia Inteiro ou Meio Dia, sem falta e sem valores em R$)**, **Diário de Obra (2 a 3 fotos)** e **Propostas & Medição Assistida por IA**.
 
-O **Ponto Patrícia (Diária.AI)** foi arquitetado especialmente para resolver as maiores dores de gestão de campo na construção civil e instalação de piscinas:
+### 💡 Exemplos Práticos de Uso das Principais Funções
+1. **Pré-Validação no Assistente IA (com "De Acordo"):**
+   - *Exemplo:* Digite *"Vale de R$ 100,00 para o João, Obra Residencial, hoje"*. A IA confere se faltou obra, data ou valor; quando tudo estiver completo, exibe o rascunho e só envia para a fila de Validação após o clique em **De Acordo**.
+2. **Validação por Mensagem Enviada + Exclusão Auditada:**
+   - *Exemplo:* Chegaram mensagens às `06:37` e às `08:40`. Cada uma aparece em seu próprio card com o texto original expansível. Se um nome veio errado, clique na lixeira (Soft Delete `DESCARTADO`) e aprove apenas os registros corretos.
+3. **Caixa de Campo & Reembolsos (Separado do Salário):**
+   - *Exemplo:* A empresa envia R$ 400,00 via PIX para o encarregado comprar materiais; ele sobe 4 notinhas somando R$ 289,18 (lidas automaticamente pela IA). O sistema calcula **Troco em Mãos: R$ 110,82** sem descontar da diária dele. Na hora de encerrar, você escolhe **Devolver Troco**, **Pagar Reembolso** ou **Levar p/ Fechamento**.
+4. **Diário de Obra (2 a 3 Fotos) & Medição IA:**
+   - *Exemplo:* Suba o PDF da proposta da reforma em `/medicoes` para a IA extrair as etapas. No fim do dia, registre o Diário de Obra com 2–3 fotos e um resumo rápido (refinado pela IA). Depois, clique em **Estimar Avanço com IA** para acompanhar o `% concluído` em linguagem simples.
+5. **Relatórios 4, 5 e 6 com Envio Direto no WhatsApp (`PDF Zap`):**
+   - *Exemplo:* No Espelho do Ponto (Relatório 4) ou no Calendário Visual (Relatório 5), escolha o destinatário no seletor do banco e clique em **PDF Zap**. Administradores recebem com valores em `R$`; encarregados e equipe recebem versão operacional **sem valores**.
+
+O **Diária.AI** foi arquitetado para resolver as maiores dores de gestão de campo na construção civil e reformas:
 1. **Descentralização de Apontamentos**: Fim das anotações em papel molhado, cadernos rasurados ou mensagens perdidas no WhatsApp.
 2. **Controle Rigoroso de Vales & Saldos Devedores (Decisão 100% Humana)**:
    - Cada vale solicitado no canteiro é registrado com foto do recibo físico e entra como pendência.
