@@ -22,7 +22,7 @@ Este documento estabelece os padrões e regras estritas de desenvolvimento para 
 ## 3. Segurança de Segredos e Credenciais
 - Nenhuma chave secreta (`SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, senhas de banco) deve ser comitada no repositório Git. Todas devem permanecer no `.env` local e configuradas nas variáveis de ambiente do Render/Vercel.
 
-## 4. Diretrizes Obrigatórias de UX/UI SaaS & Documentação
-- **Padrão UX/UI SaaS**: Toda criação ou refatoração de tela, dashboard, tabela ou fluxo de onboarding deve seguir rigorosamente o documento `UX_UI_SAAS_GUIDELINES.md` (revelação progressiva, 1 CTA primário por seção, alinhamento `tabular-nums`, estados de Loading/Empty/Erro/Sucesso e checklist final).
+## 4. Diretrizes Obrigatórias de UX/UI SaaS, Offline & Documentação
+- **Padrão UX/UI SaaS & Offline-First**: Toda criação ou refatoração de tela, dashboard, tabela ou fluxo de onboarding deve seguir rigorosamente `UX_UI_SAAS_GUIDELINES.md` e `DESIGN_AND_OFFLINE.md` (revelação progressiva, 1 CTA primário por seção, alinhamento `tabular-nums`, estados de Loading/Empty/Erro/Sucesso, estratégia Offline-First com IndexedDB Outbox e adaptação híbrida Mobile/Desktop).
 - **Documentação & Ajuda Contextual**: Toda nova tela ou funcionalidade deve atualizar `src/components/ContextualHelp.tsx`, `MANUAL_DO_SISTEMA.md`, `src/app/ajuda/page.tsx` (sempre em linguagem genérica/white-label com exemplos práticos) e `HANDOFF.md`.
 

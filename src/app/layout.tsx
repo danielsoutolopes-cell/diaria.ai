@@ -45,6 +45,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <DeviceProvider>
           <RegisterServiceWorker />
+          <NetworkStatusBar />
           <ContextualHelp />
           <CommandPalette />
           <PWAInstallBanner />
