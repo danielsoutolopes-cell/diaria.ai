@@ -61,6 +61,7 @@ export default function EspelhoPontoMensal() {
       });
       const d = (await res.json()) as {
         message?: string;
+        enviadoViaWhatsApp?: boolean;
         pdfBase64?: string;
         fileName?: string;
       };
@@ -68,7 +69,7 @@ export default function EspelhoPontoMensal() {
         setMsgEnvio(d.message);
         setTimeout(() => setMsgEnvio(null), 5000);
       }
-      if (d.pdfBase64 && d.fileName) {
+      if (!d.enviadoViaWhatsApp && d.pdfBase64 && d.fileName) {
         const a = document.createElement('a');
         a.href = `data:application/pdf;base64,${d.pdfBase64}`;
         a.download = d.fileName;

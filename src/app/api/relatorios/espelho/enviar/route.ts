@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { gerarPdfEspelhoBase64, type LinhaEspelhoPDF } from '@/lib/pdfEspelho';
+import { uploadToR2 } from '@/services/r2Storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,40 +106,75 @@ export async function POST(req: NextRequest) {
       incluirValores,
     });
 
-    const baileysBase =
-      process.env.BAILEYS_API_URL ||
-      process.env.WHATSAPP_API_URL ||
-      'https://diaria-ai.onrender.com';
+    // 1. Sobe o PDF no Cloudflare R2 para ter link permanente caso precise de fallback
+    let pdfUrl: string | null = null;
+    try {
+      const up = await uploadToR2(
+        Buffer.from(base64, 'base64'),
+        `${fileName.replace('.pdf', '')}-${Date.now()}.pdf`,
+        'application/pdf'
+      );
+      if (up.success && up.url) pdfUrl = up.url;
+    } catch {
+      pdfUrl = null;
+    }
+
+    const baileysLocal = process.env.BAILEYS_LOCAL_URL || 'http://127.0.0.1:3001';
+    const caption =
+      `📅 *ESPELHO DO PONTO MENSAL (${body.mes})*\n` +
+      `👤 Destinatário: ${body.nomeDestinatario || telLimpo}\n` +
+      `👥 Colaboradores: ${(body.linhas || []).length}\n` +
+      (pdfUrl ? `📄 *PDF Direto:* ${pdfUrl}\n` : '') +
+      `\n_Enviado automaticamente pelo Ponto Patrícia (Diária.AI)._`;
 
     let enviado = false;
+    // 2. Tenta enviar o PDF Base64 direto via /send-document no Baileys local (127.0.0.1:3001)
     try {
-      const resDoc = await fetch(`${baileysBase}/send-document`, {
+      const resDoc = await fetch(`${baileysLocal}/send-document`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: telLimpo,
           phone: telLimpo,
+          to: telLimpo,
           jid: `${telLimpo}@s.whatsapp.net`,
           fileName,
           mimetype: 'application/pdf',
           base64,
-          caption: `📅 *RELATÓRIO 4 — ESPELHO DO PONTO (${body.mes})*\nEnviado para ${body.nomeDestinatario || telLimpo}.`,
+          caption,
         }),
       });
-      enviado = resDoc.ok;
-    } catch (err) {
-      console.error('Erro ao enviar PDF do Espelho via Baileys:', err);
+      if (resDoc.ok) enviado = true;
+    } catch {
+      enviado = false;
+    }
+
+    // 3. Fallback garantido via /send-message (mesma rota usada no Ticket de Ponto Homologado!)
+    if (!enviado) {
+      try {
+        const resMsg = await fetch(`${baileysLocal}/send-message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: telLimpo,
+            message: caption,
+          }),
+        });
+        if (resMsg.ok) enviado = true;
+      } catch (err) {
+        console.error('Erro ao enviar Espelho via Baileys local:', err);
+      }
     }
 
     return NextResponse.json({
       success: true,
       enviadoViaWhatsApp: enviado,
       fileName,
+      pdfUrl,
       pdfBase64: base64,
       incluirValores,
       message: enviado
-        ? `PDF (${fileName}) enviado no WhatsApp para ${body.nomeDestinatario || telLimpo}!`
-        : `PDF (${fileName}) gerado em Base64 (download iniciado). Verifique a conexão Baileys para disparo direto.`,
+        ? `✅ Enviado direto no WhatsApp para ${body.nomeDestinatario || telLimpo}!`
+        : `PDF (${fileName}) gerado em Base64 (download iniciado). Baileys local não respondeu.`,
     });
   } catch (error) {
     console.error('Erro em POST /api/relatorios/espelho/enviar:', error);
