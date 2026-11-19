@@ -93,6 +93,7 @@ export async function GET(req: NextRequest) {
 interface MedicoesPostBody {
   action: 'extrair-proposta' | 'avaliar-ia' | 'atualizar-etapas' | 'excluir';
   escopoId?: string;
+  obraNomeSelecionada?: string;
   textoProposta?: string;
   arquivoBase64?: string;
   arquivoMimeType?: string;
@@ -168,10 +169,41 @@ Regras:
         }>;
       };
 
+      const nomeObraFinal = (
+        body.obraNomeSelecionada?.trim() ||
+        parsed.obraNome ||
+        'NOVA OBRA'
+      ).toUpperCase();
+
+      // Se não vinculou a uma obra já existente, cria automaticamente em obras_config do tenant ativo
+      if (!body.obraNomeSelecionada?.trim()) {
+        const { data: existe } = await supabaseAdmin
+          .from('obras_config')
+          .select('id')
+          .eq('tenant_id', activeTenant.id)
+          .ilike('nome', nomeObraFinal)
+          .limit(1)
+          .maybeSingle();
+
+        if (!existe?.id) {
+          await supabaseAdmin.from('obras_config').insert({
+            tenant_id: activeTenant.id,
+            nome: nomeObraFinal,
+            local:
+              activeTenant.slug === 'intermack'
+                ? 'Reforma Interna (Apto)'
+                : 'Canteiro de Obras',
+            tipo_obra:
+              activeTenant.slug === 'intermack' ? 'OBRA_CIVIL' : 'PISCINA',
+            ativo: true,
+          });
+        }
+      }
+
       const novoEscopo: ObraEscopoMedicao = {
         id: crypto.randomUUID(),
         tenantSlug: activeTenant.slug,
-        obraNome: (parsed.obraNome || 'NOVA OBRA').toUpperCase(),
+        obraNome: nomeObraFinal,
         cliente: parsed.cliente || 'A definir',
         empreiteiro: parsed.empreiteiro || 'A definir',
         prazoEstimado: parsed.prazoEstimado || 'A definir',

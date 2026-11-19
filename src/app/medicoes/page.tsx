@@ -46,7 +46,9 @@ export default function MedicoesPage() {
   const [extraindo, setExtraindo] = useState(false);
   const [avaliandoId, setAvaliandoId] = useState<string | null>(null);
 
-  // Upload de Proposta (PDF/Imagem ou Texto colado)
+  // Upload de Proposta (PDF/Imagem ou Texto colado) + Vínculo com Obra
+  const [obrasExistentes, setObrasExistentes] = useState<Array<{ id: string; nome: string }>>([]);
+  const [obraSelecionada, setObraSelecionada] = useState<string>('');
   const [textoProposta, setTextoProposta] = useState('');
   const [arquivoBase64, setArquivoBase64] = useState<string | null>(null);
   const [arquivoMimeType, setArquivoMimeType] = useState<string | null>(null);
@@ -55,6 +57,12 @@ export default function MedicoesPage() {
   useEffect(() => {
     setActiveTenant(getActiveTenantFromBrowser());
     void carregar();
+    fetch('/api/obras', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d: { obras?: Array<{ id: string; nome: string }> }) => {
+        setObrasExistentes(d.obras || []);
+      })
+      .catch(() => {});
   }, []);
 
   async function carregar() {
@@ -94,6 +102,7 @@ export default function MedicoesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'extrair-proposta',
+          obraNomeSelecionada: obraSelecionada || undefined,
           textoProposta,
           arquivoBase64,
           arquivoMimeType,
@@ -187,6 +196,26 @@ export default function MedicoesPage() {
         <div className="flex items-center gap-2 text-sm font-black text-slate-900">
           <FileUp className="w-4 h-4 text-indigo-600" />
           <span>Subir Proposta da Obra para Leitura Automática</span>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-700 block">
+            Vincular a uma Obra de {activeTenant.nome} (ou criar automaticamente ao ler a proposta)
+          </label>
+          <select
+            value={obraSelecionada}
+            onChange={(e) => setObraSelecionada(e.target.value)}
+            className="w-full sm:max-w-md px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+          >
+            <option value="">
+              ✨ Criar obra automaticamente a partir da proposta
+            </option>
+            {obrasExistentes.map((o) => (
+              <option key={o.id} value={o.nome}>
+                🏗️ {o.nome}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
