@@ -124,7 +124,20 @@ export default function SetupPage() {
   const [editObraTipo, setEditObraTipo] = useState<TipoObra>('PISCINA');
   const [editObraValor, setEditObraValor] = useState('');
   const [editObraApelidos, setEditObraApelidos] = useState('');
+  const [editObraGrupoJid, setEditObraGrupoJid] = useState('');
+  const [gruposZapDisponiveis, setGruposZapDisponiveis] = useState<
+    Array<{ jid: string; name: string; monitored?: boolean }>
+  >([]);
   const [salvandoEdicaoObra, setSalvandoEdicaoObra] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/whatsapp')
+      .then((r) => r.json())
+      .then((d: { groups?: Array<{ jid: string; name: string; monitored?: boolean }> }) => {
+        setGruposZapDisponiveis(d.groups || []);
+      })
+      .catch(() => {});
+  }, []);
 
   // Mapa de Apelidos Carregados
   const [mapaApelidos, setMapaApelidos] = useState<{
@@ -460,9 +473,60 @@ export default function SetupPage() {
 
       const data = await res.json();
       if (data && data.obra) {
+        // Se selecionou um grupo do WhatsApp, vincula automaticamente no Hub de Configuração Geral
+        if (editObraGrupoJid) {
+          try {
+            const cookieTenant = document.cookie
+              .split('; ')
+              .find((c) => c.startsWith('diaria_tenant='));
+            const empresaAtiva =
+              cookieTenant && cookieTenant.split('=')[1] === 'intermack'
+                ? 'intermack'
+                : 'jhonton';
+            const grpObj = gruposZapDisponiveis.find(
+              (g) => g.jid === editObraGrupoJid
+            );
+            const resCfg = await fetch('/api/config-geral');
+            const dCfg = (await resCfg.json()) as {
+              configGeral?: {
+                gruposWhatsApp?: Array<{
+                  id: string;
+                  jid: string;
+                  nomeGrupo: string;
+                  empresa: 'jhonton' | 'intermack';
+                  obraNome: string;
+                  ambiente: 'INTERNO' | 'EXTERNO';
+                  ativo: boolean;
+                }>;
+              };
+            };
+            const atuais = dCfg.configGeral?.gruposWhatsApp || [];
+            const filtrados = atuais.filter((g) => g.jid !== editObraGrupoJid);
+            await fetch('/api/config-geral', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                gruposWhatsApp: [
+                  {
+                    id: `grp-${Date.now()}`,
+                    jid: editObraGrupoJid,
+                    nomeGrupo: grpObj?.name || editObraNome,
+                    empresa: empresaAtiva,
+                    obraNome: editObraNome.trim().toUpperCase(),
+                    ambiente: empresaAtiva === 'intermack' ? 'INTERNO' : 'EXTERNO',
+                    ativo: true,
+                  },
+                  ...filtrados,
+                ],
+              }),
+            });
+          } catch {}
+        }
+
         setObras((prev) =>
           prev.map((item) => (item.id === editingObra.id ? (data.obra as unknown as ObraItem) : item))
         );
+        setEditObraGrupoJid('');
         setEditingObra(null);
         carregarApelidos();
       }
@@ -1234,6 +1298,28 @@ export default function SetupPage() {
                 <span className="text-[10px] text-slate-400">Separe os apelidos por vírgula.</span>
               </div>
 
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Vincular Grupo do WhatsApp (Opcional)
+                </label>
+                <select
+                  value={editObraGrupoJid}
+                  onChange={(e) => setEditObraGrupoJid(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="">Manter atual / Selecionar grupo...</option>
+                  {gruposZapDisponiveis.map((g) => (
+                    <option key={g.jid} value={g.jid}>
+                      {g.monitored ? '🟢 ' : '⚪ '}
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[10px] text-slate-400">
+                  Mensagens enviadas neste grupo serão roteadas automaticamente para esta obra e empresa.
+                </span>
+              </div>
+
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -1330,6 +1416,28 @@ export default function SetupPage() {
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
                 />
                 <span className="text-[10px] text-slate-400">Separe os apelidos por vírgula.</span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Vincular Grupo do WhatsApp (Opcional)
+                </label>
+                <select
+                  value={editObraGrupoJid}
+                  onChange={(e) => setEditObraGrupoJid(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="">Manter atual / Selecionar grupo...</option>
+                  {gruposZapDisponiveis.map((g) => (
+                    <option key={g.jid} value={g.jid}>
+                      {g.monitored ? '🟢 ' : '⚪ '}
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[10px] text-slate-400">
+                  Mensagens enviadas neste grupo serão roteadas automaticamente para esta obra e empresa.
+                </span>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
