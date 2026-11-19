@@ -107,9 +107,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Ordena os lançamentos de cada conta em ordem cronológica (data + hora crescente)
+    const contas = Array.from(contasMap.values()).map((c) => ({
+      ...c,
+      movimentos: [...c.movimentos].sort((a, b) =>
+        `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`)
+      ),
+    }));
+
     return NextResponse.json({
       movimentos,
-      contas: Array.from(contasMap.values()),
+      contas,
     });
   } catch (error) {
     console.error('Erro em GET /api/caixa-campo:', error);
