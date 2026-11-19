@@ -44,13 +44,17 @@ export default function CaixaCampoPanel() {
   const [lendoIA, setLendoIA] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
-  // Form rápido com Dropdowns
+  // Form rápido com Dropdowns + Data
   const [encarregado, setEncarregado] = useState('');
   const [obra, setObra] = useState('');
+  const [dataMov, setDataMov] = useState(() =>
+    new Date().toISOString().split('T')[0]
+  );
   const [tipo, setTipo] = useState<'ENTRADA_PIX' | 'NOTA_DESPESA' | 'DEVOLUCAO_TROCO'>('NOTA_DESPESA');
   const [categoria, setCategoria] = useState('Material');
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState('');
+  const [filtroConta, setFiltroConta] = useState<string>('TODOS');
 
   async function carregar() {
     setLoading(true);
@@ -155,6 +159,7 @@ export default function CaixaCampoPanel() {
         action: 'registrar',
         encarregado,
         obra: obra || 'GERAL',
+        data: dataMov,
         tipo,
         categoria,
         descricao,
@@ -308,11 +313,19 @@ export default function CaixaCampoPanel() {
           </select>
 
           <input
+            type="date"
+            value={dataMov}
+            onChange={(e) => setDataMov(e.target.value)}
+            className="sm:col-span-2 px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800"
+            title="Data do lançamento (aceita datas retroativas)"
+          />
+
+          <input
             type="text"
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             placeholder="Descrição (ex: Aluguel bomba, Material...)"
-            className="sm:col-span-3 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold"
+            className="sm:col-span-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold"
           />
 
           <input
@@ -320,7 +333,7 @@ export default function CaixaCampoPanel() {
             value={valor}
             onChange={(e) => setValor(e.target.value)}
             placeholder="Valor (R$)"
-            className="sm:col-span-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black"
+            className="sm:col-span-1 px-2.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-black"
           />
 
           <button
@@ -332,6 +345,34 @@ export default function CaixaCampoPanel() {
           </button>
         </form>
 
+        {/* Filtro Dropdown de Colaboradores com Lançamentos em Aberto */}
+        {contas.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+              Extrato de Conta Corrente ({contas.length})
+            </span>
+            <select
+              value={filtroConta}
+              onChange={(e) => setFiltroConta(e.target.value)}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800"
+            >
+              <option value="TODOS">
+                Todos com lançamentos ({contas.length})
+              </option>
+              {contas.map((c) => (
+                <option key={c.encarregado} value={c.encarregado}>
+                  {c.encarregado} —{' '}
+                  {c.saldoEmMaos > 0
+                    ? `Troco R$ ${c.saldoEmMaos.toFixed(2)}`
+                    : c.saldoEmMaos < 0
+                      ? `Reembolso R$ ${Math.abs(c.saldoEmMaos).toFixed(2)}`
+                      : 'Zerado'}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Contas por Encarregado / Colaborador */}
         {loading ? (
           <p className="text-xs text-slate-500 text-center py-4">
@@ -342,7 +383,11 @@ export default function CaixaCampoPanel() {
             Nenhum movimento de Caixa de Campo registrado ainda.
           </p>
         ) : (
-          contas.map((c) => (
+          contas
+            .filter(
+              (c) => filtroConta === 'TODOS' || c.encarregado === filtroConta
+            )
+            .map((c) => (
             <div
               key={c.encarregado}
               className="rounded-2xl border border-slate-200 overflow-hidden"
