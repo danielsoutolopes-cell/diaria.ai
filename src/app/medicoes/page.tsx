@@ -10,6 +10,9 @@ import {
   RefreshCw,
   Users,
   ClipboardList,
+  ChevronDown,
+  ChevronUp,
+  Plus,
 } from 'lucide-react';
 import {
   getActiveTenantFromBrowser,
@@ -45,6 +48,9 @@ export default function MedicoesPage() {
   const [loading, setLoading] = useState(true);
   const [extraindo, setExtraindo] = useState(false);
   const [avaliandoId, setAvaliandoId] = useState<string | null>(null);
+  const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
+  const [mostrarFormUpload, setMostrarFormUpload] = useState(false);
+  const [buscaObra, setBuscaObra] = useState('');
 
   // Upload de Proposta (PDF/Imagem ou Texto colado) + Vínculo com Obra
   const [obrasExistentes, setObrasExistentes] = useState<Array<{ id: string; nome: string }>>([]);
@@ -115,6 +121,10 @@ export default function MedicoesPage() {
         setArquivoBase64(null);
         setArquivoMimeType(null);
         setArquivoNome(null);
+        setMostrarFormUpload(false);
+        if (d.escopos[0]?.id) {
+          setExpandidos((prev) => ({ ...prev, [d.escopos![0].id]: true }));
+        }
       }
     } catch (err) {
       console.error(err);
@@ -175,20 +185,34 @@ export default function MedicoesPage() {
   return (
     <div className="p-6 sm:p-8 max-w-6xl mx-auto space-y-8">
       {/* Header */}
-      <div className="pb-4 border-b border-slate-200/80">
-        <div className="flex items-center gap-2 text-xs font-bold text-indigo-800 bg-indigo-50 px-3 py-1 rounded-full w-fit mb-2 border border-indigo-200">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>{activeTenant.nome} • Assistente de Medição por IA</span>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-slate-200/80">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold text-indigo-800 bg-indigo-50 px-3 py-1 rounded-full w-fit mb-2 border border-indigo-200">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{activeTenant.nome} • Assistente de Medição por IA</span>
+          </div>
+          <h1 className="text-3xl font-black text-slate-950 tracking-tight">
+            Propostas, Etapas & Medição IA
+          </h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Suba a proposta da obra (PDF, foto ou texto). A IA extrai as etapas e estima o % concluído cruzando os Diários de Obra e Homens-Dia — sem precisar ser engenheiro.
+          </p>
         </div>
-        <h1 className="text-3xl font-black text-slate-950 tracking-tight">
-          Propostas, Etapas & Medição IA
-        </h1>
-        <p className="text-sm text-slate-600 mt-1">
-          Suba a proposta da obra (PDF, foto ou texto). A IA extrai as etapas e estima o % concluído cruzando os Diários de Obra e Homens-Dia — sem precisar ser engenheiro.
-        </p>
+
+        {escopos.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setMostrarFormUpload((p) => !p)}
+            className="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-1.5 shadow-md shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{mostrarFormUpload ? 'Fechar Upload' : 'Nova Proposta'}</span>
+          </button>
+        )}
       </div>
 
-      {/* Upload de Proposta */}
+      {/* Upload de Proposta (aberto quando não há obras ou quando usuário clica em Nova Proposta) */}
+      {(escopos.length === 0 || mostrarFormUpload) && (
       <form
         onSubmit={handleExtrairProposta}
         className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4"
@@ -263,6 +287,23 @@ export default function MedicoesPage() {
           </span>
         </button>
       </form>
+      )}
+
+      {/* Busca rápida quando houver 2+ obras */}
+      {escopos.length > 1 && (
+        <div className="flex items-center justify-between gap-3">
+          <input
+            type="text"
+            value={buscaObra}
+            onChange={(e) => setBuscaObra(e.target.value)}
+            placeholder="Filtrar por nome da obra ou cliente..."
+            className="w-full max-w-md px-4 py-2.5 rounded-2xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+          />
+          <span className="text-xs font-bold text-slate-500 shrink-0 tabular-nums">
+            {escopos.length} obra(s) em acompanhamento
+          </span>
+        </div>
+      )}
 
       {/* Lista de Obras com Medição IA */}
       {loading ? (
@@ -280,8 +321,18 @@ export default function MedicoesPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {escopos.map((esc) => {
+        <div className="space-y-4">
+          {escopos
+            .filter((esc) => {
+              const t = buscaObra.trim().toLowerCase();
+              if (!t) return true;
+              return (
+                esc.obraNome.toLowerCase().includes(t) ||
+                esc.cliente.toLowerCase().includes(t)
+              );
+            })
+            .map((esc) => {
+            const isAberto = !!expandidos[esc.id];
             const totalPeso = esc.etapas.reduce(
               (acc, et) => acc + (et.pesoPercentual || 0),
               0
@@ -300,36 +351,50 @@ export default function MedicoesPage() {
             return (
               <section
                 key={esc.id}
-                className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden"
+                className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden transition-all"
               >
-                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
+                <div
+                  onClick={() =>
+                    setExpandidos((prev) => ({ ...prev, [esc.id]: !prev[esc.id] }))
+                  }
+                  className="px-6 py-4 bg-slate-50/90 hover:bg-slate-100/70 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Building2 className="w-4 h-4 text-indigo-600" />
-                      <h2 className="text-lg font-black text-slate-950">
+                      <Building2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                      <h2 className="text-base sm:text-lg font-black text-slate-950 truncate">
                         {esc.obraNome}
                       </h2>
-                      <span className="text-xs font-black bg-indigo-600 text-white px-2.5 py-0.5 rounded-full">
+                      <span className="text-xs font-black bg-indigo-600 text-white px-2.5 py-0.5 rounded-full tabular-nums">
                         {avancoGlobal.toFixed(0)}% Concluído
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                      Cliente: <strong>{esc.cliente}</strong> • Empreiteiro:{' '}
-                      <strong>{esc.empreiteiro}</strong> • Prazo:{' '}
+                      Cliente: <strong>{esc.cliente}</strong> • Prazo:{' '}
                       <strong>{esc.prazoEstimado}</strong> •{' '}
-                      <span className="inline-flex items-center gap-1 font-bold text-indigo-700">
+                      <span className="inline-flex items-center gap-1 font-bold text-indigo-700 tabular-nums">
                         <Users className="w-3 h-3" />
                         {esc.homensDiaAcumulados.toFixed(1)} Homens-Dia
                       </span>
                     </p>
+                    {/* Barra de progresso compacta visível mesmo recolhido */}
+                    <div className="w-full max-w-md h-1.5 bg-slate-200 rounded-full mt-2 overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, avancoGlobal)}%` }}
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div
+                    className="flex items-center gap-2 shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       type="button"
                       onClick={() => handleAvaliarIA(esc.id)}
                       disabled={avaliandoId === esc.id}
-                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm"
+                      className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm"
                     >
                       <RefreshCw
                         className={`w-3.5 h-3.5 ${
@@ -338,67 +403,89 @@ export default function MedicoesPage() {
                       />
                       <span>
                         {avaliandoId === esc.id
-                          ? 'Analisando Diários...'
-                          : 'Estimar Avanço com IA'}
+                          ? 'Analisando...'
+                          : 'Estimar com IA'}
                       </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandidos((prev) => ({
+                          ...prev,
+                          [esc.id]: !prev[esc.id],
+                        }))
+                      }
+                      className="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1"
+                    >
+                      <span>{isAberto ? 'Recolher' : `Etapas (${esc.etapas.length})`}</span>
+                      {isAberto ? (
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      )}
                     </button>
 
                     <button
                       type="button"
                       onClick={() => handleExcluir(esc.id)}
                       className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                      aria-label={`Excluir obra ${esc.obraNome}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Parecer em linguagem humana */}
-                <div className="px-6 py-3.5 bg-indigo-50/50 border-b border-indigo-100 text-xs text-indigo-950 flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                  <p className="leading-relaxed">
-                    <strong>Parecer da IA:</strong> {esc.parecerIA}
-                  </p>
-                </div>
-
-                {/* Etapas com ajuste manual (Human-in-the-Loop) */}
-                <div className="p-6 space-y-4">
-                  {esc.etapas.map((et) => (
-                    <div key={et.id} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-900">
-                          {et.nome}{' '}
-                          <span className="text-slate-400 font-medium">
-                            (peso {et.pesoPercentual}%)
-                          </span>
-                        </span>
-                        <span className="font-black text-indigo-700">
-                          {et.percentualConcluido}%
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        step={5}
-                        value={et.percentualConcluido}
-                        onChange={(e) =>
-                          handleAtualizarPercentual(
-                            esc,
-                            et.id,
-                            Number(e.target.value)
-                          )
-                        }
-                        className="w-full accent-indigo-600 cursor-pointer"
-                      />
-                      {et.observacao && (
-                        <p className="text-[11px] text-slate-500">
-                          {et.observacao}
-                        </p>
-                      )}
+                {/* Conteúdo Expansível (Parecer IA + Sliders das Etapas) */}
+                {isAberto && (
+                  <div className="border-t border-slate-200">
+                    <div className="px-6 py-3.5 bg-indigo-50/50 border-b border-indigo-100 text-xs text-indigo-950 flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                      <p className="leading-relaxed">
+                        <strong>Parecer da IA:</strong> {esc.parecerIA}
+                      </p>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="p-6 space-y-4">
+                      {esc.etapas.map((et) => (
+                        <div key={et.id} className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-slate-900">
+                              {et.nome}{' '}
+                              <span className="text-slate-400 font-medium">
+                                (peso {et.pesoPercentual}%)
+                              </span>
+                            </span>
+                            <span className="font-black text-indigo-700 tabular-nums">
+                              {et.percentualConcluido}%
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={5}
+                            value={et.percentualConcluido}
+                            onChange={(e) =>
+                              handleAtualizarPercentual(
+                                esc,
+                                et.id,
+                                Number(e.target.value)
+                              )
+                            }
+                            className="w-full accent-indigo-600 cursor-pointer"
+                          />
+                          {et.observacao && (
+                            <p className="text-[11px] text-slate-500">
+                              {et.observacao}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
             );
           })}
