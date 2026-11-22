@@ -4,6 +4,11 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { getActiveTenantFromRequest } from '@/lib/tenant';
 import { normalizarNomeObraCanonica } from '@/lib/normalizarObra';
 import {
+  formatarDataHoraCorteBR,
+  resolverDataHoraCorteValidacao,
+} from '@/lib/formatarDataCorte';
+import { gerarChaveIdempotenciaVale } from '@/lib/valeIdempotencia';
+import {
   executarAuditoriaInterna,
   type FuncionarioAuditoriaInput,
   type LancamentoAuditoriaInput,
@@ -29,9 +34,16 @@ interface LancamentoDbRow {
   data_referencia: string;
   observacao: string | null;
   comprovante_url?: string | null;
+  comprovante_pix_url?: string | null;
   vale_etapa?: string | null;
   lote_id?: string | null;
   created_at?: string | null;
+  chave_idempotencia?: string | null;
+  horario_origem?: string | null;
+  solicitado_por?: string | null;
+  data_hora_solicitacao?: string | null;
+  aprovado_por?: string | null;
+  data_hora_envio_efetivo?: string | null;
   obras_config: ObraRel | ObraRel[] | null;
 }
 
@@ -43,6 +55,7 @@ interface FuncionarioDbRow {
   valor_diaria_obra?: number | string | null;
   valor_diaria_piscina?: number | string | null;
   regime_remuneracao?: string | null;
+  ativo?: boolean | null;
 }
 
 interface LoteDbRow {
@@ -55,8 +68,14 @@ interface LoteDbRow {
   obras_config: ObraRel | ObraRel[] | null;
 }
 
+interface ItemCorrecaoLote {
+  tipoAcao: 'NORMALIZAR_NOME' | 'PREENCHER_IDEMPOTENCIA';
+  lancamentoId: string;
+  novoNome?: string;
+}
+
 interface AuditoriaPostBody {
-  action?: 'aplicar-correcao' | 'analisar-ia';
+  action?: 'aplicar-correcao' | 'aplicar-lote-seguro' | 'analisar-ia';
   periodo?: string;
   tipoAcao?: TipoAcaoCorretiva;
   lancamentoId?: string;
@@ -64,6 +83,7 @@ interface AuditoriaPostBody {
   novoValor?: number;
   motivo?: string;
   executadoPor?: string;
+  itensLote?: ItemCorrecaoLote[];
 }
 
 function extrairObra(rel: ObraRel | ObraRel[] | null | undefined): ObraRel {
@@ -86,7 +106,7 @@ function calcularDataInicioPeriodo(periodo: string): string | null {
 async function carregarSnapshotAuditoria(tenantId: string, periodo: string) {
   const dataInicio = calcularDataInicioPeriodo(periodo);
 
-  // 1. Lançamentos isolados por tenant_id
+  // 1. Lançamentos isolados por tenant_id (incluindo colunas de rastreabilidade & idempotência)
   let lancQuery = supabaseAdmin
     .from('lancamentos_financeiros')
     .select(`
@@ -100,9 +120,16 @@ async function carregarSnapshotAuditoria(tenantId: string, periodo: string) {
       data_referencia,
       observacao,
       comprovante_url,
+      comprovante_pix_url,
       vale_etapa,
       lote_id,
       created_at,
+      chave_idempotencia,
+      horario_origem,
+      solicitado_por,
+      data_hora_solicitacao,
+      aprovado_por,
+      data_hora_envio_efetivo,
       obras_config (
         nome,
         tipo_obra
@@ -148,24 +175,46 @@ async function carregarSnapshotAuditoria(tenantId: string, periodo: string) {
     lancRows = (resLanc.data as unknown as LancamentoDbRow[] | null) || [];
   }
 
-  // 2. Funcionários isolados por tenant_id
-  let funcRows: FuncionarioDbRow[] = [];
-  const resFuncs = await supabaseAdmin
-    .from('funcionarios_obra')
-    .select(
-      'id, nome_trabalhador, chave_pix, valor_diaria, valor_diaria_obra, valor_diaria_piscina, regime_remuneracao'
-    )
-    .eq('tenant_id', tenantId);
+  // 2. Funcionários, Obras ativas e Parâmetros de Corte — todos isolados por tenant_id
+  const [resFuncs, resObras, resParams] = await Promise.all([
+    supabaseAdmin
+      .from('funcionarios_obra')
+      .select(
+        'id, nome_trabalhador, chave_pix, valor_diaria, valor_diaria_obra, valor_diaria_piscina, regime_remuneracao, ativo'
+      )
+      .eq('tenant_id', tenantId),
+    supabaseAdmin
+      .from('obras_config')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('ativo', true),
+    supabaseAdmin
+      .from('parametros_sistema')
+      .select('configuracoes')
+      .eq('tenant_id', tenantId)
+      .maybeSingle(),
+  ]);
 
+  let funcRows: FuncionarioDbRow[] = [];
   if (resFuncs.error) {
     const resFuncsFb = await supabaseAdmin
       .from('funcionarios_obra')
-      .select('id, nome_trabalhador, chave_pix, valor_diaria')
+      .select('id, nome_trabalhador, chave_pix, valor_diaria, ativo')
       .eq('tenant_id', tenantId);
     funcRows = (resFuncsFb.data as unknown as FuncionarioDbRow[] | null) || [];
   } else {
     funcRows = (resFuncs.data as unknown as FuncionarioDbRow[] | null) || [];
   }
+
+  const obrasAtivasIds = (
+    (resObras.data as Array<{ id: string }> | null) || []
+  ).map((o) => o.id);
+
+  const configsParam =
+    (resParams.data?.configuracoes as Record<string, unknown> | null) || {};
+  const dataCorteFormatada = formatarDataHoraCorteBR(
+    resolverDataHoraCorteValidacao(configsParam)
+  );
 
   // 3. Lotes do WhatsApp (ponto_lote) isolados por tenant_id
   let loteQuery = supabaseAdmin
@@ -207,10 +256,16 @@ async function carregarSnapshotAuditoria(tenantId: string, periodo: string) {
       status: r.status,
       dataReferencia: r.data_referencia,
       observacao: r.observacao,
-      comprovanteUrl: r.comprovante_url || null,
+      comprovanteUrl: r.comprovante_pix_url || r.comprovante_url || null,
       valeEtapa: r.vale_etapa || null,
       loteId: r.lote_id || null,
       createdAt: r.created_at || null,
+      chaveIdempotencia: r.chave_idempotencia ?? null,
+      horarioOrigem: r.horario_origem ?? null,
+      solicitadoPor: r.solicitado_por ?? null,
+      dataHoraSolicitacao: r.data_hora_solicitacao ?? null,
+      aprovadoPor: r.aprovado_por ?? null,
+      dataHoraEnvioEfetivo: r.data_hora_envio_efetivo ?? null,
     };
   });
 
@@ -228,6 +283,7 @@ async function carregarSnapshotAuditoria(tenantId: string, periodo: string) {
         ? Number(f.valor_diaria_piscina)
         : null,
     regimeRemuneracao: f.regime_remuneracao || null,
+    ativo: f.ativo !== false,
   }));
 
   const lotes: LoteAuditoriaInput[] = loteRows.map((l) => {
@@ -243,7 +299,59 @@ async function carregarSnapshotAuditoria(tenantId: string, periodo: string) {
     };
   });
 
-  return executarAuditoriaInterna({ lancamentos, funcionarios, lotes });
+  return executarAuditoriaInterna({
+    lancamentos,
+    funcionarios,
+    lotes,
+    obrasAtivasIds,
+    dataCorteFormatada,
+  });
+}
+
+async function preencherIdempotenciaVale(
+  tenantId: string,
+  lancamentoId: string,
+  agoraIso: string
+): Promise<{ ok: boolean; error?: string }> {
+  const { data: row, error: errFetch } = await supabaseAdmin
+    .from('lancamentos_financeiros')
+    .select('id, nome_trabalhador, data_referencia, horario_origem, data_hora_solicitacao, valor_monetario')
+    .eq('tenant_id', tenantId)
+    .eq('id', lancamentoId)
+    .maybeSingle();
+
+  if (errFetch || !row) {
+    return { ok: false, error: errFetch?.message || 'Lançamento não encontrado.' };
+  }
+
+  const typed = row as {
+    id: string;
+    nome_trabalhador: string;
+    data_referencia: string;
+    horario_origem?: string | null;
+    data_hora_solicitacao?: string | null;
+    valor_monetario: number | string;
+  };
+
+  const chave = gerarChaveIdempotenciaVale({
+    tenantId,
+    trabalhador: typed.nome_trabalhador,
+    dataReferencia: typed.data_referencia,
+    janelaSolicitacao: typed.horario_origem || typed.data_hora_solicitacao,
+    valor: Number(typed.valor_monetario || 100),
+  });
+
+  const { error: errUpd } = await supabaseAdmin
+    .from('lancamentos_financeiros')
+    .update({
+      chave_idempotencia: chave,
+      updated_at: agoraIso,
+    })
+    .eq('tenant_id', tenantId)
+    .eq('id', lancamentoId);
+
+  if (errUpd) return { ok: false, error: errUpd.message };
+  return { ok: true };
 }
 
 export async function GET(req: NextRequest) {
@@ -280,17 +388,18 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as AuditoriaPostBody;
     const action = body.action || 'aplicar-correcao';
 
-    // 1. Diagnóstico Executivo Assistido por IA (Gemini)
+    // 1. Diagnóstico Executivo de Saúde do Sistema Assistido por IA (Gemini 2.5 Flash)
     if (action === 'analisar-ia') {
       const periodo = body.periodo || 'quinzenal';
       const snapshot = await carregarSnapshotAuditoria(activeTenant.id, periodo);
+      const saude = snapshot.saudeSistema;
 
       const apiKey = (process.env.GEMINI_API_KEY || '').replace(/^"|"$/g, '');
       if (!apiKey) {
         const resumoFallback =
           snapshot.anomalias.length === 0
-            ? `Auditoria concluída para ${activeTenant.nome} sem anomalias no período (${snapshot.totalLancamentosAnalisados} lançamentos conferidos). Folha pronta para fechamento.`
-            : `Foram detectadas ${snapshot.anomalias.length} anomalia(s) (${snapshot.simulacao.anomaliasAlta} crítica(s), ${snapshot.simulacao.anomaliasMedia} média(s)). Impacto financeiro estimado das correções: R$ ${snapshot.simulacao.impactoCorrecoesDelta.toFixed(2)}. Recomenda-se revisar os diffs críticos antes da liquidação PIX.`;
+            ? `Saúde do Sistema ${saude.scoreGeral}/100 (${saude.nivel}) para ${activeTenant.nome}: zero duplicados, zero fantasmas e ${snapshot.totalLancamentosAnalisados} lançamentos íntegros. Folha liberada para fechamento PIX.`
+            : `Saúde do Sistema ${saude.scoreGeral}/100 (${saude.nivel}): ${saude.duplicadosDetectados} duplicado(s), ${saude.fantasmasDetectados} registro(s) fantasma(s) e ${snapshot.anomalias.length} alerta(s) no total. Impacto financeiro estimado das correções: R$ ${snapshot.simulacao.impactoCorrecoesDelta.toFixed(2)}.`;
 
         return NextResponse.json({
           success: true,
@@ -303,19 +412,23 @@ export async function POST(req: NextRequest) {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
         const prompt = `
-Você é o Auditor Interno Sênior do sistema diaria.ai.
-Analise o snapshot financeiro pré-fechamento da empresa ${activeTenant.nome} (período: ${periodo}) e escreva um parecer objetivo em português (máximo 5 tópicos curtos, sem markdown complexo) indicando prioridades antes do pagamento PIX:
-- Lançamentos analisados: ${snapshot.totalLancamentosAnalisados}
-- Lotes WhatsApp cruzados: ${snapshot.totalLotesAnalisados}
-- Saldo aberto atual: R$ ${snapshot.simulacao.saldoAbertoAtual.toFixed(2)}
-- Delta estimado das correções: R$ ${snapshot.simulacao.impactoCorrecoesDelta.toFixed(2)}
-- Saldo projetado pós-correções: R$ ${snapshot.simulacao.saldoProjetadoPosCorrecoes.toFixed(2)}
-- Anomalias (${snapshot.anomalias.length}):
+Você é o Auditor Principal e Engenheiro de Confiabilidade do sistema diaria.ai.
+Analise o Relatório de Saúde do Sistema da empresa ${activeTenant.nome} (período: ${periodo}) e escreva um diagnóstico executivo claro em português (máximo 6 tópicos objetivos, sem tabelas markdown complexas) priorizando o que Patrícia/Daniel precisam resolver antes do pagamento PIX:
+- Score de Saúde Geral: ${saude.scoreGeral}/100 (${saude.nivel})
+- Ponto de corte ativo: ${saude.dataCorteFormatada || 'Sem corte configurado'}
+- Lançamentos analisados: ${snapshot.totalLancamentosAnalisados} | Lotes WhatsApp: ${snapshot.totalLotesAnalisados}
+- Duplicados detectados (diárias + vales): ${saude.duplicadosDetectados} | Cadastros duplicados: ${saude.cadastrosDuplicadosDetectados}
+- Registros Fantasmas (datas anômalas, valor zerado, obras órfãs, lotes vazios): ${saude.fantasmasDetectados}
+- Cobertura de Idempotência de Vales: ${saude.coberturaIdempotenciaPct}% | Cobertura PIX Equipe: ${saude.coberturaPixEquipePct}%
+- Saldo aberto atual: R$ ${snapshot.simulacao.saldoAbertoAtual.toFixed(2)} | Impacto das correções: R$ ${snapshot.simulacao.impactoCorrecoesDelta.toFixed(2)} | Projetado: R$ ${snapshot.simulacao.saldoProjetadoPosCorrecoes.toFixed(2)}
+- Pilares:
+${saude.pilares.map((p) => `  * ${p.titulo}: ${p.nota}/100 [${p.status}] — ${p.resumo}`).join('\n')}
+- Principais Anomalias (${snapshot.anomalias.length}):
 ${snapshot.anomalias
   .slice(0, 15)
   .map(
     (a) =>
-      `  * [${a.severidade}] ${a.titulo} | ${a.trabalhadorCanonico} (${a.obraNome} ${a.dataReferencia}) | Antes: ${a.antes.valor} -> Depois: ${a.depoisSugerido.valor}`
+      `  * [${a.severidade}][${a.tipo}] ${a.titulo} | ${a.trabalhadorCanonico} (${a.obraNome} ${a.dataReferencia}) | Antes: ${a.antes.valor} -> Depois: ${a.depoisSugerido.valor}`
   )
   .join('\n')}
 `;
@@ -330,12 +443,53 @@ ${snapshot.anomalias
         return NextResponse.json({
           success: true,
           motor: 'HEURISTICO',
-          parecerIa: `Auditoria pré-fechamento: ${snapshot.anomalias.length} anomalia(s) detectada(s) em ${snapshot.totalLancamentosAnalisados} lançamentos. Impacto líquido estimado: R$ ${snapshot.simulacao.impactoCorrecoesDelta.toFixed(2)}.`,
+          parecerIa: `Saúde ${saude.scoreGeral}/100 (${saude.nivel}): ${saude.duplicadosDetectados} duplicado(s) e ${saude.fantasmasDetectados} fantasma(s) em ${snapshot.totalLancamentosAnalisados} lançamentos. Impacto líquido estimado: R$ ${snapshot.simulacao.impactoCorrecoesDelta.toFixed(2)}.`,
         });
       }
     }
 
-    // 2. Aplicar Correção em 1 Clique (Human-in-the-Loop estrito, isolado por tenant_id)
+    // 2. Aplicar Lote Seguro (somente normalização de nomes e backfill de idempotência — nunca descarta sem clique individual)
+    if (action === 'aplicar-lote-seguro') {
+      const itens = Array.isArray(body.itensLote) ? body.itensLote : [];
+      if (itens.length === 0) {
+        return NextResponse.json(
+          { error: 'Nenhum ajuste seguro informado.' },
+          { status: 400 }
+        );
+      }
+
+      const agoraIso = new Date().toISOString();
+      let aplicados = 0;
+
+      for (const item of itens) {
+        if (item.tipoAcao === 'NORMALIZAR_NOME' && item.novoNome) {
+          const { error } = await supabaseAdmin
+            .from('lancamentos_financeiros')
+            .update({
+              nome_trabalhador: item.novoNome,
+              updated_at: agoraIso,
+            })
+            .eq('tenant_id', activeTenant.id)
+            .eq('id', item.lancamentoId);
+          if (!error) aplicados++;
+        } else if (item.tipoAcao === 'PREENCHER_IDEMPOTENCIA') {
+          const resIdemp = await preencherIdempotenciaVale(
+            activeTenant.id,
+            item.lancamentoId,
+            agoraIso
+          );
+          if (resIdemp.ok) aplicados++;
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        aplicados,
+        message: `${aplicados} ajuste(s) seguro(s) aplicado(s) com sucesso.`,
+      });
+    }
+
+    // 3. Aplicar Correção Individual em 1 Clique (Human-in-the-Loop estrito, isolado por tenant_id)
     if (!body.lancamentoId || !body.tipoAcao) {
       return NextResponse.json(
         { error: 'lancamentoId e tipoAcao são obrigatórios.' },
@@ -394,7 +548,7 @@ ${snapshot.anomalias
           status: 'DESCARTADO',
           observacao:
             body.motivo ||
-            `Duplicidade descartada via Auditoria Interna (${autor})`,
+            `Registro duplicado/fantasma descartado via Saúde do Sistema (${autor})`,
           updated_at: agoraIso,
         })
         .eq('tenant_id', activeTenant.id)
@@ -402,6 +556,18 @@ ${snapshot.anomalias
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+    } else if (body.tipoAcao === 'PREENCHER_IDEMPOTENCIA') {
+      const resIdemp = await preencherIdempotenciaVale(
+        activeTenant.id,
+        body.lancamentoId,
+        agoraIso
+      );
+      if (!resIdemp.ok) {
+        return NextResponse.json(
+          { error: resIdemp.error || 'Falha ao gravar chave de idempotência.' },
+          { status: 500 }
+        );
       }
     } else {
       return NextResponse.json(

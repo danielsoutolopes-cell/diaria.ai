@@ -23,6 +23,7 @@ import {
   Clock,
   FileText,
   ExternalLink,
+  Activity,
 } from 'lucide-react';
 import {
   exportarParaExcel,
@@ -33,6 +34,7 @@ import {
   type LinhaExtratoAnaliticoExport,
 } from '@/lib/exportExcel';
 import CalendarioValesCaixa from '@/components/CalendarioValesCaixa';
+import SaudeSistemaPanel from '@/components/SaudeSistemaPanel';
 
 interface ObraResumoRel {
   nome?: string | null;
@@ -102,6 +104,12 @@ function extrairNomeObraRel(
 }
 
 export default function RelatoriosPage() {
+  const [abaAtiva, setAbaAtiva] = useState<'relatorios' | 'saude'>('relatorios');
+  const [resumoSaude, setResumoSaude] = useState<{
+    scoreGeral: number;
+    anomaliasAlta: number;
+    nivel: string;
+  } | null>(null);
   const [periodo, setPeriodo] = useState<'semanal' | 'quinzenal' | 'mensal'>('semanal');
   const [loading, setLoading] = useState(true);
   const [dadosBordero, setDadosBordero] = useState<BorderoItem[]>([]);
@@ -125,6 +133,33 @@ export default function RelatoriosPage() {
     totalTrabalhadores: 0,
     totalObras: 0,
   });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('aba') === 'saude') {
+        setAbaAtiva('saude');
+      }
+    }
+    fetch('/api/auditoria?periodo=15d', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then(
+        (d: {
+          success?: boolean;
+          saudeSistema?: { scoreGeral: number; nivel: string };
+          simulacao?: { anomaliasAlta: number };
+        }) => {
+          if (d.success && d.saudeSistema) {
+            setResumoSaude({
+              scoreGeral: d.saudeSistema.scoreGeral,
+              anomaliasAlta: d.simulacao?.anomaliasAlta || 0,
+              nivel: d.saudeSistema.nivel,
+            });
+          }
+        }
+      )
+      .catch(() => {});
+  }, []);
 
   async function carregarStatusCron() {
     try {
@@ -363,7 +398,65 @@ export default function RelatoriosPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-6">
+      {/* Navegação por Abas: Relatórios & Exportações | Saúde do Sistema & IA */}
+      <div
+        role="tablist"
+        aria-label="Abas de Relatórios e Saúde do Sistema"
+        className="grid grid-cols-2 sm:inline-flex items-center bg-slate-200/80 p-1.5 rounded-2xl gap-1.5 w-full sm:w-auto"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={abaAtiva === 'relatorios'}
+          onClick={() => setAbaAtiva('relatorios')}
+          className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
+            abaAtiva === 'relatorios'
+              ? 'bg-white text-emerald-700 shadow-sm'
+              : 'text-slate-600 hover:text-slate-950'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4 shrink-0" />
+          <span className="truncate">Relatórios</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={abaAtiva === 'saude'}
+          onClick={() => setAbaAtiva('saude')}
+          className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
+            abaAtiva === 'saude'
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'text-slate-700 hover:text-slate-950'
+          }`}
+        >
+          <Activity className="w-4 h-4 shrink-0 text-emerald-500" />
+          <span className="truncate">Saúde &amp; IA</span>
+          {resumoSaude && (
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-black tabular-nums border ${
+                resumoSaude.anomaliasAlta > 0 || resumoSaude.scoreGeral < 60
+                  ? 'bg-rose-500/15 text-rose-500 border-rose-500/30'
+                  : resumoSaude.scoreGeral < 85
+                  ? 'bg-amber-500/15 text-amber-500 border-amber-500/30'
+                  : 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30'
+              }`}
+              title={`Health Score: ${resumoSaude.scoreGeral}/100 (${resumoSaude.nivel})`}
+            >
+              {resumoSaude.scoreGeral}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {abaAtiva === 'saude' ? (
+        <SaudeSistemaPanel
+          embutidoEmRelatorios
+          onScoreCarregado={(info) => setResumoSaude(info)}
+        />
+      ) : (
+        <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5 border-b border-slate-200 pb-5 sm:pb-6">
         <div>
@@ -1037,6 +1130,8 @@ export default function RelatoriosPage() {
                 ))}
             </div>
           </div>
+        </div>
+      )}
         </div>
       )}
     </div>

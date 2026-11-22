@@ -277,28 +277,28 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       'Baixe o extrato .OFX ou .CSV do mês no internet banking, arraste na área de upload e clique em "Aprovar em 1 clique" nos pares confirmados.',
   },
   '/auditoria': {
-    titulo: 'Auditoria Interna com Correção Assistida por IA',
+    titulo: 'Saúde do Sistema & Auditoria IA',
     resumo:
-      'Cruza lançamentos financeiros, regras de diária e logs do WhatsApp para detectar anomalias, mostrar o Diff Antes × Depois e simular o impacto antes do fechamento.',
+      'Painel de confiabilidade com Índice de Saúde (0–100), Caça-Fantasmas (órfãos, datas anômalas e lotes vazios), anti-duplicidade de diárias/vales e diagnóstico pericial com IA.',
     funcoes: [
       {
-        nome: 'Monitoramento de Anomalias em Tempo Real',
+        nome: 'Índice de Saúde (0–100) & 6 Pilares',
         descricao:
-          'Detecta diárias acima de 1,0 no mesmo dia, duplicidades, preços fora da tabela/regra de chuva, apelidos não unificados, vales sem comprovante e falta de chave PIX.',
+          'Monitora Anti-Duplicidade (Diárias + Vales + Perfis), Caça-Fantasmas (datas absurdas, valor zero, obras órfãs e lotes WhatsApp vazios), Precificação, Idempotência, Nomes Canônicos e Prontidão PIX.',
       },
       {
-        nome: 'Diff Antes × Depois com Aprovação em 1 Clique',
+        nome: 'Diff Antes × Depois & Aprovação Humana',
         descricao:
-          'Toda correção exibe exatamente o valor atual e a sugestão da auditoria, exigindo aprovação humana explícita para ser aplicada.',
+          'Permite descartar duplicados/fantasmas (Soft Delete) ou aprovar ajustes seguros (apelidos e chaves de idempotência) sempre com confirmação explícita.',
       },
       {
-        nome: 'Simulador Pré-Fechamento & Parecer IA',
+        nome: 'Diagnóstico Pericial IA & Aba em Relatórios',
         descricao:
-          'Calcula a diferença financeira projetada antes de gerar os PIX do borderô e gera um diagnóstico executivo sob demanda.',
+          'Acessível também pela aba "Saúde do Sistema & IA" na tela de Relatórios, com parecer executivo sob demanda antes do fechamento PIX.',
       },
     ],
     exemplo:
-      'Antes de liquidar a folha da sexta-feira, abra a Auditoria Interna, confira o card "Impacto das Correções (Δ)" e aprove em 1 clique apenas os ajustes validados.',
+      'Antes de fechar a quinzena, abra a aba "Saúde do Sistema & IA" em Relatórios, confira se Duplicados = 0 e Fantasmas = 0, e clique em "Diagnóstico Pericial IA" para validar a folha.',
   },
   '/config-geral': {
     titulo: 'Configuração Geral (Hub Multi-Empresa)',

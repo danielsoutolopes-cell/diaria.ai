@@ -133,10 +133,10 @@ const navItems = [
     badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
   },
   {
-    name: 'Auditoria Interna (IA)',
+    name: 'Saúde do Sistema (IA)',
     href: '/auditoria',
     icon: ShieldAlert,
-    badge: 'Diff IA',
+    badge: 'Saúde IA',
     badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   },
   {

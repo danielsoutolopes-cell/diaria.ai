@@ -307,11 +307,17 @@ Na tela **Fechamento & Pagamentos** (`/bordero`):
 - **Captura Automática & Cópia por Categoria**: Mensagens solicitando materiais em grupos monitorados ou coladas em `/compras` são agrupadas pela IA por categoria (**Alvenaria**, **Hidráulica**, **Elétrica**, **Acabamento**, **Pintura**, **Ferramentas & EPI**, **Fixação**), com botões para copiar o pedido completo ou **Copiar só esta categoria** já levando automaticamente o cabeçalho de entrega e o Alias do Cliente.
 - **Exemplo Prático**: A obra cadastrada com Alias *"Cliente XPTO"*, endereço *"Av. Paulista, 1000"* e complemento *"Portaria de Serviço • Descarga 08h–17h"* recebe uma lista mista no grupo. Ao clicar em **Copiar só esta categoria** em *Elétrica*, a mensagem já sai pronta para a casa elétrica com todos os dados de entrega e faturamento.
 
-### 15.2 Auditoria Interna com Correção Assistida por IA (`/auditoria`)
-- **Cruzamento Banco × WhatsApp**: Compara os lançamentos gravados no banco com as mensagens originais recebidas dos grupos, tabelas de diária, regras de chuva e cadastros de chave PIX.
-- **Diff Visual `Antes × Depois` com Aprovação em 1 Clique**: Cada inconsistência detectada (ex.: apelido solto, duplicidade no mesmo dia, diária fora da regra ou vale sem comprovante) exibe exatamente o que será alterado e só é aplicada mediante clique humano (**Human-in-the-Loop**), com registro em trilha de auditoria.
-- **Simulador Pré-Fechamento**: Exibe lado a lado o **Saldo Aberto Atual**, o **Impacto das Correções (Δ)** e o **Saldo Projetado Pós-Auditoria** antes de liberar os pagamentos PIX no Borderô.
-- **Exemplo Prático**: Antes de fechar a quinzena, abra `/auditoria`, revise uma diária de chuva lançada com valor comum (Diff: `R$ 180,00` → `R$ 120,00`), veja a economia de `-R$ 60,00` no simulador e aprove a correção em 1 clique.
+### 15.2 Relatório de Saúde do Sistema, Caça-Fantasmas & Auditoria IA (`/relatorios?aba=saude` e `/auditoria`)
+- **Aba Integrada + Tela Dedicada**: Acessível diretamente na aba **Saúde & IA** dentro de `/relatorios` (com selo de Health Score em tempo real) ou pelo atalho dedicado **Saúde do Sistema (IA)** (`/auditoria`).
+- **Health Score (0–100) em 6 Pilares**: Avalia automaticamente a empresa ativa nos pilares de **Duplicidades (Diárias & Vales)**, **Caça-Fantasmas**, **Regras & Valores**, **Idempotência Anti-Duplicidade**, **Cadastro & Chaves PIX** e **Rastreabilidade WhatsApp**.
+- **Detector de Duplicados & Caça-Fantasmas**:
+  - Localiza **diárias duplicadas**, **vales duplicados** (preservando os metadados mais completos de solicitante, horário e comprovante PIX) e **cadastros duplicados de colaboradores**.
+  - Caça **registros fantasmas**: datas anômalas (ex.: lançamento de meses atrás criado hoje ou data futura), registros ativos com valor zerado (`R$ 0,00`), obras órfãs/inativas, trabalhadores não cadastrados e **lotes fantasmas do WhatsApp** sem nenhum lançamento vinculado.
+- **Diagnóstico Executivo via IA + Lote Seguro + Diff `Antes × Depois`**:
+  - O botão **Diagnóstico IA** aciona a IA para emitir um parecer executivo priorizado (pontos críticos, duplicados, fantasmas e próximos passos).
+  - O botão **Corrigir Lote Seguro** aplica em massa apenas correções sem risco financeiro (normalização de apelidos e preenchimento de chaves de idempotência).
+  - Qualquer ajuste financeiro ou descarte de duplicidade exige clique humano (**Human-in-the-Loop**) com **Soft Delete** (`CANCELADO`) e simulação pré-fechamento em tempo real.
+- **Exemplo Prático**: Antes de fechar a folha da semana em uma Empresa Modo Diarista, abra **Relatórios → Saúde & IA**, veja o selo do Health Score, clique em **Diagnóstico IA** e revise no Diff `Antes × Depois` se existe algum vale duplicado ou lançamento com data anômala antes de liberar os pagamentos no Borderô.
 
 ---
 

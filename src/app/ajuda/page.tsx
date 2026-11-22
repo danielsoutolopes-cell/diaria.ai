@@ -407,24 +407,27 @@ export default function AjudaPage() {
     },
     {
       id: 'compras-e-auditoria',
-      titulo: '11. Pedidos de Compras por Obra (IA) & Auditoria Interna Pré-Fechamento',
+      titulo: '11. Pedidos de Compras (IA) & Relatório de Saúde do Sistema (IA)',
       icone: ShieldCheck,
-      descricao: 'Agrupamento inteligente de materiais por categoria e auditoria com Diff Antes × Depois em 1 clique',
+      descricao: 'Health Score 0–100, detector de duplicados, Caça-Fantasmas, diagnóstico IA e compras por obra',
       conteudo: (
         <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
           <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
             <li>
-              <strong>Gerador de Pedido de Compras (<code>/compras</code>) &amp; Logística da Obra (<code>/setup</code>)</strong>: Nas empresas com módulo de compras habilitado, o cadastro da obra exige <strong>Alias / Cliente p/ Fornecedores</strong> e <strong>Endereço de Entrega</strong> (com busca por CEP, Complemento/Observações de descarga e contato de recebimento). Os pedidos agrupados pela IA já saem com esse cabeçalho completo e permitem clicar em <strong>&quot;Copiar só esta categoria&quot;</strong> (ex.: só Elétrica ou só Hidráulica) para encaminhar direto a cada fornecedor.
+              <strong>Aba &quot;Saúde &amp; IA&quot; em Relatórios (<code>/relatorios?aba=saude</code>) &amp; Tela Dedicada (<code>/auditoria</code>)</strong>: Calcula o <strong>Health Score (0 a 100)</strong> em <strong>6 pilares</strong> (Duplicidades de Diárias/Vales, Caça-Fantasmas, Regras &amp; Valores, Idempotência Anti-Duplicidade, Cadastro &amp; PIX e Rastreabilidade WhatsApp).
             </li>
             <li>
-              <strong>Auditoria Interna (<code>/auditoria</code>)</strong>: Cruza os lançamentos do banco com os logs originais do WhatsApp para identificar duplicidades, soma diária acima de 1,0, valores divergentes da tabela/chuva, apelidos não normalizados e vales pendentes de comprovante.
+              <strong>Detector de Duplicados &amp; Caça-Fantasmas</strong>: Localiza automaticamente <strong>diárias ou vales duplicados</strong> (preservando os metadados mais completos), <strong>datas anômalas</strong> (ex.: registro de meses atrás criado hoje ou data futura), <strong>lançamentos com valor zerado</strong>, <strong>obras órfãs/inativas</strong>, <strong>trabalhadores sem cadastro ativo</strong> e <strong>lotes fantasmas do WhatsApp</strong> sem lançamentos vinculados.
             </li>
             <li>
-              <strong>Diff Antes × Depois + Simulador Pré-Fechamento</strong>: Mostra o impacto financeiro em R$ antes da aprovação e aplica correções em 1 clique somente com confirmação humana (<em>Human-in-the-Loop</em>).
+              <strong>Diagnóstico Executivo IA + Correções Seguras em 1 Clique</strong>: Gera um parecer executivo via IA sobre os principais riscos da empresa ativa, oferece botão de <strong>Lote Seguro</strong> (apenas normalização de nomes e chaves de idempotência) e exibe <strong>Diff Antes × Depois</strong> para cada correção sob aprovação humana (<em>Human-in-the-Loop</em> — descartes usam exclusão lógica segura).
+            </li>
+            <li>
+              <strong>Gerador de Pedido de Compras (<code>/compras</code>) &amp; Logística da Obra (<code>/setup</code>)</strong>: Nas empresas com módulo de compras habilitado, o cadastro da obra exige <strong>Alias / Cliente p/ Fornecedores</strong> e <strong>Endereço de Entrega</strong> (CEP, complemento de descarga e contato). Os pedidos agrupados pela IA permitem clicar em <strong>&quot;Copiar só esta categoria&quot;</strong> para enviar direto a cada fornecedor.
             </li>
           </ul>
           <div className="p-3 bg-slate-100 rounded-2xl text-[11px] text-slate-700 border border-slate-200">
-            <strong>Exemplo Prático:</strong> Antes de liquidar a folha, acesse <strong>Auditoria Interna</strong>, verifique se há alertas críticos no simulador e clique em <strong>&quot;Aprovar Correção (1 Clique)&quot;</strong> para ajustar o saldo projetado com rastreabilidade completa.
+            <strong>Exemplo Prático:</strong> Antes de fechar o pagamento da semana em uma Empresa Modo Diarista, abra <strong>Relatórios → Aba &quot;Saúde &amp; IA&quot;</strong>, confira se o Health Score está acima de 90, clique em <strong>&quot;Diagnóstico IA&quot;</strong> e revise eventuais vales duplicados ou registros fantasmas no Diff <em>Antes × Depois</em> antes de aprovar em 1 clique.
           </div>
         </div>
       ),

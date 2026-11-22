@@ -124,7 +124,7 @@ export default function MobileHeader() {
       icon: BarChart3,
     },
     {
-      name: 'Auditoria Interna (IA)',
+      name: 'Saúde do Sistema (IA)',
       href: '/auditoria',
       icon: ShieldAlert,
       adminOnly: true,
