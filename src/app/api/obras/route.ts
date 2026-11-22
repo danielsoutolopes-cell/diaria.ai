@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nome da obra é obrigatório' }, { status: 400 });
     }
 
-    const payload: Record<string, any> = {
+    const payload: Record<string, string | number | boolean> = {
       tenant_id,
       nome: String(nome).trim().toUpperCase(),
       local: local ? String(local).trim() : 'Canteiro Volante',
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Tenta inserir direto
-    let res = await supabaseAdmin.from('obras_config').insert(payload).select().single();
+    const res = await supabaseAdmin.from('obras_config').insert(payload).select().single();
 
     if (res.error) {
       console.error('Erro ao inserir obra:', res.error);
@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const body = await req.json();
     const { id, nome, local, tipo_obra, valor_diaria_padrao, ativo, apelidos } = body;
 
@@ -76,7 +77,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'ID da obra é obrigatório' }, { status: 400 });
     }
 
-    const payload: Record<string, any> = {};
+    const payload: Record<string, string | number | boolean> = {};
     if (nome !== undefined) payload.nome = String(nome).trim().toUpperCase();
     if (local !== undefined) payload.local = String(local).trim();
     if (tipo_obra !== undefined) payload.tipo_obra = tipo_obra;
@@ -86,6 +87,7 @@ export async function PUT(req: NextRequest) {
     const res = await supabaseAdmin
       .from('obras_config')
       .update(payload)
+      .eq('tenant_id', activeTenant.id)
       .eq('id', id)
       .select()
       .single();
@@ -112,6 +114,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -122,6 +125,7 @@ export async function DELETE(req: NextRequest) {
     const { error } = await supabaseAdmin
       .from('obras_config')
       .update({ ativo: false })
+      .eq('tenant_id', activeTenant.id)
       .eq('id', id);
 
     if (error) {

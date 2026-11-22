@@ -54,6 +54,22 @@
 - **Padrão White-Label / Genérico**: Os manuais, guias e ajudas voltados ao usuário final devem usar linguagem **genérica** (ex.: *Empresa Modo Diarista*, *Empresa Modo Empreita*, *Obra Residencial*, *Encarregado*), **sem citar nomes reais de empresas ou clientes específicos**, e sempre incluir **pequenos exemplos práticos de uso**.
 
 ## Últimas Ações (Ciclo Atual)
+- **V11 — Auditoria Completa Pós-4 Fases, Hardening Multi-Tenant & Suíte de Testes Automatizados (`npm test`)**:
+  - **Auditoria de Grafia Oficial (`Jhoston`)**: Confirmadas **0 ocorrências** de `"Jhonton"` ou `"Joston"` em todas as telas UI (`src/app/**/*.tsx`) e componentes (`src/components/**`). As únicas referências existentes no repositório são fallbacks retrocompatíveis intencionais (`src/lib/tenant.ts`, `src/app/api/config-geral/route.ts` e `supabase/migration_v11_arquitetura_completa.sql`).
+  - **Auditoria de Tipagem Estrita**: Confirmado **ZERO `any`** em 100% dos arquivos TypeScript criados ou modificados nas 4 fases e na suíte de testes.
+  - **Hardening Multi-Tenant (`tenant_id`) em 5 Rotas Legadas Adicionais**: Durante a varredura das 38 rotas de `src/app/api/**`, foram fechadas brechas pré-existentes de isolamento e removidos `any` legados em:
+    - `src/app/api/relatorios/espelho/enviar/route.ts` (`GET`: filtro `.eq('tenant_id', activeTenant.id)` em `encarregados_obras` e `funcionarios_obra`);
+    - `src/app/api/obras/route.ts` (`PUT`/`DELETE` scoped por `tenant_id` + remoção de `Record<string, any>`);
+    - `src/app/api/funcionarios/route.ts` (`PUT`/`DELETE` e transferência de lançamentos scoped por `tenant_id` + remoção de `any`);
+    - `src/app/api/reembolsos/route.ts` (`GET`/`POST` usando `getActiveTenantFromRequest(req)` e `.eq('tenant_id', activeTenant.id)` em todas as mutações);
+    - `src/app/api/obras/fotos/route.ts` (`GET`/`POST` usando `activeTenant.id` da sessão ativa em vez de `.limit(1)`).
+  - **Suíte de Testes Automatizados (`tests/pos_quatro_fases_e2e.test.ts` + `scripts/run-tests.js` + `npm test`)**:
+    - Executada com **6 suítes / 17 testes — 17 aprovados, 0 falhas** cobrindo: (1) Multi-Tenant, Grafia `Jhoston` & Isolamento `tenant_id`; (2) Vales em 2 Etapas, NLP Natural/Complementar (`R$ 100,00` padrão + valor explícito + legendas PIX informais + Omnichannel); (3) Rateio Multi-Obra `0,5 + 0,5` (`<= 1,0` permitido, `> 1,0` alertado), Dia de Chuva (`R$ 120,00`), Espelho PDF, PIX e Excel V6 5 abas com `=SUM(...)`; (4) Caixinha Unificado `Gilvan - Gil` e pré-implantação `13/11/2026` (`R$ 700,00 - R$ 546,94 = R$ 153,06` sem desconto automático); (5) Reinício pós-quitação `21/11` (Manoel `R$ 1.150,00` e Wender `R$ 1.275,00` quitados + novo ciclo `+R$ 2.480,00` somando Quase Tudo `16:39` e Piscina Porto Seguro `18:12`) e Regimes Especiais (Diego Mensalista `R$ 2.350,00/sem` e Zé Roberto Seg–Sáb `10d = R$ 2.000,00`); (6) Recibo Individual PIX A4 com SHA-256, Pedidos de Compras Intermack (`true`) vs Jhoston (`false`/standby) e Cron Quinzenal (2ª e última sexta `18:00` BRT) em PDF Paisagem Base64.
+  - **Pendências Dependentes de Confirmação Humana / Externa**:
+    1. **Ajuste fino da regra do Zé Roberto com Patrícia Grubel**: confirmar se feriados nacionais/municipais ou sábados sem expediente contam como dia útil no bloco `DIAS_UTEIS_SEG_SAB` (`R$ 2.000,00 / 10 dias`) ou se eventuais faltas abatem proporcionalmente `R$ 200,00/dia`.
+    2. **Vinculação de grupos WhatsApp da Intermack (`/config-geral`)**: confirmar os JIDs reais dos grupos de obra da Intermack para ativar o recebimento automático de pedidos de compras em produção.
+    3. **Sessão Baileys ativa no Render**: manter o WhatsApp emparelhado no Render para garantir disparo automático dos PDFs quinzenais (2ª e última sexta às 18:00 BRT) e envio opcional de recibos PIX via `/send-document`.
+    4. **Segurança operacional**: revogar no painel do Supabase o Personal Access Token (`sbp_...`) fornecido temporariamente no chat para execução da migração SQL remota.
 - **V11 — Fase 4 (Gerador Inteligente de Pedido de Compras & Auditoria Interna com IA — Prompts 8 e 9)**:
   - **Gerador Inteligente de Pedido de Compras por Grupo de Obra (`src/services/pedidosComprasNlp.ts` + `src/app/api/compras/route.ts` + `src/app/compras/page.tsx` + `src/app/api/webhook/whatsapp/route.ts`)**:
     - Controlado pelo flag `modulo_compras_ativo` na tabela `tenants` e em `TENANTS`: **ATIVO (`true`) na Intermack** e em **standby (`false`) na Jhoston** (exibindo tela de standby na Jhoston sem interferir no fluxo de diárias).

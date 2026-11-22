@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
 import {
   gerarPdfEspelhoBase64,
   gerarPdfCalendarioBase64,
@@ -16,8 +17,9 @@ export interface DestinatarioWhatsApp {
   podeVerValores: boolean;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const lista: DestinatarioWhatsApp[] = [
       {
         nome: 'Patrícia Grubel (Admin)',
@@ -35,10 +37,11 @@ export async function GET() {
 
     const vistos = new Set<string>(lista.map((d) => d.telefone));
 
-    // Puxar encarregados (incluindo Joabson, Gil, etc.)
+    // Puxar encarregados isolados por tenant_id
     const { data: encs } = await supabaseAdmin
       .from('encarregados_obras')
       .select('nome, telefone_encarregado')
+      .eq('tenant_id', activeTenant.id)
       .eq('ativo', true);
 
     for (const e of encs || []) {
@@ -53,10 +56,11 @@ export async function GET() {
       });
     }
 
-    // Puxar funcionários com telefone cadastrado
+    // Puxar funcionários com telefone cadastrado isolados por tenant_id
     const { data: funcs } = await supabaseAdmin
       .from('funcionarios_obra')
       .select('nome_trabalhador, telefone')
+      .eq('tenant_id', activeTenant.id)
       .eq('ativo', true);
 
     for (const f of funcs || []) {

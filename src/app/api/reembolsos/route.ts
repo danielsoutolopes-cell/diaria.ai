@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
 
-// GET: Listar todos os reembolsos com filtros opcionais
+// GET: Listar todos os reembolsos isolados por tenant_id
 export async function GET(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
-    const tenantId = searchParams.get('tenantId') || '00000000-0000-0000-0000-000000000001';
 
     let query = supabaseAdmin
       .from('pedidos_reembolso')
       .select('*, pagamentos_reembolso(*)')
-      .eq('tenant_id', tenantId)
+      .eq('tenant_id', activeTenant.id)
       .order('created_at', { ascending: false });
 
     if (status) {
@@ -21,7 +22,6 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query;
     if (error) {
       console.warn('Tabela de reembolsos ainda pendente de migration no Supabase:', error.message);
-      // Fallback gracioso para a tela carregar vazia se a migration ainda não foi rodada no Supabase
       return NextResponse.json({ success: true, reembolsos: [] });
     }
 
@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
 // POST: Ações operacionais da Patrícia (Aprovar, Recusar, Registrar Pagamento Parcial/Total)
 export async function POST(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const body = await req.json();
     const { action, reembolsoId, valorAprovado, valorPago, formaPagamento, observacao, motivoRecusa, registradoPor = 'PATRICIA' } = body;
 
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'reembolsoId é obrigatório.' }, { status: 400 });
     }
 
-    // 1. APROVAÇÃO PELA PATRÍCIA (Após conversar com o Joabson)
+    // 1. APROVAÇÃO PELA PATRÍCIA (isolada por tenant_id)
     if (action === 'aprovar') {
       const valor = Number(valorAprovado);
       if (isNaN(valor) || valor <= 0) {
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
           status: 'APROVADO',
           updated_at: new Date().toISOString(),
         })
+        .eq('tenant_id', activeTenant.id)
         .eq('id', reembolsoId)
         .select()
         .single();
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, reembolso: data, message: 'Reembolso aprovado com sucesso.' });
     }
 
-    // 2. RECUSA PELA PATRÍCIA
+    // 2. RECUSA PELA PATRÍCIA (isolada por tenant_id)
     if (action === 'recusar') {
       const { data, error } = await supabaseAdmin
         .from('pedidos_reembolso')
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
           motivo_recusa: motivoRecusa || 'Despesa não aprovada pela administração.',
           updated_at: new Date().toISOString(),
         })
+        .eq('tenant_id', activeTenant.id)
         .eq('id', reembolsoId)
         .select()
         .single();
@@ -81,17 +84,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, reembolso: data, message: 'Reembolso recusado.' });
     }
 
-    // 3. REGISTRAR PAGAMENTO (PARCIAL OU TOTAL EM DATA LIVRE)
+    // 3. REGISTRAR PAGAMENTO (PARCIAL OU TOTAL EM DATA LIVRE, isolado por tenant_id)
     if (action === 'pagar') {
       const pago = Number(valorPago);
       if (isNaN(pago) || pago <= 0) {
         return NextResponse.json({ error: 'Informe um valor pago válido.' }, { status: 400 });
       }
 
-      // Buscar estado atual do reembolso
+      // Buscar estado atual do reembolso pertencente ao tenant ativo
       const { data: atual, error: erroAtual } = await supabaseAdmin
         .from('pedidos_reembolso')
         .select('valor_aprovado, valor_pago, tenant_id')
+        .eq('tenant_id', activeTenant.id)
         .eq('id', reembolsoId)
         .single();
 
@@ -101,13 +105,10 @@ export async function POST(req: NextRequest) {
 
       const novoValorPago = Number((Number(atual.valor_pago || 0) + pago).toFixed(2));
       const valorAprovadoFinal = Number(atual.valor_aprovado || 0);
-
-      // Determinar novo status (LIQUIDADO se atingiu ou superou o valor aprovado, senão PAGO_PARCIAL)
       const novoStatus = novoValorPago >= valorAprovadoFinal ? 'LIQUIDADO' : 'PAGO_PARCIAL';
 
-      // 1. Gravar registro no histórico de pagamentos de reembolso
       await supabaseAdmin.from('pagamentos_reembolso').insert({
-        tenant_id: atual.tenant_id,
+        tenant_id: activeTenant.id,
         reembolso_id: reembolsoId,
         valor_pago: pago,
         forma_pagamento: formaPagamento || 'PIX',
@@ -116,7 +117,6 @@ export async function POST(req: NextRequest) {
         data_pagamento: new Date().toISOString().split('T')[0],
       });
 
-      // 2. Atualizar pedido de reembolso
       const { data: reembolsoAtualizado, error: erroUp } = await supabaseAdmin
         .from('pedidos_reembolso')
         .update({
@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
           status: novoStatus,
           updated_at: new Date().toISOString(),
         })
+        .eq('tenant_id', activeTenant.id)
         .eq('id', reembolsoId)
         .select()
         .single();
@@ -138,8 +139,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Ação não reconhecida.' }, { status: 400 });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Erro interno.';
     console.error('Erro na ação de reembolso:', err);
-    return NextResponse.json({ error: err.message || 'Erro interno.' }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

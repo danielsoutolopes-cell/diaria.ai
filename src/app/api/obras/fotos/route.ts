@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
 import { uploadToR2 } from '@/services/r2Storage';
 import { aplicarDateStamp } from '@/services/imageStamp';
 import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const nomeObra = (formData.get('nomeObra') as string) || 'Obra Geral';
@@ -55,19 +57,11 @@ export async function POST(req: NextRequest) {
     const urlOriginal = await uploadToR2(originalBuffer, keyOriginal, 'image/jpeg');
     const urlEstampada = await uploadToR2(bufferEstampado, keyEstampada, 'image/jpeg');
 
-    // 5. Registra na tabela obras_fotos no Supabase
-    const { data: tenantData } = await supabaseAdmin
-      .from('tenants')
-      .select('id')
-      .limit(1)
-      .single();
-
-    const tenantId = tenantData?.id || '00000000-0000-0000-0000-000000000001';
-
+    // 5. Registra na tabela obras_fotos isolado por tenant_id da sessão ativa
     const { data: fotoInserida, error: dbError } = await supabaseAdmin
       .from('obras_fotos')
       .insert({
-        tenant_id: tenantId,
+        tenant_id: activeTenant.id,
         obra_id: obraId,
         autor_telefone: autorTelefone,
         autor_nome: autorNome,
@@ -106,12 +100,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const { searchParams } = new URL(req.url);
     const obraId = searchParams.get('obraId');
 
     let query = supabaseAdmin
       .from('obras_fotos')
       .select('*')
+      .eq('tenant_id', activeTenant.id)
       .order('created_at', { ascending: false });
 
     if (obraId) {

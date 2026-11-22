@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
         .eq('tenant_id', activeTenant.id)
         .order('nome_trabalhador', { ascending: true });
       
-      data = fallback.data as any;
+      data = fallback.data as unknown as typeof data;
       error = fallback.error;
     }
 
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nome e Chave PIX são obrigatórios' }, { status: 400 });
     }
 
-    const payload: Record<string, any> = {
+    const payload: Record<string, string | number | boolean | null> = {
       tenant_id,
       nome_trabalhador: String(nome_trabalhador).trim(),
       chave_pix: String(chave_pix).trim(),
@@ -153,6 +153,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const body = await req.json();
     const {
       id,
@@ -176,7 +177,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'ID do funcionário é obrigatório' }, { status: 400 });
     }
 
-    const payload: Record<string, any> = {};
+    const payload: Record<string, string | number | boolean | null> = {};
     if (nome_trabalhador !== undefined) payload.nome_trabalhador = String(nome_trabalhador).trim();
     if (chave_pix !== undefined) payload.chave_pix = String(chave_pix).trim();
     if (telefone !== undefined) payload.telefone = telefone ? String(telefone).trim() : null;
@@ -194,6 +195,7 @@ export async function PUT(req: NextRequest) {
     const res = await supabaseAdmin
       .from('funcionarios_obra')
       .update(payload)
+      .eq('tenant_id', activeTenant.id)
       .eq('id', id)
       .select(`
         id,
@@ -238,6 +240,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const activeTenant = getActiveTenantFromRequest(req);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const transferirParaId = searchParams.get('transferirParaId');
@@ -247,10 +250,11 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'ID do funcionário é obrigatório' }, { status: 400 });
     }
 
-    // 1. Buscar dados do funcionário a ser excluído
+    // 1. Buscar dados do funcionário a ser excluído (isolado por tenant_id)
     const { data: funcAlvo, error: errAlvo } = await supabaseAdmin
       .from('funcionarios_obra')
       .select('id, nome_trabalhador')
+      .eq('tenant_id', activeTenant.id)
       .eq('id', id)
       .single();
 
@@ -260,15 +264,17 @@ export async function DELETE(req: NextRequest) {
 
     const nomeAlvo = funcAlvo.nome_trabalhador;
 
-    // 2. Verificar se existem apontamentos vinculados (pontos e vales)
+    // 2. Verificar se existem apontamentos vinculados (isolados por tenant_id)
     const [resLanc, resDetalhes] = await Promise.all([
       supabaseAdmin
         .from('lancamentos_financeiros')
         .select('id, tipo_lancamento, valor_monetario, status')
+        .eq('tenant_id', activeTenant.id)
         .or(`nome_trabalhador.eq."${nomeAlvo}",nome_trabalhador.ilike."%${nomeAlvo}%"`),
       supabaseAdmin
         .from('ponto_detalhe')
         .select('id')
+        .eq('tenant_id', activeTenant.id)
         .ilike('nome_trabalhador', `%${nomeAlvo}%`),
     ]);
 
@@ -290,11 +296,12 @@ export async function DELETE(req: NextRequest) {
       });
     }
 
-    // 4. Se informou transferirParaId, reatribui todos os apontamentos para o novo colaborador
+    // 4. Se informou transferirParaId, reatribui todos os apontamentos (isolados por tenant_id)
     if (transferirParaId) {
       const { data: funcDestino } = await supabaseAdmin
         .from('funcionarios_obra')
         .select('id, nome_trabalhador')
+        .eq('tenant_id', activeTenant.id)
         .eq('id', transferirParaId)
         .single();
 
@@ -304,23 +311,26 @@ export async function DELETE(req: NextRequest) {
 
       const nomeDestino = funcDestino.nome_trabalhador;
 
-      // Atualiza lancamentos_financeiros
+      // Atualiza lancamentos_financeiros do mesmo tenant
       await supabaseAdmin
         .from('lancamentos_financeiros')
         .update({ nome_trabalhador: nomeDestino })
+        .eq('tenant_id', activeTenant.id)
         .or(`nome_trabalhador.eq."${nomeAlvo}",nome_trabalhador.ilike."%${nomeAlvo}%"`);
 
-      // Atualiza ponto_detalhe
+      // Atualiza ponto_detalhe do mesmo tenant
       await supabaseAdmin
         .from('ponto_detalhe')
         .update({ nome_trabalhador: nomeDestino })
+        .eq('tenant_id', activeTenant.id)
         .ilike('nome_trabalhador', `%${nomeAlvo}%`);
     }
 
-    // 5. Inativa o colaborador (Soft Delete pericial)
+    // 5. Inativa o colaborador (Soft Delete pericial isolado por tenant_id)
     const { error } = await supabaseAdmin
       .from('funcionarios_obra')
       .update({ ativo: false })
+      .eq('tenant_id', activeTenant.id)
       .eq('id', id);
 
     if (error) {
