@@ -126,15 +126,28 @@ export async function POST(req: NextRequest) {
             .eq('tenant_id', loteTenantId);
         }
         if (item.lancamentoId) {
-          await supabaseAdmin
+          const { error: errValV15 } = await supabaseAdmin
             .from('lancamentos_financeiros')
             .update({
               fracao_dia: item.fracao_dia,
               valor_monetario: (item.valor_diaria || 150) * item.fracao_dia,
               status: 'VALIDADO',
+              aprovado_por: usuarioLogado,
             })
             .eq('id', item.lancamentoId)
             .eq('tenant_id', loteTenantId);
+
+          if (errValV15) {
+            await supabaseAdmin
+              .from('lancamentos_financeiros')
+              .update({
+                fracao_dia: item.fracao_dia,
+                valor_monetario: (item.valor_diaria || 150) * item.fracao_dia,
+                status: 'VALIDADO',
+              })
+              .eq('id', item.lancamentoId)
+              .eq('tenant_id', loteTenantId);
+          }
         }
         if (item.trabalhador) {
           alteracoesRealizadas.push(

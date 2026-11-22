@@ -585,21 +585,43 @@ export async function POST(req: NextRequest) {
             nomeCanonico.toUpperCase()
         );
 
+        const agoraEnvioIso = new Date().toISOString();
+        const pagadorPix = leituraOcr?.pagador || 'Patrícia Grubel';
+
         if (solicitacaoAberta) {
-          await supabaseAdmin
+          const { error: errUpdV15 } = await supabaseAdmin
             .from('lancamentos_financeiros')
             .update({
               valor_monetario: valorConfirmado,
               status: 'VALIDADO',
               vale_etapa: 'CONCILIADO',
-              pago_por: leituraOcr?.pagador || 'Patrícia Grubel',
+              aprovado_por: pagadorPix,
+              pago_por: pagadorPix,
+              data_hora_envio_efetivo: agoraEnvioIso,
               comprovante_url: comprovanteUrl,
               comprovante_pix_url: comprovanteUrl,
               observacao: `Vale pareado via PIX (${messageText || 'Comprovante OCR'})`,
-              updated_at: new Date().toISOString(),
+              updated_at: agoraEnvioIso,
             })
             .eq('tenant_id', tenantId)
             .eq('id', solicitacaoAberta.id);
+
+          if (errUpdV15) {
+            await supabaseAdmin
+              .from('lancamentos_financeiros')
+              .update({
+                valor_monetario: valorConfirmado,
+                status: 'VALIDADO',
+                vale_etapa: 'CONCILIADO',
+                pago_por: pagadorPix,
+                comprovante_url: comprovanteUrl,
+                comprovante_pix_url: comprovanteUrl,
+                observacao: `Vale pareado via PIX (${messageText || 'Comprovante OCR'})`,
+                updated_at: agoraEnvioIso,
+              })
+              .eq('tenant_id', tenantId)
+              .eq('id', solicitacaoAberta.id);
+          }
         } else {
           const obraSugerida = normalizarNomeObraCanonica(
             leituraOcr?.obraSugerida || legendaPix.obraSugerida || 'PISCINA PORTO SEGURO',
@@ -613,24 +635,51 @@ export async function POST(req: NextRequest) {
             .limit(1)
             .maybeSingle();
 
-          await supabaseAdmin.from('lancamentos_financeiros').insert({
-            tenant_id: tenantId,
-            obra_id: obraMatch?.id || null,
-            nome_trabalhador: nomeCanonico,
-            tipo_lancamento: 'VALE',
-            fracao_dia: 0,
-            valor_monetario: valorConfirmado,
-            status: 'VALIDADO',
-            data_referencia: dataConfirmacao,
-            observacao: `Vale confirmado via PIX WhatsApp (${messageText || 'OCR'})`,
-            comprovante_url: comprovanteUrl,
-            comprovante_pix_url: comprovanteUrl,
-            vale_etapa: 'CONCILIADO',
-            solicitado_por: 'Gil',
-            pago_por: leituraOcr?.pagador || 'Patrícia Grubel',
-            mensagem_origem_id: messageId,
-            horario_origem: horaBrasilia,
-          });
+          const dataHoraSolIso = `${dataConfirmacao}T${horaBrasilia}:00-03:00`;
+          const { error: errInsV15 } = await supabaseAdmin
+            .from('lancamentos_financeiros')
+            .insert({
+              tenant_id: tenantId,
+              obra_id: obraMatch?.id || null,
+              nome_trabalhador: nomeCanonico,
+              tipo_lancamento: 'VALE',
+              fracao_dia: 0,
+              valor_monetario: valorConfirmado,
+              status: 'VALIDADO',
+              data_referencia: dataConfirmacao,
+              observacao: `Vale confirmado via PIX WhatsApp (${messageText || 'OCR'})`,
+              comprovante_url: comprovanteUrl,
+              comprovante_pix_url: comprovanteUrl,
+              vale_etapa: 'CONCILIADO',
+              solicitado_por: 'Gil',
+              data_hora_solicitacao: dataHoraSolIso,
+              aprovado_por: pagadorPix,
+              pago_por: pagadorPix,
+              data_hora_envio_efetivo: agoraEnvioIso,
+              mensagem_origem_id: messageId,
+              horario_origem: horaBrasilia,
+            });
+
+          if (errInsV15) {
+            await supabaseAdmin.from('lancamentos_financeiros').insert({
+              tenant_id: tenantId,
+              obra_id: obraMatch?.id || null,
+              nome_trabalhador: nomeCanonico,
+              tipo_lancamento: 'VALE',
+              fracao_dia: 0,
+              valor_monetario: valorConfirmado,
+              status: 'VALIDADO',
+              data_referencia: dataConfirmacao,
+              observacao: `Vale confirmado via PIX WhatsApp (${messageText || 'OCR'})`,
+              comprovante_url: comprovanteUrl,
+              comprovante_pix_url: comprovanteUrl,
+              vale_etapa: 'CONCILIADO',
+              solicitado_por: 'Gil',
+              pago_por: pagadorPix,
+              mensagem_origem_id: messageId,
+              horario_origem: horaBrasilia,
+            });
+          }
         }
 
         return NextResponse.json({
@@ -865,29 +914,62 @@ export async function POST(req: NextRequest) {
         for (const vale of obra.vales) {
           const nomeValeCanonico = normalizarNomeTrabalhadorCanonico(vale.nome);
           const valorVale = Number(vale.valor) > 0 ? Number(vale.valor) : 100.0;
-          await supabaseAdmin.from('lancamentos_financeiros').insert({
-            tenant_id: tenantId,
-            obra_id: obraId,
-            nome_trabalhador: nomeValeCanonico,
-            tipo_lancamento: 'VALE',
-            fracao_dia: 0,
-            valor_monetario: valorVale,
-            status: comprovanteUrl ? 'VALIDADO' : 'PENDENTE',
-            data_referencia: dataRefLote,
-            observacao: comprovanteUrl
-              ? 'Vale confirmado com comprovante PIX via WhatsApp'
-              : Number(vale.valor) > 0
-                ? 'Solicitação de Vale via WhatsApp (aguardando envio PIX)'
-                : 'Solicitação de Vale via WhatsApp (Padrão R$ 100,00 — aguardando envio PIX)',
-            ponto_lote_id: loteId,
-            comprovante_url: comprovanteUrl,
-            comprovante_pix_url: comprovanteUrl,
-            vale_etapa: comprovanteUrl ? 'CONCILIADO' : 'SOLICITADO',
-            solicitado_por: nomeSolicitanteVale,
-            pago_por: comprovanteUrl ? 'Patrícia Grubel' : null,
-            mensagem_origem_id: messageId,
-            horario_origem: horaBrasilia,
-          });
+          const dataHoraSolicitacao = `${dataRefLote}T${horaBrasilia}:00-03:00`;
+          const agoraIsoVale = new Date().toISOString();
+          const { error: errValeV15 } = await supabaseAdmin
+            .from('lancamentos_financeiros')
+            .insert({
+              tenant_id: tenantId,
+              obra_id: obraId,
+              nome_trabalhador: nomeValeCanonico,
+              tipo_lancamento: 'VALE',
+              fracao_dia: 0,
+              valor_monetario: valorVale,
+              status: comprovanteUrl ? 'VALIDADO' : 'PENDENTE',
+              data_referencia: dataRefLote,
+              observacao: comprovanteUrl
+                ? 'Vale confirmado com comprovante PIX via WhatsApp'
+                : Number(vale.valor) > 0
+                  ? 'Solicitação de Vale via WhatsApp (aguardando envio PIX)'
+                  : 'Solicitação de Vale via WhatsApp (Padrão R$ 100,00 — aguardando envio PIX)',
+              ponto_lote_id: loteId,
+              comprovante_url: comprovanteUrl,
+              comprovante_pix_url: comprovanteUrl,
+              vale_etapa: comprovanteUrl ? 'CONCILIADO' : 'SOLICITADO',
+              solicitado_por: nomeSolicitanteVale,
+              data_hora_solicitacao: dataHoraSolicitacao,
+              aprovado_por: comprovanteUrl ? 'Patrícia Grubel' : null,
+              pago_por: comprovanteUrl ? 'Patrícia Grubel' : null,
+              data_hora_envio_efetivo: comprovanteUrl ? agoraIsoVale : null,
+              mensagem_origem_id: messageId,
+              horario_origem: horaBrasilia,
+            });
+
+          if (errValeV15) {
+            await supabaseAdmin.from('lancamentos_financeiros').insert({
+              tenant_id: tenantId,
+              obra_id: obraId,
+              nome_trabalhador: nomeValeCanonico,
+              tipo_lancamento: 'VALE',
+              fracao_dia: 0,
+              valor_monetario: valorVale,
+              status: comprovanteUrl ? 'VALIDADO' : 'PENDENTE',
+              data_referencia: dataRefLote,
+              observacao: comprovanteUrl
+                ? 'Vale confirmado com comprovante PIX via WhatsApp'
+                : Number(vale.valor) > 0
+                  ? 'Solicitação de Vale via WhatsApp (aguardando envio PIX)'
+                  : 'Solicitação de Vale via WhatsApp (Padrão R$ 100,00 — aguardando envio PIX)',
+              ponto_lote_id: loteId,
+              comprovante_url: comprovanteUrl,
+              comprovante_pix_url: comprovanteUrl,
+              vale_etapa: comprovanteUrl ? 'CONCILIADO' : 'SOLICITADO',
+              solicitado_por: nomeSolicitanteVale,
+              pago_por: comprovanteUrl ? 'Patrícia Grubel' : null,
+              mensagem_origem_id: messageId,
+              horario_origem: horaBrasilia,
+            });
+          }
         }
       } else if (comprovanteUrl) {
         await supabaseAdmin.from('lancamentos_financeiros').insert({

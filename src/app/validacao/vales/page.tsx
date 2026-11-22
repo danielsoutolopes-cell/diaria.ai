@@ -29,7 +29,10 @@ interface ValeItem {
   status: string;
   etapa: ValeEtapa;
   solicitadoPor: string;
+  dataHoraSolicitacao?: string;
+  aprovadoPor?: string | null;
   pagoPor: string | null;
+  dataHoraEnvioEfetivo?: string | null;
   comprovantePixUrl: string | null;
   observacao: string;
 }
@@ -657,18 +660,35 @@ export default function ValidacaoValesPage() {
 
                       <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
                         <span className="tabular-nums">
-                          {v.data} às {v.horario}
+                          Solicitado: {v.data} às {v.horario}
                         </span>
                         <span>•</span>
                         <span>
-                          Pedido por: <strong className="text-slate-700">{v.solicitadoPor}</strong>
+                          Pedido por:{' '}
+                          <strong className="text-slate-700">{v.solicitadoPor}</strong>
                         </span>
-                        {v.pagoPor && (
+                        {(v.aprovadoPor || v.pagoPor) && (
                           <>
                             <span>•</span>
                             <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
                               <UserCheck className="w-3 h-3" />
-                              PIX por: {v.pagoPor}
+                              Aprovado/PIX: {v.aprovadoPor || v.pagoPor}
+                              {v.dataHoraEnvioEfetivo && (
+                                <span className="text-emerald-600/80 font-normal tabular-nums">
+                                  (
+                                  {new Date(v.dataHoraEnvioEfetivo).toLocaleString(
+                                    'pt-BR',
+                                    {
+                                      timeZone: 'America/Sao_Paulo',
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    }
+                                  )}
+                                  )
+                                </span>
+                              )}
                             </span>
                           </>
                         )}

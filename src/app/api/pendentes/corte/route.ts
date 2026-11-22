@@ -15,6 +15,7 @@ function getOntemBrasiliaISO(): string {
 
 interface CorteRequestBody {
   dataCorte?: string;
+  dataHoraCorte?: string;
   usuarioLogado?: string;
 }
 
@@ -29,12 +30,15 @@ export async function POST(req: NextRequest) {
       body = {};
     }
 
-    const dataCorte = body.dataCorte || getOntemBrasiliaISO();
-    const usuarioLogado = body.usuarioLogado || 'Corte Inicial (Sistema)';
+    const dataHoraCorte = body.dataHoraCorte || null;
+    const dataCorte =
+      body.dataCorte ||
+      (dataHoraCorte ? dataHoraCorte.slice(0, 10) : getOntemBrasiliaISO());
+    const usuarioLogado = body.usuarioLogado || 'Corte Rígido V15 (Sistema)';
     const agoraISO = new Date().toISOString();
 
-    // 1. Marcar todos os lotes pendentes até a data de corte como VALIDADO
-    const { data: lotesAtualizados, error: errLotes } = await supabaseAdmin
+    // 1. Marcar todos os lotes pendentes até o ponto de corte como VALIDADO
+    let queryLotes = supabaseAdmin
       .from('ponto_lote')
       .update({
         status_validacao: 'VALIDADO',
@@ -42,9 +46,14 @@ export async function POST(req: NextRequest) {
         validado_em: agoraISO,
       })
       .eq('tenant_id', tenantId)
-      .eq('status_validacao', 'PENDENTE')
-      .lte('data_referencia', dataCorte)
-      .select('id');
+      .eq('status_validacao', 'PENDENTE');
+
+    queryLotes = dataHoraCorte
+      ? queryLotes.lte('created_at', dataHoraCorte)
+      : queryLotes.lte('data_referencia', dataCorte);
+
+    const { data: lotesAtualizados, error: errLotes } =
+      await queryLotes.select('id');
 
     if (errLotes) {
       console.error('Erro ao aplicar corte em ponto_lote:', errLotes);
@@ -54,16 +63,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Marcar todos os lançamentos financeiros pendentes até a data de corte como VALIDADO
-    const { data: lancsAtualizados, error: errLancs } = await supabaseAdmin
+    // 2. Marcar todos os lançamentos financeiros pendentes até o ponto de corte como VALIDADO
+    let queryLancs = supabaseAdmin
       .from('lancamentos_financeiros')
       .update({
         status: 'VALIDADO',
       })
       .eq('tenant_id', tenantId)
-      .eq('status', 'PENDENTE')
-      .lte('data_referencia', dataCorte)
-      .select('id');
+      .eq('status', 'PENDENTE');
+
+    queryLancs = dataHoraCorte
+      ? queryLancs.lte('created_at', dataHoraCorte)
+      : queryLancs.lte('data_referencia', dataCorte);
+
+    const { data: lancsAtualizados, error: errLancs } =
+      await queryLancs.select('id');
 
     if (errLancs) {
       console.error('Erro ao aplicar corte em lancamentos_financeiros:', errLancs);
@@ -73,7 +87,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Persistir data_corte_operacional em parametros_sistema
+    // 3. Persistir data_corte_operacional e data_hora_corte_rigido em parametros_sistema
     const { data: paramAtual } = await supabaseAdmin
       .from('parametros_sistema')
       .select('id, configuracoes')
@@ -83,6 +97,7 @@ export async function POST(req: NextRequest) {
     const novasConfigs: Record<string, unknown> = {
       ...((paramAtual?.configuracoes as Record<string, unknown> | null) || {}),
       data_corte_operacional: dataCorte,
+      ...(dataHoraCorte ? { data_hora_corte_rigido: dataHoraCorte } : {}),
       corte_aplicado_em: agoraISO,
       corte_aplicado_por: usuarioLogado,
     };
@@ -102,9 +117,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       dataCorte,
+      dataHoraCorte,
       lotesValidados: lotesAtualizados?.length || 0,
       lancamentosValidados: lancsAtualizados?.length || 0,
-      message: `Ponto de corte aplicado até ${dataCorte}. Registros anteriores marcados como VALIDADO.`,
+      message: `Ponto de corte aplicado até ${dataHoraCorte || dataCorte}. Registros anteriores marcados como VALIDADO.`,
     });
   } catch (error) {
     console.error('Erro em POST /api/pendentes/corte:', error);

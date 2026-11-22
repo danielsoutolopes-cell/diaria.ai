@@ -1,0 +1,214 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 7416 >>
+stream
+BT
+/F2 8 Tf
+1 0 0 1 36 822 Tm
+(DIARIA.AI   RELATORIO DE HOMOLOGACAO SPRINT V15 | PAGINA 1) Tj
+/F2 14 Tf
+1 0 0 1 36 805 Tm
+(DIARIA.AI   RELATORIO OFICIAL DE HOMOLOGACAO \(SPRINT V15\)) Tj
+/F2 10 Tf
+1 0 0 1 36 787 Tm
+(Data de Geracao: 2026-11-22T15:54:08.249Z  |  Veredito Final: APROVADO PARA PRODUCAO) Tj
+/F2 11 Tf
+1 0 0 1 36 765 Tm
+(1. RESUMO EXECUTIVO) Tj
+/F1 8 Tf
+1 0 0 1 36 750 Tm
+(---------------------------------------------------------------------------------------------) Tj
+/F2 9 Tf
+1 0 0 1 36 739 Tm
+(Veredito Final de Prontidao: APROVADO PARA PRODUCAO) Tj
+/F1 9 Tf
+1 0 0 1 36 726 Tm
+(Isolamento Multi-Tenant: Verificado rigorosamente entre tenants "Jhoston" \(...0001\) e "Intermack" \(...0002\).) Tj
+/F1 9 Tf
+1 0 0 1 36 713 Tm
+(Trava de Corte Rigido no BD: 2026-11-22T11:40:00-03:00 \(22/11/2026 as 11:40 BRT\).) Tj
+/F1 9 Tf
+1 0 0 1 36 700 Tm
+(Consolidacao de Vales Reconciliados: 27 vales = R$ 2700.00 \(R$ 100,00/vale; 4 campos de rastreabilidade\).) Tj
+/F1 9 Tf
+1 0 0 1 36 687 Tm
+(Ciclos Quitados \(QUITACAO_PIX_EXTERNO 21/11\): Manoel R$ 1.150,00 \(5,0d\) | Wender R$ 1.275,00 \(8,5d\)   isolados.) Tj
+/F1 9 Tf
+1 0 0 1 36 674 Tm
+(Novo Ciclo em Aberto \(21/11\): Quase Tudo 16:39 \(R$ 410,00\) + Piscina Porto Seguro 18:12 \(R$ 2.070,00\) = R$ 2.480,00.) Tj
+/F1 9 Tf
+1 0 0 1 36 661 Tm
+(PIX Avulsos 21/11 Registrados: Ze Roberto R$ 3.000,00 | Diego R$ 2.000,00. Caixinha Gil \(13/11\): R$ 153,06.) Tj
+/F1 9 Tf
+1 0 0 1 36 648 Tm
+(Nomes Canonicos Oficiais: Gil \(unificando Gilvan/Gil335Revest\), Peu \(Edmilson\), Lucas J \(Lucas.j./Lucas. J.\).) Tj
+/F2 11 Tf
+1 0 0 1 36 629 Tm
+(2. SCORECARD DE QUALIDADE E ADERENCIA \(KPIs\)) Tj
+/F1 8 Tf
+1 0 0 1 36 614 Tm
+(---------------------------------------------------------------------------------------------) Tj
+/F2 9 Tf
+1 0 0 1 36 603 Tm
+(Taxa de Aprovacao dos Testes: 100.0% \(23/23 aprovados, 0 falhas\) | Duracao: 953 ms) Tj
+/F1 9 Tf
+1 0 0 1 36 590 Tm
+(Checagem Estrita TypeScript \(0 'any'\): APROVADO \(0 ocorrencias\)) Tj
+/F1 9 Tf
+1 0 0 1 36 577 Tm
+(Checagem de Grafia Proibida \('Jhonton'/'Joston' em UI\): APROVADO \(0 ocorrencias\)) Tj
+/F1 8 Tf
+1 0 0 1 36 564 Tm
+(Cobertura de Rotas Criticas \(7/7\): POST /api/webhook/whatsapp, GET /api/pendentes, GET /api/vales, POST /api/validar) Tj
+/F1 8 Tf
+1 0 0 1 36 553 Tm
+(   GET /api/bordero, GET /api/relatorios, POST /api/liquidar) Tj
+/F2 9 Tf
+1 0 0 1 36 540 Tm
+(Pontuacao de Seguranca RLS & Isolamento Multi-Tenant: 100%) Tj
+/F2 11 Tf
+1 0 0 1 36 521 Tm
+(3. TENTATIVAS DE CONVERGENCIA & LOG DO SELF-HEALING \(WHATSAPP RE-READ\)) Tj
+/F1 8 Tf
+1 0 0 1 36 506 Tm
+(---------------------------------------------------------------------------------------------) Tj
+/F2 9 Tf
+1 0 0 1 36 495 Tm
+(Assertiva Rigida: assert\(parsedValesCount === 27 && parsedValesTotal === 2700\) => CONVERGIDO \(DISCREPANCIA ZERO\)) Tj
+/F1 9 Tf
+1 0 0 1 36 482 Tm
+(Iteracoes Executadas: 4 | Regras Adaptativas Ativadas: ParseChainedRequests -> ExpandMultiValeQuantity -> WeekendSundayIngestion) Tj
+/F1 8 Tf
+1 0 0 1 44 469 Tm
+([Tentativa 1] Extraidos: 7 vales \(R$ 700.00\) | Regra: ParseChainedRequests) Tj
+/F1 8 Tf
+1 0 0 1 44 458 Tm
+(   Detalhe: Divergencia detectada \(7/27 vales; R$ 700.00/R$ 2700.00\). Ativando regra adaptativa ParseChainedR...) Tj
+/F1 8 Tf
+1 0 0 1 44 446 Tm
+([Tentativa 2] Extraidos: 8 vales \(R$ 800.00\) | Regra: ExpandMultiValeQuantity) Tj
+/F1 8 Tf
+1 0 0 1 44 435 Tm
+(   Detalhe: Divergencia detectada \(8/27 vales; R$ 800.00/R$ 2700.00\). Ativando regra adaptativa ExpandMultiVa...) Tj
+/F1 8 Tf
+1 0 0 1 44 423 Tm
+([Tentativa 3] Extraidos: 8 vales \(R$ 800.00\) | Regra: WeekendSundayIngestion) Tj
+/F1 8 Tf
+1 0 0 1 44 412 Tm
+(   Detalhe: Divergencia detectada \(8/27 vales; R$ 800.00/R$ 2700.00\). Ativando regra adaptativa WeekendSunday...) Tj
+/F1 8 Tf
+1 0 0 1 44 400 Tm
+([Tentativa 4] Extraidos: 27 vales \(R$ 2700.00\) | Regra: CONVERGENCIA FINAL) Tj
+/F1 8 Tf
+1 0 0 1 44 389 Tm
+(   Detalhe: Convergencia exata atingida \(discrepancia zero contra auditoria\).) Tj
+/F2 11 Tf
+1 0 0 1 36 371 Tm
+(4. DETALHAMENTO DE CENARIOS E DIAGNOSTICO DE FALHAS) Tj
+/F1 8 Tf
+1 0 0 1 36 356 Tm
+(---------------------------------------------------------------------------------------------) Tj
+/F2 8 Tf
+1 0 0 1 36 345 Tm
+(STATUS | DUR\(ms\) | CENARIO / REGRA AVALIADA) Tj
+/F1 8 Tf
+1 0 0 1 36 333 Tm
+([PASS] |    1.2 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): impoe grafia ...) Tj
+/F1 8 Tf
+1 0 0 1 36 322 Tm
+([PASS] |    0.4 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): isola acesso ...) Tj
+/F1 8 Tf
+1 0 0 1 36 311 Tm
+([PASS] |   13.2 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma zero...) Tj
+/F1 8 Tf
+1 0 0 1 36 300 Tm
+([PASS] |    2.0 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma isol...) Tj
+/F1 8 Tf
+1 0 0 1 36 289 Tm
+([PASS] |    3.8 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: aplica valor padra...) Tj
+/F1 8 Tf
+1 0 0 1 36 278 Tm
+([PASS] |    1.1 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: pareia legendas in...) Tj
+/F1 8 Tf
+1 0 0 1 36 267 Tm
+([PASS] |    0.5 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: garante visibilida...) Tj
+/F1 8 Tf
+1 0 0 1 36 256 Tm
+([PASS] |    0.5 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+/F1 8 Tf
+1 0 0 1 36 245 Tm
+([PASS] |    2.3 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+/F1 8 Tf
+1 0 0 1 36 234 Tm
+([PASS] |   33.8 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+/F1 8 Tf
+1 0 0 1 36 223 Tm
+([PASS] |    0.5 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): unifica Gil, Gilvan, ...) Tj
+/F1 8 Tf
+1 0 0 1 36 212 Tm
+([PASS] |    2.4 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): preserva saldo pre-im...) Tj
+/F1 8 Tf
+1 0 0 1 36 201 Tm
+([PASS] |    1.6 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: isola ...) Tj
+/F1 8 Tf
+1 0 0 1 36 190 Tm
+([PASS] |    0.7 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: calcul...) Tj
+/F1 8 Tf
+1 0 0 1 36 179 Tm
+([PASS] |    2.3 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+/F1 8 Tf
+1 0 0 1 36 168 Tm
+([PASS] |    4.6 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+/F1 8 Tf
+1 0 0 1 36 157 Tm
+([PASS] |    3.4 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+/F1 8 Tf
+1 0 0 1 36 146 Tm
+([PASS] |   39.0 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
+/F1 8 Tf
+1 0 0 1 36 135 Tm
+([PASS] |    4.2 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
+/F1 8 Tf
+1 0 0 1 36 124 Tm
+([PASS] |    2.9 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
+/F1 8 Tf
+1 0 0 1 36 113 Tm
+([PASS] |    0.6 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
+/F1 8 Tf
+1 0 0 1 36 102 Tm
+([PASS] |    2.4 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
+/F1 8 Tf
+1 0 0 1 36 91 Tm
+([PASS] |    7.4 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000007719 00000 n 
+0000007789 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+7864
+%%EOF

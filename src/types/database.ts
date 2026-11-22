@@ -11,6 +11,10 @@ export type RegimeRemuneracao =
   | 'DIAS_UTEIS_SEG_SAB';
 export type CicloPagamento = 'SEMANAL' | 'QUINZENAL' | 'MENSAL';
 export type ValeEtapa = 'SOLICITADO' | 'PIX_ENVIADO' | 'CONCILIADO';
+export type TipoQuitacao =
+  | 'QUITACAO_PIX_EXTERNO'
+  | 'LIQUIDACAO_BORDERO'
+  | 'PIX_AVULSO';
 
 export interface TenantRecord {
   id: string;
@@ -68,6 +72,9 @@ export interface CicloFinanceiro {
   recibo_r2_url?: string | null;
   quitado_por?: string | null;
   observacao?: string | null;
+  tipo_quitacao?: TipoQuitacao | null;
+  ciclo_encerrado?: boolean;
+  chave_idempotencia?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -172,7 +179,13 @@ export interface LancamentoFinanceiro {
   recibo_liquidacao_url?: string | null;
   vale_etapa?: ValeEtapa | null;
   solicitado_por?: string | null;
+  data_hora_solicitacao?: string | null;
+  aprovado_por?: string | null;
   pago_por?: string | null;
+  data_hora_envio_efetivo?: string | null;
+  tipo_quitacao?: TipoQuitacao | null;
+  ciclo_encerrado?: boolean;
+  chave_idempotencia?: string | null;
   mensagem_origem_id?: string | null;
   horario_origem?: string | null;
   liquidado_em?: string | null;

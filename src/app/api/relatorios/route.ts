@@ -23,6 +23,13 @@ interface LancamentoRelatorioRow {
   data_referencia: string;
   comprovante_url?: string | null;
   liquidado_em?: string | null;
+  solicitado_por?: string | null;
+  data_hora_solicitacao?: string | null;
+  aprovado_por?: string | null;
+  pago_por?: string | null;
+  data_hora_envio_efetivo?: string | null;
+  tipo_quitacao?: string | null;
+  ciclo_encerrado?: boolean | null;
   obra_id: string | null;
   obras_config: ObraRelacionada | ObraRelacionada[] | null;
 }
@@ -72,7 +79,7 @@ export async function GET(req: NextRequest) {
       timeZone: 'America/Sao_Paulo',
     });
 
-    // 1. Busca lançamentos no período isolados por tenant_id
+    // 1. Busca lançamentos no período isolados por tenant_id (com fallback V15 -> básico)
     let lancamentos: LancamentoRelatorioRow[] = [];
     const resPrincipal = await supabaseAdmin
       .from('lancamentos_financeiros')
@@ -86,6 +93,13 @@ export async function GET(req: NextRequest) {
         data_referencia,
         comprovante_url,
         liquidado_em,
+        solicitado_por,
+        data_hora_solicitacao,
+        aprovado_por,
+        pago_por,
+        data_hora_envio_efetivo,
+        tipo_quitacao,
+        ciclo_encerrado,
         obra_id,
         obras_config (
           nome,
@@ -185,7 +199,8 @@ export async function GET(req: NextRequest) {
       const obraRel = extrairObraInfo(item.obras_config);
       const obraTipo = obraRel.tipo_obra || 'PISCINA';
       const obraNome = normalizarNomeObraCanonica(obraRel.nome, obraTipo);
-      const isQuitado = item.status === 'LIQUIDADO';
+      const isQuitado =
+        item.status === 'LIQUIDADO' || item.ciclo_encerrado === true;
 
       // Acumula na Obra (separando aberto vs quitado, sem somar vale em duplicidade no custo da obra)
       if (!agrupamentoObras.has(obraNome)) {

@@ -32,6 +32,14 @@ interface LancamentoBorderoRow {
   observacao: string | null;
   status: string;
   comprovante_url?: string | null;
+  solicitado_por?: string | null;
+  data_hora_solicitacao?: string | null;
+  aprovado_por?: string | null;
+  pago_por?: string | null;
+  data_hora_envio_efetivo?: string | null;
+  horario_origem?: string | null;
+  ciclo_encerrado?: boolean | null;
+  created_at?: string | null;
   obras_config: ObraBorderoRel | ObraBorderoRel[] | null;
   funcionarios_obra: FuncionarioBorderoRel | FuncionarioBorderoRel[] | null;
 }
@@ -55,6 +63,10 @@ interface GrupoBorderoDTO {
     fracao: number;
     valor: number;
     comprovanteUrl: string | null;
+    solicitado_por?: string | null;
+    data_hora_solicitacao?: string | null;
+    aprovado_por?: string | null;
+    data_hora_envio_efetivo?: string | null;
     selecionado: boolean;
   }>;
 }
@@ -70,8 +82,8 @@ export async function GET(req: NextRequest) {
     let lancamentos: LancamentoBorderoRow[] = [];
     let queryError: unknown = null;
 
-    // Borderô exibe exclusivamente o ciclo em aberto (VALIDADO, aguardando liquidação PIX)
-    const resComprovante = await supabaseAdmin
+    // Borderô exibe exclusivamente o ciclo em aberto (VALIDADO e não encerrado)
+    const resV15 = await supabaseAdmin
       .from('lancamentos_financeiros')
       .select(`
         id,
@@ -83,6 +95,14 @@ export async function GET(req: NextRequest) {
         observacao,
         status,
         comprovante_url,
+        solicitado_por,
+        data_hora_solicitacao,
+        aprovado_por,
+        pago_por,
+        data_hora_envio_efetivo,
+        horario_origem,
+        ciclo_encerrado,
+        created_at,
         obras_config (
           nome,
           tipo_obra
@@ -100,7 +120,7 @@ export async function GET(req: NextRequest) {
       .eq('status', 'VALIDADO')
       .order('data_referencia', { ascending: true });
 
-    if (resComprovante.error) {
+    if (resV15.error) {
       const resFallback = await supabaseAdmin
         .from('lancamentos_financeiros')
         .select(`
@@ -112,6 +132,8 @@ export async function GET(req: NextRequest) {
           data_referencia,
           observacao,
           status,
+          comprovante_url,
+          created_at,
           obras_config (
             nome,
             tipo_obra
@@ -130,7 +152,7 @@ export async function GET(req: NextRequest) {
       queryError = resFallback.error;
     } else {
       lancamentos =
-        (resComprovante.data as unknown as LancamentoBorderoRow[] | null) || [];
+        (resV15.data as unknown as LancamentoBorderoRow[] | null) || [];
     }
 
     if (queryError) {
@@ -140,63 +162,79 @@ export async function GET(req: NextRequest) {
 
     const gruposMap = new Map<string, GrupoBorderoDTO>();
 
-    lancamentos.forEach((l) => {
-      const nome = normalizarNomeTrabalhadorCanonico(l.nome_trabalhador);
-      const chave = nome.toUpperCase();
-      const obraRel = extrairRel(l.obras_config);
-      const funcRel = extrairRel(l.funcionarios_obra);
-      const obraNome = normalizarNomeObraCanonica(
-        obraRel?.nome,
-        obraRel?.tipo_obra
-      );
+    lancamentos
+      .filter((l) => l.ciclo_encerrado !== true && l.status === 'VALIDADO')
+      .forEach((l) => {
+        const nome = normalizarNomeTrabalhadorCanonico(l.nome_trabalhador);
+        const chave = nome.toUpperCase();
+        const obraRel = extrairRel(l.obras_config);
+        const funcRel = extrairRel(l.funcionarios_obra);
+        const obraNome = normalizarNomeObraCanonica(
+          obraRel?.nome,
+          obraRel?.tipo_obra
+        );
 
-      if (!gruposMap.has(chave)) {
-        const chavePix = funcRel?.chave_pix || 'Chave não informada';
-        const diariaPadrao = Number(funcRel?.valor_diaria) || 150;
-        const regime = funcRel?.regime_remuneracao || 'DIARISTA';
-        const ciclo = funcRel?.ciclo_pagamento || 'QUINZENAL';
-        const valorBase = Number(funcRel?.valor_base_contratual) || diariaPadrao;
-        const regraSegSab =
-          Boolean(funcRel?.regra_dias_uteis_seg_sab) ||
-          regime === 'DIAS_UTEIS_SEG_SAB';
+        if (!gruposMap.has(chave)) {
+          const chavePix = funcRel?.chave_pix || 'Chave não informada';
+          const diariaPadrao = Number(funcRel?.valor_diaria) || 150;
+          const regime = funcRel?.regime_remuneracao || 'DIARISTA';
+          const ciclo = funcRel?.ciclo_pagamento || 'QUINZENAL';
+          const valorBase =
+            Number(funcRel?.valor_base_contratual) || diariaPadrao;
+          const regraSegSab =
+            Boolean(funcRel?.regra_dias_uteis_seg_sab) ||
+            regime === 'DIAS_UTEIS_SEG_SAB';
 
-        gruposMap.set(chave, {
-          id: `func-${chave.toLowerCase().replace(/\s+/g, '-')}`,
-          nome,
+          gruposMap.set(chave, {
+            id: `func-${chave.toLowerCase().replace(/\s+/g, '-')}`,
+            nome,
+            obra: obraNome,
+            chavePix,
+            diariaPadrao,
+            regimeRemuneracao: regime,
+            cicloPagamento: ciclo,
+            valorBaseContratual: valorBase,
+            regraDiasUteisSegSab: regraSegSab,
+            lancamentos: [],
+          });
+        }
+
+        const f = gruposMap.get(chave)!;
+        if (obraNome && !f.obra.includes(obraNome)) {
+          f.obra = `${f.obra}, ${obraNome}`;
+        }
+        const pixAtual = funcRel?.chave_pix;
+        if (pixAtual && f.chavePix === 'Chave não informada') {
+          f.chavePix = pixAtual;
+        }
+        const isVale = l.tipo_lancamento === 'VALE';
+        const horaFallback = l.horario_origem || '12:00';
+        f.lancamentos.push({
+          id: l.id,
+          data: l.data_referencia,
+          descricao:
+            l.observacao ||
+            (l.tipo_lancamento === 'PONTO' ? 'Diária de Campo' : 'Vale Adiantado'),
           obra: obraNome,
-          chavePix,
-          diariaPadrao,
-          regimeRemuneracao: regime,
-          cicloPagamento: ciclo,
-          valorBaseContratual: valorBase,
-          regraDiasUteisSegSab: regraSegSab,
-          lancamentos: [],
+          tipo: l.tipo_lancamento,
+          fracao:
+            Number(l.fracao_dia) || (l.tipo_lancamento === 'PONTO' ? 1.0 : 0),
+          valor: Number(l.valor_monetario) || 0,
+          comprovanteUrl: l.comprovante_url || null,
+          solicitado_por: isVale ? l.solicitado_por || 'Gil' : null,
+          data_hora_solicitacao: isVale
+            ? l.data_hora_solicitacao ||
+              `${l.data_referencia}T${horaFallback}:00-03:00`
+            : null,
+          aprovado_por: isVale
+            ? l.aprovado_por || l.pago_por || 'Patrícia Grubel'
+            : null,
+          data_hora_envio_efetivo: isVale
+            ? l.data_hora_envio_efetivo || l.created_at || null
+            : null,
+          selecionado: true,
         });
-      }
-
-      const f = gruposMap.get(chave)!;
-      if (obraNome && !f.obra.includes(obraNome)) {
-        f.obra = `${f.obra}, ${obraNome}`;
-      }
-      const pixAtual = funcRel?.chave_pix;
-      if (pixAtual && f.chavePix === 'Chave não informada') {
-        f.chavePix = pixAtual;
-      }
-      f.lancamentos.push({
-        id: l.id,
-        data: l.data_referencia,
-        descricao:
-          l.observacao ||
-          (l.tipo_lancamento === 'PONTO' ? 'Diária de Campo' : 'Vale Adiantado'),
-        obra: obraNome,
-        tipo: l.tipo_lancamento,
-        fracao:
-          Number(l.fracao_dia) || (l.tipo_lancamento === 'PONTO' ? 1.0 : 0),
-        valor: Number(l.valor_monetario) || 0,
-        comprovanteUrl: l.comprovante_url || null,
-        selecionado: true,
       });
-    });
 
     const funcionarios = Array.from(gruposMap.values());
     return NextResponse.json({ funcionarios });

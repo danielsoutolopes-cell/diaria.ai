@@ -25,7 +25,7 @@ export interface LancamentoAuditoriaInput {
   obraId: string | null;
   obraNome: string;
   obraTipo: string | null;
-  tipoLancamento: 'PONTO' | 'VALE';
+  tipoLancamento: 'PONTO' | 'VALE' | 'LIQUIDACAO';
   fracaoDia: number;
   valorMonetario: number;
   status: string;

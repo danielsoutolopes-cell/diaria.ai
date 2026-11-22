@@ -28,8 +28,12 @@ interface ValeDbRow {
   comprovante_pix_url?: string | null;
   vale_etapa?: ValeEtapa | null;
   solicitado_por?: string | null;
+  data_hora_solicitacao?: string | null;
+  aprovado_por?: string | null;
   pago_por?: string | null;
+  data_hora_envio_efetivo?: string | null;
   horario_origem?: string | null;
+  liquidado_em?: string | null;
   obra_id: string | null;
   created_at: string;
   obras_config: ObraRel | ObraRel[] | null;
@@ -46,7 +50,15 @@ export interface ValeItemDTO {
   status: string;
   etapa: ValeEtapa;
   solicitadoPor: string;
+  dataHoraSolicitacao: string;
+  aprovadoPor: string | null;
   pagoPor: string | null;
+  dataHoraEnvioEfetivo: string | null;
+  // Campos canônicos snake_case V15 para integração REST direta
+  solicitado_por: string;
+  data_hora_solicitacao: string;
+  aprovado_por: string | null;
+  data_hora_envio_efetivo: string | null;
   comprovantePixUrl: string | null;
   observacao: string;
 }
@@ -66,7 +78,10 @@ interface ValePostBody {
   data?: string;
   horario?: string;
   solicitadoPor?: string;
+  dataHoraSolicitacao?: string;
+  aprovadoPor?: string;
   pagoPor?: string;
+  dataHoraEnvioEfetivo?: string;
   observacao?: string;
   imagemBase64?: string;
   imagemMimeType?: string;
@@ -101,13 +116,18 @@ function getHoraBrasilia(): string {
   });
 }
 
+function montarTimestampBrasiliaISO(dataIso: string, horaHm: string): string {
+  const horaLimpa = /^\d{2}:\d{2}$/.test(horaHm) ? horaHm : '12:00';
+  return `${dataIso}T${horaLimpa}:00-03:00`;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const activeTenant = getActiveTenantFromRequest(req);
     const tenantId = activeTenant.id;
 
     let rows: ValeDbRow[] = [];
-    const resFull = await supabaseAdmin
+    const resV15 = await supabaseAdmin
       .from('lancamentos_financeiros')
       .select(`
         id,
@@ -120,8 +140,12 @@ export async function GET(req: NextRequest) {
         comprovante_pix_url,
         vale_etapa,
         solicitado_por,
+        data_hora_solicitacao,
+        aprovado_por,
         pago_por,
+        data_hora_envio_efetivo,
         horario_origem,
+        liquidado_em,
         obra_id,
         created_at,
         obras_config ( id, nome, tipo_obra )
@@ -132,8 +156,8 @@ export async function GET(req: NextRequest) {
       .order('data_referencia', { ascending: false })
       .order('created_at', { ascending: false });
 
-    if (resFull.error) {
-      const resBasic = await supabaseAdmin
+    if (resV15.error) {
+      const resV11 = await supabaseAdmin
         .from('lancamentos_financeiros')
         .select(`
           id,
@@ -143,6 +167,11 @@ export async function GET(req: NextRequest) {
           data_referencia,
           observacao,
           comprovante_url,
+          comprovante_pix_url,
+          vale_etapa,
+          solicitado_por,
+          pago_por,
+          horario_origem,
           obra_id,
           created_at,
           obras_config ( id, nome, tipo_obra )
@@ -153,9 +182,33 @@ export async function GET(req: NextRequest) {
         .order('data_referencia', { ascending: false })
         .order('created_at', { ascending: false });
 
-      rows = (resBasic.data as unknown as ValeDbRow[] | null) || [];
+      if (resV11.error) {
+        const resBasic = await supabaseAdmin
+          .from('lancamentos_financeiros')
+          .select(`
+            id,
+            nome_trabalhador,
+            valor_monetario,
+            status,
+            data_referencia,
+            observacao,
+            comprovante_url,
+            obra_id,
+            created_at,
+            obras_config ( id, nome, tipo_obra )
+          `)
+          .eq('tenant_id', tenantId)
+          .eq('tipo_lancamento', 'VALE')
+          .neq('status', 'DESCARTADO')
+          .order('data_referencia', { ascending: false })
+          .order('created_at', { ascending: false });
+
+        rows = (resBasic.data as unknown as ValeDbRow[] | null) || [];
+      } else {
+        rows = (resV11.data as unknown as ValeDbRow[] | null) || [];
+      }
     } else {
-      rows = (resFull.data as unknown as ValeDbRow[] | null) || [];
+      rows = (resV15.data as unknown as ValeDbRow[] | null) || [];
     }
 
     const [{ data: funcs }, { data: obras }] = await Promise.all([
@@ -184,6 +237,20 @@ export async function GET(req: NextRequest) {
           minute: '2-digit',
         });
 
+      const solicitadoPor = row.solicitado_por || 'Gil';
+      const dataHoraSolicitacao =
+        row.data_hora_solicitacao ||
+        montarTimestampBrasiliaISO(row.data_referencia, hora);
+      const aprovadoPor =
+        row.aprovado_por ||
+        row.pago_por ||
+        (etapa === 'CONCILIADO' ? 'Patrícia Grubel' : null);
+      const dataHoraEnvioEfetivo =
+        row.data_hora_envio_efetivo ||
+        (etapa === 'CONCILIADO'
+          ? row.liquidado_em || row.created_at
+          : null);
+
       return {
         id: row.id,
         trabalhador: normalizarNomeTrabalhadorCanonico(row.nome_trabalhador),
@@ -194,9 +261,15 @@ export async function GET(req: NextRequest) {
         valor: Number(row.valor_monetario || 0),
         status: row.status,
         etapa,
-        solicitadoPor: row.solicitado_por || 'Encarregado de Campo',
-        pagoPor:
-          row.pago_por || (etapa === 'CONCILIADO' ? 'Patrícia Grubel' : null),
+        solicitadoPor,
+        dataHoraSolicitacao,
+        aprovadoPor,
+        pagoPor: aprovadoPor,
+        dataHoraEnvioEfetivo,
+        solicitado_por: solicitadoPor,
+        data_hora_solicitacao: dataHoraSolicitacao,
+        aprovado_por: aprovadoPor,
+        data_hora_envio_efetivo: dataHoraEnvioEfetivo,
         comprovantePixUrl:
           row.comprovante_pix_url || row.comprovante_url || null,
         observacao: row.observacao || 'Vale adiantamento',
@@ -354,8 +427,11 @@ export async function POST(req: NextRequest) {
       );
       const dataRef = body.data || getHojeBrasilia();
       const horaRef = body.horario || getHoraBrasilia();
+      const dataHoraSol =
+        body.dataHoraSolicitacao || montarTimestampBrasiliaISO(dataRef, horaRef);
+      const solicitanteFinal = body.solicitadoPor?.trim() || 'Gil';
 
-      const { data: criado, error } = await supabaseAdmin
+      let resInsert = await supabaseAdmin
         .from('lancamentos_financeiros')
         .insert({
           tenant_id: tenantId,
@@ -368,21 +444,47 @@ export async function POST(req: NextRequest) {
           data_referencia: dataRef,
           observacao:
             body.observacao?.trim() ||
-            `Solicitação de Vale (${body.solicitadoPor || 'Encarregado'}) — aguardando envio PIX`,
+            `Solicitação de Vale (${solicitanteFinal}) — aguardando envio PIX`,
           vale_etapa: 'SOLICITADO',
-          solicitado_por: body.solicitadoPor || 'Gil',
+          solicitado_por: solicitanteFinal,
+          data_hora_solicitacao: dataHoraSol,
           horario_origem: horaRef,
         })
         .select('id')
         .single();
 
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+      if (resInsert.error) {
+        resInsert = await supabaseAdmin
+          .from('lancamentos_financeiros')
+          .insert({
+            tenant_id: tenantId,
+            obra_id: obraIdResolvido,
+            nome_trabalhador: trabalhadorCanonico,
+            tipo_lancamento: 'VALE',
+            fracao_dia: 0,
+            valor_monetario: valorFinal,
+            status: 'PENDENTE',
+            data_referencia: dataRef,
+            observacao:
+              body.observacao?.trim() ||
+              `Solicitação de Vale (${solicitanteFinal}) — aguardando envio PIX`,
+            vale_etapa: 'SOLICITADO',
+            solicitado_por: solicitanteFinal,
+            horario_origem: horaRef,
+          })
+          .select('id')
+          .single();
+      }
+
+      if (resInsert.error) {
+        return NextResponse.json({ error: resInsert.error.message }, { status: 500 });
       }
 
       return NextResponse.json({
         success: true,
-        id: criado?.id,
+        id: resInsert.data?.id,
+        solicitado_por: solicitanteFinal,
+        data_hora_solicitacao: dataHoraSol,
         message: `Etapa 1 registrada: Vale de R$ ${valorFinal.toFixed(2)} para ${trabalhadorCanonico} (aguardando PIX).`,
       });
     }
@@ -405,13 +507,16 @@ export async function POST(req: NextRequest) {
       }
 
       const agoraIso = new Date().toISOString();
-      const pagador = body.pagoPor || 'Patrícia Grubel';
+      const pagador = body.aprovadoPor || body.pagoPor || 'Patrícia Grubel';
+      const dataHoraEnvio = body.dataHoraEnvioEfetivo || agoraIso;
 
       if (body.valeId) {
         const updatePayload: Record<string, unknown> = {
           status: 'VALIDADO',
           vale_etapa: 'CONCILIADO',
+          aprovado_por: pagador,
           pago_por: pagador,
+          data_hora_envio_efetivo: dataHoraEnvio,
           updated_at: agoraIso,
         };
         if (comprovantePixUrl) {
@@ -437,19 +542,32 @@ export async function POST(req: NextRequest) {
           updatePayload.observacao = body.observacao;
         }
 
-        const { error } = await supabaseAdmin
+        let resUpd = await supabaseAdmin
           .from('lancamentos_financeiros')
           .update(updatePayload)
           .eq('tenant_id', tenantId)
           .eq('id', body.valeId);
 
-        if (error) {
-          return NextResponse.json({ error: error.message }, { status: 500 });
+        if (resUpd.error) {
+          const fallbackPayload = { ...updatePayload };
+          delete fallbackPayload.aprovado_por;
+          delete fallbackPayload.data_hora_envio_efetivo;
+          resUpd = await supabaseAdmin
+            .from('lancamentos_financeiros')
+            .update(fallbackPayload)
+            .eq('tenant_id', tenantId)
+            .eq('id', body.valeId);
+        }
+
+        if (resUpd.error) {
+          return NextResponse.json({ error: resUpd.error.message }, { status: 500 });
         }
 
         return NextResponse.json({
           success: true,
           comprovantePixUrl,
+          aprovado_por: pagador,
+          data_hora_envio_efetivo: dataHoraEnvio,
           message:
             'Etapa 2 concluída! Comprovante PIX vinculado e vale disponível no Fechamento & Extrato.',
         });
@@ -474,8 +592,13 @@ export async function POST(req: NextRequest) {
         body.obraId,
         body.obraNome
       );
+      const dataRef = body.data || getHojeBrasilia();
+      const horaRef = body.horario || getHoraBrasilia();
+      const solicitanteFinal = body.solicitadoPor?.trim() || 'Gil';
+      const dataHoraSol =
+        body.dataHoraSolicitacao || montarTimestampBrasiliaISO(dataRef, horaRef);
 
-      const { data: criado, error } = await supabaseAdmin
+      let resInsert2 = await supabaseAdmin
         .from('lancamentos_financeiros')
         .insert({
           tenant_id: tenantId,
@@ -485,27 +608,59 @@ export async function POST(req: NextRequest) {
           fracao_dia: 0,
           valor_monetario: valorFinal,
           status: 'VALIDADO',
-          data_referencia: body.data || getHojeBrasilia(),
+          data_referencia: dataRef,
           observacao:
             body.observacao?.trim() || `Vale confirmado via PIX (${pagador})`,
           comprovante_url: comprovantePixUrl,
           comprovante_pix_url: comprovantePixUrl,
           vale_etapa: 'CONCILIADO',
-          solicitado_por: body.solicitadoPor || 'Gil',
+          solicitado_por: solicitanteFinal,
+          data_hora_solicitacao: dataHoraSol,
+          aprovado_por: pagador,
           pago_por: pagador,
-          horario_origem: body.horario || getHoraBrasilia(),
+          data_hora_envio_efetivo: dataHoraEnvio,
+          horario_origem: horaRef,
         })
         .select('id')
         .single();
 
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+      if (resInsert2.error) {
+        resInsert2 = await supabaseAdmin
+          .from('lancamentos_financeiros')
+          .insert({
+            tenant_id: tenantId,
+            obra_id: obraIdResolvido,
+            nome_trabalhador: trabalhadorCanonico,
+            tipo_lancamento: 'VALE',
+            fracao_dia: 0,
+            valor_monetario: valorFinal,
+            status: 'VALIDADO',
+            data_referencia: dataRef,
+            observacao:
+              body.observacao?.trim() || `Vale confirmado via PIX (${pagador})`,
+            comprovante_url: comprovantePixUrl,
+            comprovante_pix_url: comprovantePixUrl,
+            vale_etapa: 'CONCILIADO',
+            solicitado_por: solicitanteFinal,
+            pago_por: pagador,
+            horario_origem: horaRef,
+          })
+          .select('id')
+          .single();
+      }
+
+      if (resInsert2.error) {
+        return NextResponse.json({ error: resInsert2.error.message }, { status: 500 });
       }
 
       return NextResponse.json({
         success: true,
-        id: criado?.id,
+        id: resInsert2.data?.id,
         comprovantePixUrl,
+        solicitado_por: solicitanteFinal,
+        data_hora_solicitacao: dataHoraSol,
+        aprovado_por: pagador,
+        data_hora_envio_efetivo: dataHoraEnvio,
         message: `Vale de R$ ${valorFinal.toFixed(2)} para ${trabalhadorCanonico} confirmado via PIX e sincronizado no painel!`,
       });
     }

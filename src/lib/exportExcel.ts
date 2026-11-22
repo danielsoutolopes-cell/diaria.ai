@@ -61,7 +61,10 @@ export interface ExcelV6ControleVale {
   obra: string;
   etapa: string;
   solicitadoPor: string;
+  dataHoraSolicitacao?: string;
+  aprovadoPor?: string;
   pagoPor: string;
+  dataHoraEnvioEfetivo?: string;
   valor: number;
   status: string;
   comprovanteUrl: string;
@@ -224,7 +227,7 @@ export function gerarWorkbookAnalitico5AbasV6(
   aplicarLarguras(ws2, [12, 22, 24, 22, 10, 15, 14, 38]);
   XLSX.utils.book_append_sheet(wb, ws2, 'Detalhamento de Diárias');
 
-  // ABA 3: Controle de Vales (2 Etapas + Rastreabilidade)
+  // ABA 3: Controle de Vales (2 Etapas + Rastreabilidade Integral V15)
   const rowsAba3: Array<Array<string | number>> = [
     [
       'Data',
@@ -233,7 +236,9 @@ export function gerarWorkbookAnalitico5AbasV6(
       'Obra',
       'Etapa',
       'Solicitado Por',
-      'Pago Por (PIX)',
+      'Data/Hora Solicitação',
+      'Aprovado / Pago Por (PIX)',
+      'Data/Hora Envio PIX',
       'Valor (R$)',
       'Status',
       'Comprovante PIX',
@@ -245,7 +250,9 @@ export function gerarWorkbookAnalitico5AbasV6(
       v.obra,
       v.etapa,
       v.solicitadoPor,
-      v.pagoPor,
+      v.dataHoraSolicitacao || `${v.data}T${v.horario || '12:00'}:00-03:00`,
+      v.aprovadoPor || v.pagoPor,
+      v.dataHoraEnvioEfetivo || '—',
       v.valor,
       v.status,
       v.comprovanteUrl,
@@ -255,10 +262,10 @@ export function gerarWorkbookAnalitico5AbasV6(
   adicionarLinhaFormulaSoma(
     ws3,
     rowsAba3.length + 1,
-    [{ colIndex0: 7, colLetra: 'H' }],
-    10
+    [{ colIndex0: 9, colLetra: 'J' }],
+    12
   );
-  aplicarLarguras(ws3, [12, 10, 20, 24, 22, 18, 18, 14, 14, 34]);
+  aplicarLarguras(ws3, [12, 10, 20, 24, 20, 18, 25, 22, 25, 14, 14, 34]);
   XLSX.utils.book_append_sheet(wb, ws3, 'Controle de Vales');
 
   // ABA 4: Caixinha de Campo (Unificado + Pré-implantação 13/11)

@@ -32,8 +32,13 @@ interface LancamentoExcelRow {
   observacao: string | null;
   comprovante_url?: string | null;
   vale_etapa?: string | null;
-  vale_solicitado_por?: string | null;
-  vale_pago_por?: string | null;
+  solicitado_por?: string | null;
+  data_hora_solicitacao?: string | null;
+  aprovado_por?: string | null;
+  pago_por?: string | null;
+  data_hora_envio_efetivo?: string | null;
+  horario_origem?: string | null;
+  ciclo_encerrado?: boolean | null;
   created_at?: string | null;
   obras_config: ObraRel | ObraRel[] | null;
 }
@@ -155,7 +160,7 @@ export async function GET(req: NextRequest) {
       timeZone: 'America/Sao_Paulo',
     });
 
-    // 1. Lançamentos isolados por tenant_id (com fallback caso alguma coluna V11 não exista)
+    // 1. Lançamentos isolados por tenant_id (com fallback progressivo V15 -> V11 -> básico)
     let lancamentos: LancamentoExcelRow[] = [];
     const resMain = await supabaseAdmin
       .from('lancamentos_financeiros')
@@ -170,8 +175,13 @@ export async function GET(req: NextRequest) {
         observacao,
         comprovante_url,
         vale_etapa,
-        vale_solicitado_por,
-        vale_pago_por,
+        solicitado_por,
+        data_hora_solicitacao,
+        aprovado_por,
+        pago_por,
+        data_hora_envio_efetivo,
+        horario_origem,
+        ciclo_encerrado,
         created_at,
         obras_config (
           nome,
@@ -361,7 +371,7 @@ export async function GET(req: NextRequest) {
           : 'OBRA_CIVIL';
       const valor = Number(l.valor_monetario || 0);
       const fracao = Number(l.fracao_dia || 1);
-      const isQuitado = l.status === 'LIQUIDADO';
+      const isQuitado = l.status === 'LIQUIDADO' || l.ciclo_encerrado === true;
 
       if (!resumoMap.has(chaveFunc)) {
         resumoMap.set(chaveFunc, {
@@ -437,17 +447,32 @@ export async function GET(req: NextRequest) {
           );
         }
       } else {
+        const horaOrigem = l.horario_origem || extrairHora(l.created_at);
+        const pagadorFinal =
+          l.aprovado_por ||
+          l.pago_por ||
+          (l.comprovante_url || l.status === 'VALIDADO'
+            ? 'Patrícia Grubel'
+            : 'Aguardando PIX');
         controleVales.push({
           data: l.data_referencia,
-          horario: extrairHora(l.created_at),
+          horario: horaOrigem,
           trabalhador: nomeCanon,
           obra: obraNome,
           etapa:
             l.vale_etapa ||
-            (l.comprovante_url ? 'PAGO_CONFIRMADO' : 'SOLICITADO'),
-          solicitadoPor: l.vale_solicitado_por || 'Campo / WhatsApp',
-          pagoPor:
-            l.vale_pago_por || (l.comprovante_url ? 'Financeiro' : 'Aguardando PIX'),
+            (l.comprovante_url ? 'CONCILIADO' : 'SOLICITADO'),
+          solicitadoPor: l.solicitado_por || 'Gil',
+          dataHoraSolicitacao:
+            l.data_hora_solicitacao ||
+            `${l.data_referencia}T${/^\d{2}:\d{2}$/.test(horaOrigem) ? horaOrigem : '12:00'}:00-03:00`,
+          aprovadoPor: pagadorFinal,
+          pagoPor: pagadorFinal,
+          dataHoraEnvioEfetivo:
+            l.data_hora_envio_efetivo ||
+            (l.status === 'VALIDADO' || l.status === 'LIQUIDADO'
+              ? l.created_at || '—'
+              : '—'),
           valor,
           status: l.status,
           comprovanteUrl: l.comprovante_url || '—',

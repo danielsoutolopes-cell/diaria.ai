@@ -3,12 +3,15 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { getActiveTenantFromRequest } from '@/lib/tenant';
 import { normalizarNomeTrabalhadorCanonico } from '@/lib/normalizarObra';
 
+import type { TipoQuitacao } from '@/types/database';
+
 interface LiquidarRequestBody {
   lancamentosIds?: string[];
   obraId?: string;
   observacao?: string;
   quitadoPor?: string;
   comprovantePixUrl?: string | null;
+  tipoQuitacao?: TipoQuitacao;
 }
 
 interface LancamentoLiquidadoRow {
@@ -28,6 +31,7 @@ export async function POST(req: NextRequest) {
       observacao = 'Fechamento financeiro encerrado',
       quitadoPor = 'Patrícia Grubel',
       comprovantePixUrl = null,
+      tipoQuitacao = 'LIQUIDACAO_BORDERO',
     } = body;
 
     if (
@@ -44,27 +48,46 @@ export async function POST(req: NextRequest) {
     const agora = new Date().toISOString();
 
     // Liquida ESTRITAMENTE os lançamentos selecionados pertencentes ao tenant ativo
-    // (preserva novos apontamentos de ciclos posteriores sem zerá-los retroativamente)
-    const { data: atualizados, error } = await supabaseAdmin
+    // (marca ciclo_encerrado=true e tipo_quitacao para isolamento absoluto do novo ciclo)
+    let resUpdate = await supabaseAdmin
       .from('lancamentos_financeiros')
       .update({
         status: 'LIQUIDADO',
         liquidado_em: agora,
         observacao,
+        tipo_quitacao: tipoQuitacao,
+        ciclo_encerrado: true,
+        aprovado_por: quitadoPor,
+        data_hora_envio_efetivo: agora,
         updated_at: agora,
       })
       .eq('tenant_id', activeTenant.id)
       .in('id', lancamentosIds)
       .select('id, nome_trabalhador, tipo_lancamento, valor_monetario, data_referencia');
 
-    if (error) {
-      throw error;
+    if (resUpdate.error) {
+      // Fallback caso colunas V15 ainda não tenham sido migradas no banco remoto
+      resUpdate = await supabaseAdmin
+        .from('lancamentos_financeiros')
+        .update({
+          status: 'LIQUIDADO',
+          liquidado_em: agora,
+          observacao,
+          updated_at: agora,
+        })
+        .eq('tenant_id', activeTenant.id)
+        .in('id', lancamentosIds)
+        .select('id, nome_trabalhador, tipo_lancamento, valor_monetario, data_referencia');
+    }
+
+    if (resUpdate.error) {
+      throw resUpdate.error;
     }
 
     const itensLiquidados =
-      (atualizados as unknown as LancamentoLiquidadoRow[] | null) || [];
+      (resUpdate.data as unknown as LancamentoLiquidadoRow[] | null) || [];
 
-    // Best-effort: registra o corte de ciclo em ciclos_financeiros por trabalhador (caso a migração V11 já tenha sido aplicada)
+    // Best-effort: registra o corte de ciclo em ciclos_financeiros por trabalhador
     if (itensLiquidados.length > 0) {
       try {
         const porTrabalhador = new Map<
@@ -104,6 +127,8 @@ export async function POST(req: NextRequest) {
               comprovante_pix_url: comprovantePixUrl,
               quitado_por: quitadoPor,
               observacao,
+              tipo_quitacao: tipoQuitacao,
+              ciclo_encerrado: true,
             })
             .select('id')
             .single();
