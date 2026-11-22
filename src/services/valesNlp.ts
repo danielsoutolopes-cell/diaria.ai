@@ -115,7 +115,7 @@ export function extrairPedidosValeNaturais(
     { regex: /\b(manoel|manuel)\b/i, canonico: 'Manoel' },
     { regex: /\b(wender(?:\s*22)?|weslen)\b/i, canonico: 'Wender' },
     { regex: /\b(gilvan|gil335revest|\bgil\b)\b/i, canonico: 'Gilvan - Gil' },
-    { regex: /\b(edmilson|peu)\b/i, canonico: 'Edmilson - Peu' },
+    { regex: /\b(edmilson|peu)\b/i, canonico: 'Peu' },
     { regex: /\b(z[eé]\s*baiano|jos[eé]\s*baiano)\b/i, canonico: 'Zé Baiano' },
     { regex: /\b(lucas\.?\s*j\.?)\b/i, canonico: 'Lucas J.' },
     { regex: /\b(z[eé]\s*roberto|jos[eé]\s*roberto)\b/i, canonico: 'Zé Roberto' },

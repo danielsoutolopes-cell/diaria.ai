@@ -66,11 +66,13 @@ export const ALIAS_TRABALHADORES_PADRAO: Record<string, string> = {
   WESLEN: 'Wender',
   'WENDER / WESLEN': 'Wender',
   'WESLEN / WENDER': 'Wender',
-  // Edmilson - Peu
-  PEU: 'Edmilson - Peu',
-  EDMILSON: 'Edmilson - Peu',
-  'EDMILSON - PEU': 'Edmilson - Peu',
-  'EDMILSON (PEU)': 'Edmilson - Peu',
+  // Peu (Edmilson)
+  PEU: 'Peu',
+  EDMILSON: 'Peu',
+  'EDMILSON - PEU': 'Peu',
+  'EDMILSON (PEU)': 'Peu',
+  'PEU (EDMILSON)': 'Peu',
+  'PEU - EDMILSON': 'Peu',
   // Zé Baiano
   'JOSE BAIANO': 'Zé Baiano',
   'ZE BAIANO': 'Zé Baiano',
@@ -131,8 +133,8 @@ export function normalizarNomeTrabalhadorCanonico(
   if (chave.includes('WESLEN') || chave.includes('WENDER')) {
     return 'Wender';
   }
-  if (chave === 'EDMILSON PEU' || chave.startsWith('EDMILSON -')) {
-    return 'Edmilson - Peu';
+  if (chave === 'EDMILSON PEU' || chave.startsWith('EDMILSON -') || chave.startsWith('PEU -')) {
+    return 'Peu';
   }
 
   return original.replace(/\.+$/, '').trim();
