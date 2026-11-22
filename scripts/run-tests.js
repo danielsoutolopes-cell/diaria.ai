@@ -69,6 +69,7 @@ try {
     path.join(repoRoot, 'tests/pos_quatro_fases_e2e.test.ts'),
     path.join(repoRoot, 'tests/reprocessamento_vales_convergencia.test.ts'),
     path.join(repoRoot, 'tests/v16_features_homologacao.test.ts'),
+    path.join(repoRoot, 'tests/reprocessamento_diarias_convergencia.test.ts'),
     path.join(repoRoot, 'tests/reporters/pdfTestReportGenerator.ts'),
   ];
 
@@ -103,6 +104,7 @@ try {
     path.join(outDir, 'tests/pos_quatro_fases_e2e.test.js'),
     path.join(outDir, 'tests/reprocessamento_vales_convergencia.test.js'),
     path.join(outDir, 'tests/v16_features_homologacao.test.js'),
+    path.join(outDir, 'tests/reprocessamento_diarias_convergencia.test.js'),
   ];
 
   const startedAt = Date.now();
@@ -123,7 +125,7 @@ try {
   if (runResult.stdout) process.stdout.write(runResult.stdout);
   if (runResult.stderr) process.stderr.write(runResult.stderr);
 
-  // Gera automaticamente o Relatório PDF de Homologação V15 pós-execução
+  // Gera automaticamente o Relatório PDF de Homologação (Vales + Diárias + Melhorias)
   const scenarios = parseTapScenarios(runResult.stdout || '');
   const passedTests = scenarios.filter((s) => s.status === 'PASS').length;
   const failedTests = scenarios.filter((s) => s.status === 'FAIL').length;
@@ -134,15 +136,31 @@ try {
     SelfHealingValeParserV15,
   } = require(path.join(outDir, 'src/services/reconciliacaoValesV15.js'));
 
+  const {
+    ESPERADO_AUDITORIA_DIARIAS,
+    HISTORICO_DIARIAS_AUDITORIA_V16,
+    SelfHealingDiariaParserV16,
+  } = require(path.join(outDir, 'src/services/reconciliacaoDiariasV16.js'));
+
+  const { TENANTS } = require(path.join(outDir, 'src/lib/tenant.js'));
+
   const { gerarRelatorioHomologacaoPdf } = require(
     path.join(outDir, 'tests/reporters/pdfTestReportGenerator.js')
   );
 
-  const parser = new SelfHealingValeParserV15();
-  const rec = parser.runReconciliationWithSelfHealing(
+  const parserVales = new SelfHealingValeParserV15();
+  const recVales = parserVales.runReconciliationWithSelfHealing(
     HISTORICO_WHATSAPP_V15_AUDITORIA,
     27,
     2700
+  );
+
+  const parserDiarias = new SelfHealingDiariaParserV16();
+  const recDiarias = parserDiarias.runReconciliationWithSelfHealing(
+    HISTORICO_DIARIAS_AUDITORIA_V16,
+    TENANTS.jhoston.id,
+    ESPERADO_AUDITORIA_DIARIAS.totalCount,
+    ESPERADO_AUDITORIA_DIARIAS.totalAmount
   );
 
   const hojeIso = new Date().toLocaleDateString('en-CA', {
@@ -175,21 +193,45 @@ try {
     ],
     rlsIsolationScorePct: 100,
     selfHealing: {
-      iterations: rec.iterations,
-      parsedValesCount: rec.totalCount,
-      parsedValesTotal: rec.totalAmount,
+      iterations: recVales.iterations,
+      parsedValesCount: recVales.totalCount,
+      parsedValesTotal: recVales.totalAmount,
       expectedValesCount: 27,
       expectedValesTotal: 2700,
-      converged: rec.converged,
-      appliedRules: rec.appliedRules,
-      iterationLogs: rec.iterationLogs,
+      converged: recVales.converged,
+      appliedRules: recVales.appliedRules,
+      iterationLogs: recVales.iterationLogs,
     },
+    diariasSelfHealing: {
+      iterations: recDiarias.iterations,
+      parsedCount: recDiarias.totalCount,
+      parsedTotal: recDiarias.totalAmount,
+      expectedCount: ESPERADO_AUDITORIA_DIARIAS.totalCount,
+      expectedTotal: ESPERADO_AUDITORIA_DIARIAS.totalAmount,
+      piscina21Count: recDiarias.lotePiscina21Count,
+      piscina21Total: recDiarias.lotePiscina21Total,
+      quaseTudo21Count: recDiarias.novoCicloQuaseTudo21Count,
+      quaseTudo21Total: recDiarias.novoCicloQuaseTudo21Total,
+      duplicidadesDescartadas: recDiarias.duplicidadesDescartadas,
+      excedentesRateioBloqueados: recDiarias.excedentesRateioBloqueados,
+      registrosOutroTenantBloqueados: recDiarias.registrosOutroTenantBloqueados,
+      converged: recDiarias.converged,
+      appliedRules: recDiarias.appliedRules,
+      iterationLogs: recDiarias.iterationLogs,
+    },
+    melhoriasAplicadas: [
+      '[APLICADA] Hash deterministico SHA-256 (tenant|data|obra|trabalhador|fracao|lote) impedindo duplicidades em reprocessamento.',
+      '[APLICADA] Guarda pos-quitacao por timestamp ISO completo (created_at > corte_pix), preservando ciclos no mesmo dia (16:39 e 18:12).',
+      '[APLICADA] Classificacao explicita de Meio-Dia de Chuva (0,5d = R$ 60,00) no Excel V6 (Aba 2) e no motor de diarias.',
+      '[APLICADA] Trava automatica de teto diario <= 1,0d em rateios multi-obra (0,5+0,5), bloqueando excedentes sem contaminar saldo.',
+      '[APLICADA] Operacao 24/7 (Seg-Dom, inclusive domingos e feriados) sem trava de dia da semana no Resumo 19h e webhook.',
+    ],
     scenarios,
     outputPaths: outputDirs,
   });
 
   console.log(
-    `\n📄 Relatório PDF de Homologação V15 gerado: ${pdfRes.savedPaths.join(', ')} (${pdfRes.buffer.length} bytes)`
+    `\n📄 Relatório PDF de Homologação (Vales + Diárias) gerado: ${pdfRes.savedPaths.join(', ')} (${pdfRes.buffer.length} bytes)`
   );
 
   if (runResult.status !== 0) {

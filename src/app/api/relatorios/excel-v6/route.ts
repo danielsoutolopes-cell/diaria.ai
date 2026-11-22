@@ -128,6 +128,12 @@ function classificarRegraDiaria(
   isRateioMultiObra: boolean
 ): string {
   const obsUpper = (observacao || '').toUpperCase();
+  if (
+    (obsUpper.includes('CHUVA') && fracao === 0.5) ||
+    (fracao === 0.5 && valor === 60)
+  ) {
+    return 'CHUVA ½ DIA (R$ 60,00)';
+  }
   if (obsUpper.includes('CHUVA') || (fracao === 1 && valor === 120)) {
     return 'CHUVA (R$ 120,00 fixo)';
   }

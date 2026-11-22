@@ -9,7 +9,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 7 0 R /F2 8 0 R >> >> /Contents 4 0 R >>
 endobj
 4 0 obj
-<< /Length 7961 >>
+<< /Length 7582 >>
 stream
 BT
 /F2 8 Tf
@@ -20,7 +20,7 @@ BT
 (DIARIA.AI   RELATORIO OFICIAL DE HOMOLOGACAO \(SPRINT V15\)) Tj
 /F2 10 Tf
 1 0 0 1 36 787 Tm
-(Data de Geracao: 2026-11-22T16:08:20.209Z  |  Veredito Final: APROVADO PARA PRODUCAO) Tj
+(Data de Geracao: 2026-11-22T16:22:36.303Z  |  Veredito Final: APROVADO PARA PRODUCAO) Tj
 /F2 11 Tf
 1 0 0 1 36 765 Tm
 (1. RESUMO EXECUTIVO) Tj
@@ -59,7 +59,7 @@ BT
 (---------------------------------------------------------------------------------------------) Tj
 /F2 9 Tf
 1 0 0 1 36 603 Tm
-(Taxa de Aprovacao dos Testes: 100.0% \(28/28 aprovados, 0 falhas\) | Duracao: 1440 ms) Tj
+(Taxa de Aprovacao dos Testes: 100.0% \(30/30 aprovados, 0 falhas\) | Duracao: 1538 ms) Tj
 /F1 9 Tf
 1 0 0 1 36 590 Tm
 (Checagem Estrita TypeScript \(0 'any'\): APROVADO \(0 ocorrencias\)) Tj
@@ -113,94 +113,88 @@ BT
 (   Detalhe: Convergencia exata atingida \(discrepancia zero contra auditoria\).) Tj
 /F2 11 Tf
 1 0 0 1 36 371 Tm
-(4. DETALHAMENTO DE CENARIOS E DIAGNOSTICO DE FALHAS) Tj
+(3B. CONVERGENCIA & SELF-HEALING DE DIARIAS \(54 LANCAMENTOS = R$ 9.780,00\)) Tj
 /F1 8 Tf
 1 0 0 1 36 356 Tm
 (---------------------------------------------------------------------------------------------) Tj
-/F2 8 Tf
+/F2 9 Tf
 1 0 0 1 36 345 Tm
+(Assertiva Rigida: assert\(diariasCount === 54 && diariasTotal === 9780.00\) => BATIMENTO 100% \(DISCREPANCIA ZERO\)) Tj
+/F1 8 Tf
+1 0 0 1 36 332 Tm
+(Piscina Porto Seguro 21/11 18:12: 7 diarias = R$ 2070.00 | Quase Tudo 21/11 16:39: 2 diarias = R$ 410.00) Tj
+/F1 8 Tf
+1 0 0 1 36 320 Tm
+(Protecoes Aplicadas: 2 reg. Intermack isolados | 1 duplicidade\(s\) SHA-256 descartada\(s\) | 1 excedente\(s\) > 1,0d bloqueado\(s\)) Tj
+/F1 8 Tf
+1 0 0 1 36 308 Tm
+(Tentativas Executadas: 6 | Regras Ativadas \(5\): IsolateTenantIdStrict -> IncludeWeekendEveningBatches24x7 -> PreservePostQuitac...) Tj
+/F1 8 Tf
+1 0 0 1 44 296 Tm
+([Tentativa 1] Diarias: 48 \(R$ 7640.00\) | Regra: IsolateTenantIdStrict) Tj
+/F1 8 Tf
+1 0 0 1 44 285 Tm
+(   Detalhe: Divergencia \(48/54 diarias; R$ 7640.00/R$ 9780.00\). Ativando regra IsolateTenantIdStrict.) Tj
+/F1 8 Tf
+1 0 0 1 44 274 Tm
+([Tentativa 2] Diarias: 46 \(R$ 7640.00\) | Regra: IncludeWeekendEveningBatches24x7) Tj
+/F1 8 Tf
+1 0 0 1 44 263 Tm
+(   Detalhe: Divergencia \(46/54 diarias; R$ 7640.00/R$ 9780.00\). Ativando regra IncludeWeekendEveningBatches24x7.) Tj
+/F1 8 Tf
+1 0 0 1 44 252 Tm
+([Tentativa 3] Diarias: 53 \(R$ 9710.00\) | Regra: PreservePostQuitacaoNewCycle) Tj
+/F1 8 Tf
+1 0 0 1 44 241 Tm
+(   Detalhe: Divergencia \(53/54 diarias; R$ 9710.00/R$ 9780.00\). Ativando regra PreservePostQuitacaoNewCycle.) Tj
+/F1 8 Tf
+1 0 0 1 44 230 Tm
+([Tentativa 4] Diarias: 56 \(R$ 10300.00\) | Regra: NormalizeCanonicalAliasesAndSplitObras) Tj
+/F1 8 Tf
+1 0 0 1 44 219 Tm
+(   Detalhe: Divergencia \(56/54 diarias; R$ 10300.00/R$ 9780.00\). Ativando regra NormalizeCanonicalAliasesAndS...) Tj
+/F1 8 Tf
+1 0 0 1 44 208 Tm
+([Tentativa 5] Diarias: 55 \(R$ 10120.00\) | Regra: EnforceRateioCapAndRainPricing) Tj
+/F1 8 Tf
+1 0 0 1 44 197 Tm
+(   Detalhe: Divergencia \(55/54 diarias; R$ 10120.00/R$ 9780.00\). Ativando regra EnforceRateioCapAndRainPricing.) Tj
+/F1 8 Tf
+1 0 0 1 44 186 Tm
+([Tentativa 6] Diarias: 54 \(R$ 9780.00\) | Regra: BATIMENTO FINAL 100%) Tj
+/F1 8 Tf
+1 0 0 1 44 175 Tm
+(   Detalhe: Batimento 100% atingido \(54 lancamentos = R$ 9.780,00; discrepancia zero\).) Tj
+/F2 11 Tf
+1 0 0 1 36 158 Tm
+(4. DETALHAMENTO DE CENARIOS E DIAGNOSTICO DE FALHAS) Tj
+/F1 8 Tf
+1 0 0 1 36 143 Tm
+(---------------------------------------------------------------------------------------------) Tj
+/F2 8 Tf
+1 0 0 1 36 132 Tm
 (STATUS | DUR\(ms\) | CENARIO / REGRA AVALIADA) Tj
 /F1 8 Tf
-1 0 0 1 36 333 Tm
-([PASS] |    1.4 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): impoe grafia ...) Tj
+1 0 0 1 36 120 Tm
+([PASS] |    1.3 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): impoe grafia ...) Tj
 /F1 8 Tf
-1 0 0 1 36 322 Tm
+1 0 0 1 36 109 Tm
 ([PASS] |    0.4 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): isola acesso ...) Tj
 /F1 8 Tf
-1 0 0 1 36 311 Tm
-([PASS] |   15.9 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma zero...) Tj
+1 0 0 1 36 98 Tm
+([PASS] |   13.2 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma zero...) Tj
 /F1 8 Tf
-1 0 0 1 36 300 Tm
-([PASS] |    3.5 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma isol...) Tj
+1 0 0 1 36 87 Tm
+([PASS] |    3.8 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma isol...) Tj
 /F1 8 Tf
-1 0 0 1 36 289 Tm
-([PASS] |    4.2 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: aplica valor padra...) Tj
+1 0 0 1 36 76 Tm
+([PASS] |    3.6 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: aplica valor padra...) Tj
 /F1 8 Tf
-1 0 0 1 36 278 Tm
+1 0 0 1 36 65 Tm
 ([PASS] |    1.1 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: pareia legendas in...) Tj
 /F1 8 Tf
-1 0 0 1 36 267 Tm
+1 0 0 1 36 54 Tm
 ([PASS] |    0.6 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: garante visibilida...) Tj
-/F1 8 Tf
-1 0 0 1 36 256 Tm
-([PASS] |    0.8 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
-/F1 8 Tf
-1 0 0 1 36 245 Tm
-([PASS] |    2.9 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
-/F1 8 Tf
-1 0 0 1 36 234 Tm
-([PASS] |   33.7 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
-/F1 8 Tf
-1 0 0 1 36 223 Tm
-([PASS] |    0.4 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): unifica Gil, Gilvan, ...) Tj
-/F1 8 Tf
-1 0 0 1 36 212 Tm
-([PASS] |    2.3 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): preserva saldo pre-im...) Tj
-/F1 8 Tf
-1 0 0 1 36 201 Tm
-([PASS] |    1.4 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: isola ...) Tj
-/F1 8 Tf
-1 0 0 1 36 190 Tm
-([PASS] |    0.5 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: calcul...) Tj
-/F1 8 Tf
-1 0 0 1 36 179 Tm
-([PASS] |    2.2 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
-/F1 8 Tf
-1 0 0 1 36 168 Tm
-([PASS] |    4.4 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
-/F1 8 Tf
-1 0 0 1 36 157 Tm
-([PASS] |    3.5 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
-/F1 8 Tf
-1 0 0 1 36 146 Tm
-([PASS] |   35.1 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
-/F1 8 Tf
-1 0 0 1 36 135 Tm
-([PASS] |    3.7 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
-/F1 8 Tf
-1 0 0 1 36 124 Tm
-([PASS] |    2.6 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
-/F1 8 Tf
-1 0 0 1 36 113 Tm
-([PASS] |    0.6 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
-/F1 8 Tf
-1 0 0 1 36 102 Tm
-([PASS] |    2.1 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
-/F1 8 Tf
-1 0 0 1 36 91 Tm
-([PASS] |    6.7 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
-/F1 8 Tf
-1 0 0 1 36 80 Tm
-([PASS] |    5.8 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: g...) Tj
-/F1 8 Tf
-1 0 0 1 36 69 Tm
-([PASS] |    0.3 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
-/F1 8 Tf
-1 0 0 1 36 58 Tm
-([PASS] |    4.9 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
-/F1 8 Tf
-1 0 0 1 36 47 Tm
-([PASS] |   30.3 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
 ET
 endstream
 endobj
@@ -208,7 +202,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 7 0 R /F2 8 0 R >> >> /Contents 6 0 R >>
 endobj
 6 0 obj
-<< /Length 233 >>
+<< /Length 4135 >>
 stream
 BT
 /F2 8 Tf
@@ -216,7 +210,94 @@ BT
 (DIARIA.AI   RELATORIO DE HOMOLOGACAO SPRINT V15 | PAGINA 2) Tj
 /F1 8 Tf
 1 0 0 1 36 805 Tm
-([PASS] |    2.5 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+([PASS] |    0.6 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+/F1 8 Tf
+1 0 0 1 36 794 Tm
+([PASS] |    2.5 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+/F1 8 Tf
+1 0 0 1 36 783 Tm
+([PASS] |   32.4 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+/F1 8 Tf
+1 0 0 1 36 772 Tm
+([PASS] |    0.5 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): unifica Gil, Gilvan, ...) Tj
+/F1 8 Tf
+1 0 0 1 36 761 Tm
+([PASS] |    2.6 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): preserva saldo pre-im...) Tj
+/F1 8 Tf
+1 0 0 1 36 750 Tm
+([PASS] |    1.5 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: isola ...) Tj
+/F1 8 Tf
+1 0 0 1 36 739 Tm
+([PASS] |    0.8 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: calcul...) Tj
+/F1 8 Tf
+1 0 0 1 36 728 Tm
+([PASS] |    2.3 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+/F1 8 Tf
+1 0 0 1 36 717 Tm
+([PASS] |    4.7 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+/F1 8 Tf
+1 0 0 1 36 706 Tm
+([PASS] |    3.5 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+/F1 8 Tf
+1 0 0 1 36 695 Tm
+([PASS] |   10.4 | 11. Reprocessamento Historico de Diarias & Loop Self-Healing \(54 Diarias = R$ 9.7...) Tj
+/F1 8 Tf
+1 0 0 1 36 684 Tm
+([PASS] |    0.7 | 11. Reprocessamento Historico de Diarias & Loop Self-Healing \(54 Diarias = R$ 9.7...) Tj
+/F1 8 Tf
+1 0 0 1 36 673 Tm
+([PASS] |   35.3 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
+/F1 8 Tf
+1 0 0 1 36 662 Tm
+([PASS] |    3.8 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
+/F1 8 Tf
+1 0 0 1 36 651 Tm
+([PASS] |    2.5 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
+/F1 8 Tf
+1 0 0 1 36 640 Tm
+([PASS] |    0.6 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
+/F1 8 Tf
+1 0 0 1 36 629 Tm
+([PASS] |    2.1 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
+/F1 8 Tf
+1 0 0 1 36 618 Tm
+([PASS] |    6.7 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
+/F1 8 Tf
+1 0 0 1 36 607 Tm
+([PASS] |    6.9 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: g...) Tj
+/F1 8 Tf
+1 0 0 1 36 596 Tm
+([PASS] |    0.3 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+/F1 8 Tf
+1 0 0 1 36 585 Tm
+([PASS] |    5.6 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+/F1 8 Tf
+1 0 0 1 36 574 Tm
+([PASS] |   29.5 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+/F1 8 Tf
+1 0 0 1 36 563 Tm
+([PASS] |    2.2 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+/F2 11 Tf
+1 0 0 1 36 546 Tm
+(5. MELHORIAS DE PROCESSO SUGERIDAS E JA APLICADAS NO SISTEMA) Tj
+/F1 8 Tf
+1 0 0 1 36 531 Tm
+(---------------------------------------------------------------------------------------------) Tj
+/F1 8 Tf
+1 0 0 1 36 520 Tm
+(1. [APLICADA] Hash deterministico SHA-256 \(tenant|data|obra|trabalhador|fracao|lote\) impedindo d...) Tj
+/F1 8 Tf
+1 0 0 1 36 508 Tm
+(2. [APLICADA] Guarda pos-quitacao por timestamp ISO completo \(created_at > corte_pix\), preservan...) Tj
+/F1 8 Tf
+1 0 0 1 36 496 Tm
+(3. [APLICADA] Classificacao explicita de Meio-Dia de Chuva \(0,5d = R$ 60,00\) no Excel V6 \(Aba 2\)...) Tj
+/F1 8 Tf
+1 0 0 1 36 484 Tm
+(4. [APLICADA] Trava automatica de teto diario <= 1,0d em rateios multi-obra \(0,5+0,5\), bloqueand...) Tj
+/F1 8 Tf
+1 0 0 1 36 472 Tm
+(5. [APLICADA] Operacao 24/7 \(Seg-Dom, inclusive domingos e feriados\) sem trava de dia da semana ...) Tj
 ET
 endstream
 endobj
@@ -233,12 +314,12 @@ xref
 0000000058 00000 n 
 0000000121 00000 n 
 0000000257 00000 n 
-0000008270 00000 n 
-0000008406 00000 n 
-0000008690 00000 n 
-0000008760 00000 n 
+0000007891 00000 n 
+0000008027 00000 n 
+0000012214 00000 n 
+0000012284 00000 n 
 trailer
 << /Size 9 /Root 1 0 R >>
 startxref
-8835
+12359
 %%EOF

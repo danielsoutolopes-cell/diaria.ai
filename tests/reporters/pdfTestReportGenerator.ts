@@ -27,6 +27,30 @@ export interface SelfHealingSummaryReport {
   }>;
 }
 
+export interface DiariasSelfHealingSummaryReport {
+  iterations: number;
+  parsedCount: number;
+  parsedTotal: number;
+  expectedCount: number;
+  expectedTotal: number;
+  piscina21Count: number;
+  piscina21Total: number;
+  quaseTudo21Count: number;
+  quaseTudo21Total: number;
+  duplicidadesDescartadas: number;
+  excedentesRateioBloqueados: number;
+  registrosOutroTenantBloqueados: number;
+  converged: boolean;
+  appliedRules: string[];
+  iterationLogs: Array<{
+    attempt: number;
+    parsedCount: number;
+    parsedTotal: number;
+    ruleActivated: string | null;
+    reason: string;
+  }>;
+}
+
 export interface HomologacaoPdfInput {
   generatedAtIso: string;
   dateLabel: string;
@@ -40,6 +64,8 @@ export interface HomologacaoPdfInput {
   coveredRoutes: string[];
   rlsIsolationScorePct: number;
   selfHealing: SelfHealingSummaryReport;
+  diariasSelfHealing?: DiariasSelfHealingSummaryReport;
+  melhoriasAplicadas?: string[];
   scenarios: TestCaseReportEntry[];
   outputPaths: string[];
 }
@@ -332,6 +358,52 @@ export function gerarRelatorioHomologacaoPdf(input: HomologacaoPdfInput): {
     writeLine(`   Detalhe: ${truncate(log.reason, 100)}`, 'F1', 8, 44, 12);
   }
 
+  // SEÇÃO 3B: CONVERGÊNCIA & SELF-HEALING DE DIÁRIAS (54 = R$ 9.780,00)
+  if (input.diariasSelfHealing) {
+    const d = input.diariasSelfHealing;
+    writeSectionTitle(
+      '3B. CONVERGENCIA & SELF-HEALING DE DIARIAS (54 LANCAMENTOS = R$ 9.780,00)'
+    );
+    writeLine(
+      `Assertiva Rigida: assert(diariasCount === ${d.expectedCount} && diariasTotal === ${d.expectedTotal.toFixed(2)}) => ${d.converged ? 'BATIMENTO 100% (DISCREPANCIA ZERO)' : 'DIVERGENTE'}`,
+      'F2',
+      9,
+      36,
+      13
+    );
+    writeLine(
+      `Piscina Porto Seguro 21/11 18:12: ${d.piscina21Count} diarias = R$ ${d.piscina21Total.toFixed(2)} | Quase Tudo 21/11 16:39: ${d.quaseTudo21Count} diarias = R$ ${d.quaseTudo21Total.toFixed(2)}`,
+      'F1',
+      8,
+      36,
+      12
+    );
+    writeLine(
+      `Protecoes Aplicadas: ${d.registrosOutroTenantBloqueados} reg. Intermack isolados | ${d.duplicidadesDescartadas} duplicidade(s) SHA-256 descartada(s) | ${d.excedentesRateioBloqueados} excedente(s) > 1,0d bloqueado(s)`,
+      'F1',
+      8,
+      36,
+      12
+    );
+    writeLine(
+      `Tentativas Executadas: ${d.iterations} | Regras Ativadas (${d.appliedRules.length}): ${truncate(d.appliedRules.join(' -> '), 82)}`,
+      'F1',
+      8,
+      36,
+      12
+    );
+    for (const log of d.iterationLogs) {
+      writeLine(
+        `[Tentativa ${log.attempt}] Diarias: ${log.parsedCount} (R$ ${log.parsedTotal.toFixed(2)}) | Regra: ${log.ruleActivated || 'BATIMENTO FINAL 100%'}`,
+        'F1',
+        8,
+        44,
+        11
+      );
+      writeLine(`   Detalhe: ${truncate(log.reason, 100)}`, 'F1', 8, 44, 11);
+    }
+  }
+
   // SEÇÃO 4: DETALHAMENTO DE CENÁRIOS E DIAGNÓSTICO DE FALHAS
   writeSectionTitle('4. DETALHAMENTO DE CENARIOS E DIAGNOSTICO DE FALHAS');
   writeLine(
@@ -354,6 +426,22 @@ export function gerarRelatorioHomologacaoPdf(input: HomologacaoPdfInput): {
     if (sc.status === 'FAIL' && sc.diagnostic) {
       writeLine(`   Diagnostico: ${truncate(sc.diagnostic, 96)}`, 'F1', 8, 44, 11);
     }
+  }
+
+  // SEÇÃO 5: SUGESTÕES DE MELHORIAS NO PROCESSO (JÁ APLICADAS EM CÓDIGO)
+  if (input.melhoriasAplicadas && input.melhoriasAplicadas.length > 0) {
+    writeSectionTitle(
+      '5. MELHORIAS DE PROCESSO SUGERIDAS E JA APLICADAS NO SISTEMA'
+    );
+    input.melhoriasAplicadas.forEach((melhoria, idx) => {
+      writeLine(
+        `${idx + 1}. ${truncate(melhoria, 96)}`,
+        'F1',
+        8,
+        36,
+        12
+      );
+    });
   }
 
   currentOps.push('ET');
