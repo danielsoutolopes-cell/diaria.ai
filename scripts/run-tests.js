@@ -70,6 +70,7 @@ try {
     path.join(repoRoot, 'tests/reprocessamento_vales_convergencia.test.ts'),
     path.join(repoRoot, 'tests/v16_features_homologacao.test.ts'),
     path.join(repoRoot, 'tests/reprocessamento_diarias_convergencia.test.ts'),
+    path.join(repoRoot, 'tests/deduplicacao_vales_v17.test.ts'),
     path.join(repoRoot, 'tests/reporters/pdfTestReportGenerator.ts'),
   ];
 
@@ -105,6 +106,7 @@ try {
     path.join(outDir, 'tests/reprocessamento_vales_convergencia.test.js'),
     path.join(outDir, 'tests/v16_features_homologacao.test.js'),
     path.join(outDir, 'tests/reprocessamento_diarias_convergencia.test.js'),
+    path.join(outDir, 'tests/deduplicacao_vales_v17.test.js'),
   ];
 
   const startedAt = Date.now();

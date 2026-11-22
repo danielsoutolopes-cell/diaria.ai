@@ -80,19 +80,26 @@ export default function ValidacaoValesPage() {
   });
   const [trabalhadores, setTrabalhadores] = useState<string[]>([]);
   const [obras, setObras] = useState<ObraOption[]>([]);
+  const [solicitantes, setSolicitantes] = useState<string[]>([
+    'Gilvan - Gil',
+    'Patrícia',
+    'Daniel',
+    'Joabson',
+    'Manoel',
+  ]);
   const [loading, setLoading] = useState<boolean>(true);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<'TODOS' | 'SOLICITADO' | 'CONCILIADO'>('TODOS');
 
-  // Formulário com dropdowns Trabalhador e Obra (valor padrão R$ 100,00 se omitido)
+  // Formulário com dropdowns Trabalhador, Obra e Solicitado por (valor padrão R$ 100,00 se omitido)
   const [trabalhadorSel, setTrabalhadorSel] = useState<string>('');
   const [obraIdSel, setObraIdSel] = useState<string>('');
   const [valorInput, setValorInput] = useState<string>('100');
   const [dataInput, setDataInput] = useState<string>(() =>
     new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
   );
-  const [solicitanteInput, setSolicitanteInput] = useState<string>('Gil');
+  const [solicitanteInput, setSolicitanteInput] = useState<string>('Gilvan - Gil');
   const [obsInput, setObsInput] = useState<string>('');
   const [salvando, setSalvando] = useState<boolean>(false);
 
@@ -112,6 +119,8 @@ export default function ValidacaoValesPage() {
         vales?: ValeItem[];
         trabalhadores?: string[];
         obras?: ObraOption[];
+        solicitantes?: string[];
+        solicitantePadrao?: string;
       };
       setVales(d.vales || []);
       if (d.kpis) setKpis(d.kpis);
@@ -119,6 +128,14 @@ export default function ValidacaoValesPage() {
       const listaObras = d.obras || [];
       setTrabalhadores(listaTrabs);
       setObras(listaObras);
+      if (d.solicitantes && d.solicitantes.length > 0) {
+        setSolicitantes(d.solicitantes);
+        setSolicitanteInput((atual) =>
+          atual && d.solicitantes?.includes(atual)
+            ? atual
+            : d.solicitantePadrao || d.solicitantes?.[0] || 'Gilvan - Gil'
+        );
+      }
       if (!trabalhadorSel && listaTrabs.length > 0) {
         setTrabalhadorSel(listaTrabs[0]);
       }
@@ -503,78 +520,115 @@ export default function ValidacaoValesPage() {
           </div>
         )}
 
-        {/* Formulário Etapa 1 com Dropdowns de Trabalhador e Obra */}
+        {/* Formulário Etapa 1 com Dropdowns Oficiais (Trabalhador, Obra e Solicitado por) */}
         <form
           onSubmit={handleCriarSolicitacao}
-          className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-3"
+          className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm space-y-3"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-xs font-black uppercase tracking-wider text-slate-800">
-              Nova Solicitação de Vale (Etapa 1 — Dropdowns Oficiais)
+              Nova Solicitação (Etapa 1 — Registrar Pedido)
             </h2>
             <span className="text-[11px] font-semibold text-slate-400">
               Padrão R$ 100,00 se valor omitido
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
-            <select
-              value={trabalhadorSel}
-              onChange={(e) => setTrabalhadorSel(e.target.value)}
-              className="sm:col-span-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900"
-              required
-            >
-              <option value="">Trabalhador...</option>
-              {trabalhadores.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+            <div className="sm:col-span-3 space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                Trabalhador
+              </label>
+              <select
+                value={trabalhadorSel}
+                onChange={(e) => setTrabalhadorSel(e.target.value)}
+                aria-label="Trabalhador"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900"
+                required
+              >
+                <option value="">Trabalhador...</option>
+                {trabalhadores.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <select
-              value={obraIdSel}
-              onChange={(e) => setObraIdSel(e.target.value)}
-              className="sm:col-span-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900"
-            >
-              <option value="">Obra...</option>
-              {obras.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.nome}
-                </option>
-              ))}
-            </select>
+            <div className="sm:col-span-3 space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                Obra
+              </label>
+              <select
+                value={obraIdSel}
+                onChange={(e) => setObraIdSel(e.target.value)}
+                aria-label="Obra"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900"
+              >
+                <option value="">Obra...</option>
+                {obras.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <input
-              type="date"
-              value={dataInput}
-              onChange={(e) => setDataInput(e.target.value)}
-              className="sm:col-span-2 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900"
-            />
+            <div className="sm:col-span-2 space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                Data
+              </label>
+              <input
+                type="date"
+                value={dataInput}
+                onChange={(e) => setDataInput(e.target.value)}
+                aria-label="Data da solicitação"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900"
+              />
+            </div>
 
-            <input
-              type="text"
-              value={valorInput}
-              onChange={(e) => setValorInput(e.target.value)}
-              placeholder="Valor (100)"
-              className="sm:col-span-1 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-black text-slate-900 tabular-nums"
-            />
+            <div className="sm:col-span-1 space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                Valor
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={valorInput}
+                onChange={(e) => setValorInput(e.target.value)}
+                placeholder="100"
+                aria-label="Valor do vale"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-black text-slate-900 tabular-nums"
+              />
+            </div>
 
-            <input
-              type="text"
-              value={solicitanteInput}
-              onChange={(e) => setSolicitanteInput(e.target.value)}
-              placeholder="Solicitado por..."
-              className="sm:col-span-2 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800"
-            />
+            <div className="sm:col-span-2 space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                Solicitado por
+              </label>
+              <select
+                value={solicitanteInput}
+                onChange={(e) => setSolicitanteInput(e.target.value)}
+                aria-label="Solicitado por"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900"
+                required
+              >
+                {solicitantes.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <button
               type="submit"
               disabled={salvando}
-              className="sm:col-span-1 py-2.5 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-white text-xs font-black flex items-center justify-center"
+              className="sm:col-span-1 py-2.5 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-white text-xs font-black flex items-center justify-center gap-1.5 h-[38px]"
               title="Registrar solicitação de vale (Etapa 1)"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 shrink-0" />
+              <span className="sm:hidden">Registrar Pedido</span>
             </button>
           </div>
         </form>

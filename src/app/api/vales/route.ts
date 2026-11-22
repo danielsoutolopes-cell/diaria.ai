@@ -7,6 +7,10 @@ import {
 } from '@/lib/normalizarObra';
 import { uploadToR2 } from '@/services/r2Storage';
 import { analisarImagemPixComGemini } from '@/services/valesNlp';
+import {
+  deduplicarValesPreservandoMetadados,
+  gerarChaveIdempotenciaVale,
+} from '@/lib/valeIdempotencia';
 import type { ValeEtapa } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +23,7 @@ interface ObraRel {
 
 interface ValeDbRow {
   id: string;
+  tenant_id?: string;
   nome_trabalhador: string;
   valor_monetario: number | string;
   status: string;
@@ -33,6 +38,7 @@ interface ValeDbRow {
   pago_por?: string | null;
   data_hora_envio_efetivo?: string | null;
   horario_origem?: string | null;
+  chave_idempotencia?: string | null;
   liquidado_em?: string | null;
   obra_id: string | null;
   created_at: string;
@@ -121,6 +127,65 @@ function montarTimestampBrasiliaISO(dataIso: string, horaHm: string): string {
   return `${dataIso}T${horaLimpa}:00-03:00`;
 }
 
+function normalizarOpcaoSolicitante(raw: string): string | null {
+  const limpo = raw.trim();
+  if (!limpo) return null;
+  const lower = limpo
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  if (lower === 'whatsapp log' || lower === 'registros de origem') return null;
+  if (lower === 'gil' || lower === 'gilvan' || lower.includes('gilvan')) {
+    return 'Gilvan - Gil';
+  }
+  if (lower === 'patricia' || lower.startsWith('patricia ')) {
+    return 'Patrícia';
+  }
+  if (lower === 'daniel' || lower.startsWith('daniel ')) {
+    return 'Daniel';
+  }
+  return normalizarNomeTrabalhadorCanonico(limpo);
+}
+
+function montarSolicitantesPorTenant(
+  tenantSlug: string,
+  trabalhadoresTenant: readonly string[],
+  solicitantesHistoricos: readonly string[]
+): { solicitantes: string[]; solicitantePadrao: string } {
+  const basePrioritaria =
+    tenantSlug === 'intermack'
+      ? ['Daniel', 'Patrícia']
+      : ['Gilvan - Gil', 'Patrícia', 'Daniel', 'Joabson', 'Manoel'];
+
+  const vistos = new Set<string>();
+  const lista: string[] = [];
+
+  const adicionar = (valor: string | null) => {
+    if (!valor) return;
+    const chave = valor
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+    if (vistos.has(chave)) return;
+    vistos.add(chave);
+    lista.push(valor);
+  };
+
+  for (const item of basePrioritaria) adicionar(item);
+  for (const hist of solicitantesHistoricos) {
+    adicionar(normalizarOpcaoSolicitante(hist));
+  }
+  for (const trab of trabalhadoresTenant) {
+    adicionar(normalizarOpcaoSolicitante(trab));
+  }
+
+  return {
+    solicitantes: lista,
+    solicitantePadrao:
+      tenantSlug === 'intermack' ? lista[0] || 'Daniel' : 'Gilvan - Gil',
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const activeTenant = getActiveTenantFromRequest(req);
@@ -131,6 +196,7 @@ export async function GET(req: NextRequest) {
       .from('lancamentos_financeiros')
       .select(`
         id,
+        tenant_id,
         nome_trabalhador,
         valor_monetario,
         status,
@@ -145,6 +211,7 @@ export async function GET(req: NextRequest) {
         pago_por,
         data_hora_envio_efetivo,
         horario_origem,
+        chave_idempotencia,
         liquidado_em,
         obra_id,
         created_at,
@@ -161,6 +228,7 @@ export async function GET(req: NextRequest) {
         .from('lancamentos_financeiros')
         .select(`
           id,
+          tenant_id,
           nome_trabalhador,
           valor_monetario,
           status,
@@ -187,6 +255,7 @@ export async function GET(req: NextRequest) {
           .from('lancamentos_financeiros')
           .select(`
             id,
+            tenant_id,
             nome_trabalhador,
             valor_monetario,
             status,
@@ -211,6 +280,14 @@ export async function GET(req: NextRequest) {
       rows = (resV15.data as unknown as ValeDbRow[] | null) || [];
     }
 
+    // Deduplicação defensiva preservando sempre os metadados mais completos por tenant_id
+    const rowsComTenant = rows.map((r) => ({
+      ...r,
+      tenant_id: r.tenant_id || tenantId,
+    }));
+    const { unicos: rowsUnicos } =
+      deduplicarValesPreservandoMetadados(rowsComTenant);
+
     const [{ data: funcs }, { data: obras }] = await Promise.all([
       supabaseAdmin
         .from('funcionarios_obra')
@@ -226,7 +303,7 @@ export async function GET(req: NextRequest) {
         .order('nome', { ascending: true }),
     ]);
 
-    const vales: ValeItemDTO[] = rows.map((row) => {
+    const vales: ValeItemDTO[] = rowsUnicos.map((row) => {
       const obraRel = extrairObraRel(row.obras_config);
       const etapa = resolverEtapa(row);
       const hora =
@@ -237,7 +314,7 @@ export async function GET(req: NextRequest) {
           minute: '2-digit',
         });
 
-      const solicitadoPor = row.solicitado_por || 'Gil';
+      const solicitadoPor = row.solicitado_por || 'Gilvan - Gil';
       const dataHoraSolicitacao =
         row.data_hora_solicitacao ||
         montarTimestampBrasiliaISO(row.data_referencia, hora);
@@ -294,6 +371,12 @@ export async function GET(req: NextRequest) {
       nome: normalizarNomeObraCanonica(o.nome, o.tipo_obra),
     }));
 
+    const { solicitantes, solicitantePadrao } = montarSolicitantesPorTenant(
+      activeTenant.slug,
+      trabalhadoresUnicos,
+      vales.map((v) => v.solicitadoPor)
+    );
+
     return NextResponse.json({
       tenant: activeTenant.slug,
       kpis: {
@@ -313,6 +396,8 @@ export async function GET(req: NextRequest) {
       vales,
       trabalhadores: trabalhadoresUnicos,
       obras: obrasLista,
+      solicitantes,
+      solicitantePadrao,
     });
   } catch (error) {
     console.error('Erro em GET /api/vales:', error);
@@ -429,7 +514,36 @@ export async function POST(req: NextRequest) {
       const horaRef = body.horario || getHoraBrasilia();
       const dataHoraSol =
         body.dataHoraSolicitacao || montarTimestampBrasiliaISO(dataRef, horaRef);
-      const solicitanteFinal = body.solicitadoPor?.trim() || 'Gil';
+      const solicitanteFinal = body.solicitadoPor?.trim() || 'Gilvan - Gil';
+
+      const chaveIdempotencia = gerarChaveIdempotenciaVale({
+        tenantId,
+        trabalhador: trabalhadorCanonico,
+        dataReferencia: dataRef,
+        janelaSolicitacao: horaRef,
+        valor: valorFinal,
+      });
+
+      const { data: valeExistente } = await supabaseAdmin
+        .from('lancamentos_financeiros')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('chave_idempotencia', chaveIdempotencia)
+        .neq('status', 'DESCARTADO')
+        .limit(1)
+        .maybeSingle();
+
+      if (valeExistente?.id) {
+        return NextResponse.json({
+          success: true,
+          id: valeExistente.id,
+          duplicataEvitada: true,
+          chave_idempotencia: chaveIdempotencia,
+          solicitado_por: solicitanteFinal,
+          data_hora_solicitacao: dataHoraSol,
+          message: `Solicitação já registrada anteriormente para ${trabalhadorCanonico} nesta janela (idempotência ativa — duplicata evitada).`,
+        });
+      }
 
       let resInsert = await supabaseAdmin
         .from('lancamentos_financeiros')
@@ -449,6 +563,7 @@ export async function POST(req: NextRequest) {
           solicitado_por: solicitanteFinal,
           data_hora_solicitacao: dataHoraSol,
           horario_origem: horaRef,
+          chave_idempotencia: chaveIdempotencia,
         })
         .select('id')
         .single();
@@ -483,6 +598,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         id: resInsert.data?.id,
+        chave_idempotencia: chaveIdempotencia,
         solicitado_por: solicitanteFinal,
         data_hora_solicitacao: dataHoraSol,
         message: `Etapa 1 registrada: Vale de R$ ${valorFinal.toFixed(2)} para ${trabalhadorCanonico} (aguardando PIX).`,
@@ -594,9 +710,57 @@ export async function POST(req: NextRequest) {
       );
       const dataRef = body.data || getHojeBrasilia();
       const horaRef = body.horario || getHoraBrasilia();
-      const solicitanteFinal = body.solicitadoPor?.trim() || 'Gil';
+      const solicitanteFinal = body.solicitadoPor?.trim() || 'Gilvan - Gil';
       const dataHoraSol =
         body.dataHoraSolicitacao || montarTimestampBrasiliaISO(dataRef, horaRef);
+      const chaveIdempotencia = gerarChaveIdempotenciaVale({
+        tenantId,
+        trabalhador: trabalhadorCanonico,
+        dataReferencia: dataRef,
+        janelaSolicitacao: horaRef,
+        valor: valorFinal,
+      });
+
+      const { data: valeExistentePix } = await supabaseAdmin
+        .from('lancamentos_financeiros')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('chave_idempotencia', chaveIdempotencia)
+        .neq('status', 'DESCARTADO')
+        .limit(1)
+        .maybeSingle();
+
+      if (valeExistentePix?.id) {
+        const enrichPayload: Record<string, unknown> = {
+          status: 'VALIDADO',
+          vale_etapa: 'CONCILIADO',
+          aprovado_por: pagador,
+          pago_por: pagador,
+          data_hora_envio_efetivo: dataHoraEnvio,
+          updated_at: agoraIso,
+        };
+        if (comprovantePixUrl) {
+          enrichPayload.comprovante_url = comprovantePixUrl;
+          enrichPayload.comprovante_pix_url = comprovantePixUrl;
+        }
+        await supabaseAdmin
+          .from('lancamentos_financeiros')
+          .update(enrichPayload)
+          .eq('tenant_id', tenantId)
+          .eq('id', valeExistentePix.id);
+
+        return NextResponse.json({
+          success: true,
+          id: valeExistentePix.id,
+          duplicataEvitada: true,
+          comprovantePixUrl,
+          solicitado_por: solicitanteFinal,
+          data_hora_solicitacao: dataHoraSol,
+          aprovado_por: pagador,
+          data_hora_envio_efetivo: dataHoraEnvio,
+          message: `Comprovante PIX vinculado ao vale existente de ${trabalhadorCanonico} (idempotência ativa — sem duplicar).`,
+        });
+      }
 
       let resInsert2 = await supabaseAdmin
         .from('lancamentos_financeiros')
@@ -620,6 +784,7 @@ export async function POST(req: NextRequest) {
           pago_por: pagador,
           data_hora_envio_efetivo: dataHoraEnvio,
           horario_origem: horaRef,
+          chave_idempotencia: chaveIdempotencia,
         })
         .select('id')
         .single();
@@ -656,6 +821,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         id: resInsert2.data?.id,
+        chave_idempotencia: chaveIdempotencia,
         comprovantePixUrl,
         solicitado_por: solicitanteFinal,
         data_hora_solicitacao: dataHoraSol,

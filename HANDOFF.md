@@ -54,6 +54,18 @@
 - **Padrão White-Label / Genérico**: Os manuais, guias e ajudas voltados ao usuário final devem usar linguagem **genérica** (ex.: *Empresa Modo Diarista*, *Empresa Modo Empreita*, *Obra Residencial*, *Encarregado*), **sem citar nomes reais de empresas ou clientes específicos**, e sempre incluir **pequenos exemplos práticos de uso**.
 
 ## Últimas Ações (Ciclo Atual)
+- **Deduplicação de Vales (`31 -> 27 vales = R$ 2.700,00`), Idempotência Anti-Duplicidade & Dropdown "Solicitado por" (V17)**:
+  - **Acerto ao Vivo no Banco Remoto (`supabase/migration_v17_deduplicacao_vales_idempotencia.sql`)**:
+    - Removidos via *Soft Delete* auditado (`status = 'DESCARTADO'`) os **4 registros duplicados/excedentes** (R$ 400,00) do tenant **Jhoston** (`00000000-0000-0000-0000-000000000001`):
+      1. `bb91fed5-25e6-4cd5-8d97-c3a1eaaedf9c` (`2026-03-30`, `Daniel`, Assistente IA — duplicata com data incorreta do vale de 21/11);
+      2. `86690c22-d3cf-455d-b82a-0c613c3e3a9e` (`2026-03-30`, `Ian`, Assistente IA — duplicata com data incorreta do vale de 21/11);
+      3. `0223d32b-26cc-4415-84c5-73e1b0eda0df` (`2026-03-31`, `Lucas.j.`, Assistente IA — duplicata com data incorreta do vale de 20/11);
+      4. `901fa19a-1cd1-4735-bce0-dbcc16475637` (`2026-11-19`, `PEU`, excedente fora dos 5 vales auditados de 19/11 `[Mateus, Lucas J, Daniel, Ian, Gil]`).
+    - Total consolidado validado diretamente no PostgreSQL: **exatamente 27 vales = R$ 2.700,00** (`17/11`: 6, `18/11`: 3, `19/11`: 5, `20/11`: 5, `21/11`: 3, `22/11`: 5; `Daniel` R$ 600, `Ian` R$ 600, `Mateus` R$ 600, `Gil` R$ 300, `Peu` R$ 300, `Lucas J` R$ 200, `Zé Baiano` R$ 100), todos com `chave_idempotencia` preenchida (`sem_chave = 0`).
+  - **Idempotência Determinística (`src/lib/valeIdempotencia.ts` + Índice Único `idx_lancamentos_vale_idempotencia_janela`)**:
+    - Chave determinística (`tenant_id + trabalhador_canônico + data_referencia + janela_solicitacao(15min) + hash SHA-256`) aplicada nos 3 pontos de gravação (`POST /api/vales`, `POST /api/webhook/whatsapp`, `POST /api/terminal/confirmar`), além de deduplicação defensiva preservando metadados mais completos em `GET /api/vales`.
+  - **Melhoria de UX em `/validacao/vales` (`src/app/validacao/vales/page.tsx` + `src/app/api/vales/route.ts`)**:
+    - Substituído o campo texto livre `"Solicitado por"` no card **"Nova Solicitação (Etapa 1 — Registrar Pedido)"** por um **dropdown (`<select>`) dinâmico filtrado pelo `tenant_id` ativo** (`Gilvan - Gil`, `Patrícia`, `Daniel`, `Joabson`, `Manoel` e colaboradores ativos do tenant), com **`Gilvan - Gil`** selecionado por padrão.
 - **Otimização Completa de UX/UI para Celular em Pé (Mobile Portrait `360px–430px`)**:
   - **Barra de Navegação Inferior Nativa (`src/components/MobileBottomNav.tsx`)**: Nova barra fixa inferior (`lg:hidden`) com 5 atalhos ergonômicos adaptados ao tenant ativo (`Início`, `Diárias`/`Efetivo` com badge de pendências ao vivo, `Vales`/`Compras`, `PIX`/`Diário`, `Relatórios`), respeitando safe-area (`pb-safe`) e oculta em `/login` e `/extrato/*`.
   - **Correção Crítica do Borderô (`/bordero`) no Celular em Pé (`src/app/bordero/page.tsx`)**:

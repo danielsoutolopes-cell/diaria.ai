@@ -175,12 +175,34 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 4. Registrar vales (VALE) — Consistência Omnichannel (Prompt 11):
+      // 4. Registrar vales (VALE) — Consistência Omnichannel + Idempotência V17:
       // Vales confirmados via Terminal/Omnichannel por Patrícia ou Daniel ficam imediatamente VALIDADO + CONCILIADO
       if (obra.vales?.length) {
+        const { gerarChaveIdempotenciaVale } = await import('@/lib/valeIdempotencia');
         for (const vale of obra.vales) {
           const nomeValeCanonico = normalizarNomeTrabalhadorCanonico(vale.nome);
           const valorVale = Number(vale.valor) > 0 ? Number(vale.valor) : 100.0;
+          const chaveIdempotencia = gerarChaveIdempotenciaVale({
+            tenantId,
+            trabalhador: nomeValeCanonico,
+            dataReferencia: dataRef,
+            janelaSolicitacao: horaBR,
+            valor: valorVale,
+          });
+
+          const { data: existente } = await supabaseAdmin
+            .from('lancamentos_financeiros')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .eq('chave_idempotencia', chaveIdempotencia)
+            .neq('status', 'DESCARTADO')
+            .limit(1)
+            .maybeSingle();
+
+          if (existente?.id) {
+            continue;
+          }
+
           await supabaseAdmin.from('lancamentos_financeiros').insert({
             tenant_id: tenantId,
             obra_id: obraId,
@@ -196,8 +218,12 @@ export async function POST(req: NextRequest) {
             ponto_lote_id: loteId,
             vale_etapa: isAdminConfirmando ? 'CONCILIADO' : 'SOLICITADO',
             solicitado_por: usuarioLogado,
+            data_hora_solicitacao: `${dataRef}T${horaBR}:00-03:00`,
+            aprovado_por: isAdminConfirmando ? usuarioLogado : null,
             pago_por: isAdminConfirmando ? usuarioLogado : null,
+            data_hora_envio_efetivo: isAdminConfirmando ? new Date().toISOString() : null,
             horario_origem: horaBR,
+            chave_idempotencia: chaveIdempotencia,
           });
           totalVales++;
         }

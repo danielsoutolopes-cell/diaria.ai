@@ -705,49 +705,85 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
           const dataHoraSolIso = `${dataConfirmacao}T${horaBrasilia}:00-03:00`;
-          const { error: errInsV15 } = await supabaseAdmin
-            .from('lancamentos_financeiros')
-            .insert({
-              tenant_id: tenantId,
-              obra_id: obraMatch?.id || null,
-              nome_trabalhador: nomeCanonico,
-              tipo_lancamento: 'VALE',
-              fracao_dia: 0,
-              valor_monetario: valorConfirmado,
-              status: 'VALIDADO',
-              data_referencia: dataConfirmacao,
-              observacao: `Vale confirmado via PIX WhatsApp (${messageText || 'OCR'})`,
-              comprovante_url: comprovanteUrl,
-              comprovante_pix_url: comprovanteUrl,
-              vale_etapa: 'CONCILIADO',
-              solicitado_por: 'Gil',
-              data_hora_solicitacao: dataHoraSolIso,
-              aprovado_por: pagadorPix,
-              pago_por: pagadorPix,
-              data_hora_envio_efetivo: agoraEnvioIso,
-              mensagem_origem_id: messageId,
-              horario_origem: horaBrasilia,
-            });
+          const { gerarChaveIdempotenciaVale } = await import('@/lib/valeIdempotencia');
+          const chaveIdempotenciaPix = gerarChaveIdempotenciaVale({
+            tenantId,
+            trabalhador: nomeCanonico,
+            dataReferencia: dataConfirmacao,
+            janelaSolicitacao: horaBrasilia,
+            valor: valorConfirmado,
+          });
 
-          if (errInsV15) {
-            await supabaseAdmin.from('lancamentos_financeiros').insert({
-              tenant_id: tenantId,
-              obra_id: obraMatch?.id || null,
-              nome_trabalhador: nomeCanonico,
-              tipo_lancamento: 'VALE',
-              fracao_dia: 0,
-              valor_monetario: valorConfirmado,
-              status: 'VALIDADO',
-              data_referencia: dataConfirmacao,
-              observacao: `Vale confirmado via PIX WhatsApp (${messageText || 'OCR'})`,
-              comprovante_url: comprovanteUrl,
-              comprovante_pix_url: comprovanteUrl,
-              vale_etapa: 'CONCILIADO',
-              solicitado_por: 'Gil',
-              pago_por: pagadorPix,
-              mensagem_origem_id: messageId,
-              horario_origem: horaBrasilia,
-            });
+          const { data: valeJaExistentePix } = await supabaseAdmin
+            .from('lancamentos_financeiros')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .eq('chave_idempotencia', chaveIdempotenciaPix)
+            .neq('status', 'DESCARTADO')
+            .limit(1)
+            .maybeSingle();
+
+          if (valeJaExistentePix?.id) {
+            await supabaseAdmin
+              .from('lancamentos_financeiros')
+              .update({
+                status: 'VALIDADO',
+                vale_etapa: 'CONCILIADO',
+                comprovante_url: comprovanteUrl,
+                comprovante_pix_url: comprovanteUrl,
+                aprovado_por: pagadorPix,
+                pago_por: pagadorPix,
+                data_hora_envio_efetivo: agoraEnvioIso,
+                updated_at: agoraEnvioIso,
+              })
+              .eq('tenant_id', tenantId)
+              .eq('id', valeJaExistentePix.id);
+          } else {
+            const { error: errInsV15 } = await supabaseAdmin
+              .from('lancamentos_financeiros')
+              .insert({
+                tenant_id: tenantId,
+                obra_id: obraMatch?.id || null,
+                nome_trabalhador: nomeCanonico,
+                tipo_lancamento: 'VALE',
+                fracao_dia: 0,
+                valor_monetario: valorConfirmado,
+                status: 'VALIDADO',
+                data_referencia: dataConfirmacao,
+                observacao: `Vale confirmado via PIX WhatsApp (${messageText || 'OCR'})`,
+                comprovante_url: comprovanteUrl,
+                comprovante_pix_url: comprovanteUrl,
+                vale_etapa: 'CONCILIADO',
+                solicitado_por: 'Gilvan - Gil',
+                data_hora_solicitacao: dataHoraSolIso,
+                aprovado_por: pagadorPix,
+                pago_por: pagadorPix,
+                data_hora_envio_efetivo: agoraEnvioIso,
+                mensagem_origem_id: messageId,
+                horario_origem: horaBrasilia,
+                chave_idempotencia: chaveIdempotenciaPix,
+              });
+
+            if (errInsV15) {
+              await supabaseAdmin.from('lancamentos_financeiros').insert({
+                tenant_id: tenantId,
+                obra_id: obraMatch?.id || null,
+                nome_trabalhador: nomeCanonico,
+                tipo_lancamento: 'VALE',
+                fracao_dia: 0,
+                valor_monetario: valorConfirmado,
+                status: 'VALIDADO',
+                data_referencia: dataConfirmacao,
+                observacao: `Vale confirmado via PIX WhatsApp (${messageText || 'OCR'})`,
+                comprovante_url: comprovanteUrl,
+                comprovante_pix_url: comprovanteUrl,
+                vale_etapa: 'CONCILIADO',
+                solicitado_por: 'Gilvan - Gil',
+                pago_por: pagadorPix,
+                mensagem_origem_id: messageId,
+                horario_origem: horaBrasilia,
+              });
+            }
           }
         }
 
@@ -980,11 +1016,49 @@ export async function POST(req: NextRequest) {
         const nomeSolicitanteVale =
           encSolicitante?.nome || senderNumber || 'Gil';
 
+        const { gerarChaveIdempotenciaVale } = await import('@/lib/valeIdempotencia');
         for (const vale of obra.vales) {
           const nomeValeCanonico = normalizarNomeTrabalhadorCanonico(vale.nome);
           const valorVale = Number(vale.valor) > 0 ? Number(vale.valor) : 100.0;
           const dataHoraSolicitacao = `${dataRefLote}T${horaBrasilia}:00-03:00`;
           const agoraIsoVale = new Date().toISOString();
+          const chaveIdempotenciaVale = gerarChaveIdempotenciaVale({
+            tenantId,
+            trabalhador: nomeValeCanonico,
+            dataReferencia: dataRefLote,
+            janelaSolicitacao: horaBrasilia,
+            valor: valorVale,
+          });
+
+          const { data: valeJaExiste } = await supabaseAdmin
+            .from('lancamentos_financeiros')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .eq('chave_idempotencia', chaveIdempotenciaVale)
+            .neq('status', 'DESCARTADO')
+            .limit(1)
+            .maybeSingle();
+
+          if (valeJaExiste?.id) {
+            if (comprovanteUrl) {
+              await supabaseAdmin
+                .from('lancamentos_financeiros')
+                .update({
+                  status: 'VALIDADO',
+                  vale_etapa: 'CONCILIADO',
+                  comprovante_url: comprovanteUrl,
+                  comprovante_pix_url: comprovanteUrl,
+                  aprovado_por: 'Patrícia Grubel',
+                  pago_por: 'Patrícia Grubel',
+                  data_hora_envio_efetivo: agoraIsoVale,
+                  updated_at: agoraIsoVale,
+                })
+                .eq('tenant_id', tenantId)
+                .eq('id', valeJaExiste.id);
+            }
+            continue;
+          }
+
           const { error: errValeV15 } = await supabaseAdmin
             .from('lancamentos_financeiros')
             .insert({
@@ -1012,6 +1086,7 @@ export async function POST(req: NextRequest) {
               data_hora_envio_efetivo: comprovanteUrl ? agoraIsoVale : null,
               mensagem_origem_id: messageId,
               horario_origem: horaBrasilia,
+              chave_idempotencia: chaveIdempotenciaVale,
             });
 
           if (errValeV15) {
