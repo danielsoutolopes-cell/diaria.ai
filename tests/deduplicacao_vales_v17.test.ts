@@ -8,6 +8,10 @@ import {
   type RegistroValeDeduplicavel,
 } from '@/lib/valeIdempotencia';
 import { TENANTS } from '@/lib/tenant';
+import {
+  resolverDataHoraCorteValidacao,
+  formatarDataHoraCorteBR,
+} from '@/lib/formatarDataCorte';
 
 describe('12. Deduplicação de Vales (31 -> 27 = R$ 2.700,00), Idempotência & Dropdown Solicitado por (V17)', () => {
   it('gera chave determinística por tenant_id + trabalhador canônico + data + janela e isola Jhoston vs Intermack', () => {
@@ -117,5 +121,34 @@ describe('12. Deduplicação de Vales (31 -> 27 = R$ 2.700,00), Idempotência & 
     assert.match(routeCode, /solicitantes/);
     assert.match(routeCode, /solicitantePadrao/);
     assert.match(routeCode, /gerarChaveIdempotenciaVale/);
+  });
+
+  it('formata o ponto de corte de validação com data e hora no fuso America/Sao_Paulo e fallback seguro para data sem hora', () => {
+    // Jhoston com corte rígido completo (data + hora)
+    const corteJhoston = resolverDataHoraCorteValidacao({
+      data_corte_operacional: '2026-11-22',
+      data_hora_corte_rigido: '2026-11-22T11:40:00-03:00',
+    });
+    assert.equal(corteJhoston, '2026-11-22T11:40:00-03:00');
+    assert.equal(
+      formatarDataHoraCorteBR(corteJhoston),
+      '22/11/2026 às 11:40'
+    );
+
+    // Registro legado contendo apenas YYYY-MM-DD -> fallback 00:00 sem deslocar dia
+    assert.equal(
+      formatarDataHoraCorteBR('2026-11-22'),
+      '22/11/2026 às 00:00'
+    );
+
+    // Timestamp UTC convertido corretamente para America/Sao_Paulo (-03:00)
+    assert.equal(
+      formatarDataHoraCorteBR('2026-11-22T14:40:00.000Z'),
+      '22/11/2026 às 11:40'
+    );
+
+    // Tenant sem corte configurado (ex.: Intermack) retorna null
+    assert.equal(resolverDataHoraCorteValidacao({}), null);
+    assert.equal(formatarDataHoraCorteBR(null), null);
   });
 });

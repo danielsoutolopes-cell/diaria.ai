@@ -249,29 +249,42 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const dataCorteOperacional =
-      typeof configsSistema.data_corte_operacional === 'string'
-        ? configsSistema.data_corte_operacional
-        : null;
+    const {
+      resolverDataHoraCorteValidacao,
+      formatarDataHoraCorteBR,
+    } = await import('@/lib/formatarDataCorte');
+    const corteConfigurado = resolverDataHoraCorteValidacao(configsSistema);
 
     const rawMsgTimestamp =
       body?.data?.messageTimestamp || body?.messageTimestamp || null;
-    if (dataCorteOperacional && rawMsgTimestamp) {
+    if (corteConfigurado && rawMsgTimestamp) {
       const tsMs =
         Number(rawMsgTimestamp) > 1e12
           ? Number(rawMsgTimestamp)
           : Number(rawMsgTimestamp) * 1000;
       if (!Number.isNaN(tsMs)) {
-        const dataMsgBR = new Date(tsMs).toLocaleDateString('en-CA', {
-          timeZone: 'America/Sao_Paulo',
-        });
-        if (dataMsgBR <= dataCorteOperacional) {
+        const temHorarioExplicito = corteConfigurado.includes('T') || /\d{2}:\d{2}/.test(corteConfigurado);
+        let antesOuIgualCorte = false;
+        if (temHorarioExplicito) {
+          const corteMs = Date.parse(corteConfigurado);
+          if (!Number.isNaN(corteMs)) {
+            antesOuIgualCorte = tsMs <= corteMs;
+          }
+        } else {
+          const dataMsgBR = new Date(tsMs).toLocaleDateString('en-CA', {
+            timeZone: 'America/Sao_Paulo',
+          });
+          antesOuIgualCorte = dataMsgBR <= corteConfigurado;
+        }
+
+        if (antesOuIgualCorte) {
+          const corteLegivel = formatarDataHoraCorteBR(corteConfigurado) || corteConfigurado;
           console.log(
-            `[CORTE OPERACIONAL] Mensagem ${messageId} de ${dataMsgBR} ignorada (corte <= ${dataCorteOperacional}).`
+            `[CORTE OPERACIONAL] Mensagem ${messageId} ignorada (corte <= ${corteLegivel}).`
           );
           return NextResponse.json({
             status: 'ignored',
-            reason: `Mensagem anterior ao ponto de corte operacional (${dataCorteOperacional}).`,
+            reason: `Mensagem anterior ao ponto de corte operacional (${corteLegivel}).`,
             messageId,
           });
         }

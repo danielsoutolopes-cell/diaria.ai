@@ -239,10 +239,12 @@ export async function GET(req: NextRequest) {
       .maybeSingle();
 
     const configs = (paramData?.configuracoes || {}) as Record<string, unknown>;
-    const dataCorteOperacional =
-      typeof configs.data_corte_operacional === 'string'
-        ? configs.data_corte_operacional
-        : null;
+    const {
+      resolverDataHoraCorteValidacao,
+      formatarDataHoraCorteBR,
+    } = await import('@/lib/formatarDataCorte');
+    const dataCorteOperacional = resolverDataHoraCorteValidacao(configs);
+    const dataCorteFormatada = formatarDataHoraCorteBR(dataCorteOperacional);
 
     const regras = {
       dia_viagem_padrao: Number(configs.dia_viagem_padrao ?? 120.0),
@@ -457,6 +459,8 @@ export async function GET(req: NextRequest) {
       pendentes: itens,
       mensagens,
       dataCorteOperacional,
+      data_corte_validacao: dataCorteOperacional,
+      dataCorteFormatada,
     });
   } catch (err) {
     console.error('Erro na rota /api/pendentes:', err);
@@ -464,6 +468,8 @@ export async function GET(req: NextRequest) {
       pendentes: [],
       mensagens: [],
       dataCorteOperacional: null,
+      data_corte_validacao: null,
+      dataCorteFormatada: null,
     });
   }
 }

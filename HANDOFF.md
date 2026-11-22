@@ -54,6 +54,9 @@
 - **Padrão White-Label / Genérico**: Os manuais, guias e ajudas voltados ao usuário final devem usar linguagem **genérica** (ex.: *Empresa Modo Diarista*, *Empresa Modo Empreita*, *Obra Residencial*, *Encarregado*), **sem citar nomes reais de empresas ou clientes específicos**, e sempre incluir **pequenos exemplos práticos de uso**.
 
 ## Últimas Ações (Ciclo Atual)
+- **Exibição do Ponto de Corte de Validação com Data e Hora (`America/Sao_Paulo`)**:
+  - Criado utilitário tipado [`src/lib/formatarDataCorte.ts`](src/lib/formatarDataCorte.ts) (`resolverDataHoraCorteValidacao`, `normalizarDataHoraCorteISO`, `formatarDataHoraCorteBR`) que prioriza `data_corte_validacao` / `data_hora_corte_rigido` (ex.: `2026-11-22T11:40:00-03:00` → **`22/11/2026 às 11:40`**) com fallback seguro `00:00` para registros legados contendo apenas data (`YYYY-MM-DD`).
+  - Atualizados `GET /api/pendentes`, `POST /api/pendentes/corte` (persistindo `data_corte_validacao` + `data_hora_corte_rigido` por `tenant_id`), `POST /api/webhook/whatsapp` (comparando timestamp completo quando há horário explícito, liberando mensagens posteriores a `11:40` no dia do corte) e o badge na tela `/validacoes` (`Corte: até 22/11/2026 às 11:40` com `tabular-nums`).
 - **Deduplicação de Vales (`31 -> 27 vales = R$ 2.700,00`), Idempotência Anti-Duplicidade & Dropdown "Solicitado por" (V17)**:
   - **Acerto ao Vivo no Banco Remoto (`supabase/migration_v17_deduplicacao_vales_idempotencia.sql`)**:
     - Removidos via *Soft Delete* auditado (`status = 'DESCARTADO'`) os **4 registros duplicados/excedentes** (R$ 400,00) do tenant **Jhoston** (`00000000-0000-0000-0000-000000000001`):

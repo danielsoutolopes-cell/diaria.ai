@@ -30,10 +30,13 @@ export async function POST(req: NextRequest) {
       body = {};
     }
 
-    const dataHoraCorte = body.dataHoraCorte || null;
     const dataCorte =
       body.dataCorte ||
-      (dataHoraCorte ? dataHoraCorte.slice(0, 10) : getOntemBrasiliaISO());
+      (body.dataHoraCorte
+        ? body.dataHoraCorte.slice(0, 10)
+        : getOntemBrasiliaISO());
+    const dataHoraCorte =
+      body.dataHoraCorte || `${dataCorte}T23:59:00-03:00`;
     const usuarioLogado = body.usuarioLogado || 'Corte Rígido V15 (Sistema)';
     const agoraISO = new Date().toISOString();
 
@@ -48,7 +51,7 @@ export async function POST(req: NextRequest) {
       .eq('tenant_id', tenantId)
       .eq('status_validacao', 'PENDENTE');
 
-    queryLotes = dataHoraCorte
+    queryLotes = body.dataHoraCorte
       ? queryLotes.lte('created_at', dataHoraCorte)
       : queryLotes.lte('data_referencia', dataCorte);
 
@@ -72,7 +75,7 @@ export async function POST(req: NextRequest) {
       .eq('tenant_id', tenantId)
       .eq('status', 'PENDENTE');
 
-    queryLancs = dataHoraCorte
+    queryLancs = body.dataHoraCorte
       ? queryLancs.lte('created_at', dataHoraCorte)
       : queryLancs.lte('data_referencia', dataCorte);
 
@@ -87,7 +90,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Persistir data_corte_operacional e data_hora_corte_rigido em parametros_sistema
+    // 3. Persistir data_corte_operacional, data_corte_validacao e data_hora_corte_rigido em parametros_sistema
     const { data: paramAtual } = await supabaseAdmin
       .from('parametros_sistema')
       .select('id, configuracoes')
@@ -97,7 +100,8 @@ export async function POST(req: NextRequest) {
     const novasConfigs: Record<string, unknown> = {
       ...((paramAtual?.configuracoes as Record<string, unknown> | null) || {}),
       data_corte_operacional: dataCorte,
-      ...(dataHoraCorte ? { data_hora_corte_rigido: dataHoraCorte } : {}),
+      data_corte_validacao: dataHoraCorte,
+      data_hora_corte_rigido: dataHoraCorte,
       corte_aplicado_em: agoraISO,
       corte_aplicado_por: usuarioLogado,
     };
@@ -114,13 +118,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const { formatarDataHoraCorteBR } = await import('@/lib/formatarDataCorte');
+    const dataCorteFormatada = formatarDataHoraCorteBR(dataHoraCorte);
+
     return NextResponse.json({
       success: true,
       dataCorte,
       dataHoraCorte,
+      data_corte_validacao: dataHoraCorte,
+      dataCorteFormatada,
       lotesValidados: lotesAtualizados?.length || 0,
       lancamentosValidados: lancsAtualizados?.length || 0,
-      message: `Ponto de corte aplicado até ${dataHoraCorte || dataCorte}. Registros anteriores marcados como VALIDADO.`,
+      message: `Ponto de corte aplicado até ${dataCorteFormatada || dataHoraCorte}. Registros anteriores marcados como VALIDADO.`,
     });
   } catch (error) {
     console.error('Erro em POST /api/pendentes/corte:', error);

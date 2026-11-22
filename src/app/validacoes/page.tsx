@@ -24,6 +24,7 @@ import {
   TENANTS,
   type TenantConfig,
 } from '@/lib/tenant';
+import { formatarDataHoraCorteBR } from '@/lib/formatarDataCorte';
 
 interface PendenteItem {
   id: string;
@@ -124,9 +125,12 @@ export default function ValidacoesPage() {
       const data = (await res.json()) as {
         mensagens?: MensagemGrupo[];
         dataCorteOperacional?: string | null;
+        data_corte_validacao?: string | null;
       };
       setMensagens(data.mensagens || []);
-      setDataCorteOperacional(data.dataCorteOperacional || null);
+      setDataCorteOperacional(
+        data.data_corte_validacao || data.dataCorteOperacional || null
+      );
     } catch (e) {
       console.error(e);
       setMensagens([]);
@@ -394,14 +398,19 @@ export default function ValidacoesPage() {
       const data = (await res.json()) as {
         success?: boolean;
         dataCorte?: string;
+        dataHoraCorte?: string;
+        data_corte_validacao?: string;
         lotesValidados?: number;
         lancamentosValidados?: number;
       };
       if (data.success) {
-        setDataCorteOperacional(data.dataCorte || null);
+        const novoCorte =
+          data.data_corte_validacao || data.dataHoraCorte || data.dataCorte || null;
+        setDataCorteOperacional(novoCorte);
+        const corteLegivel = formatarDataHoraCorteBR(novoCorte) || novoCorte || '';
         mostrarFeedback(
           'sucesso',
-          `Ponto de corte aplicado até ${data.dataCorte}`,
+          `Ponto de corte aplicado até ${corteLegivel}`,
           `${data.lotesValidados || 0} mensagem(ns) e ${data.lancamentosValidados || 0} lançamento(s) anteriores foram consolidados como VALIDADO.`
         );
         await carregarPendentes();
@@ -421,6 +430,8 @@ export default function ValidacoesPage() {
         : curr.valorDiariaBase * curr.fracao),
     0
   );
+
+  const corteFormatado = formatarDataHoraCorteBR(dataCorteOperacional);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5 sm:space-y-8">
@@ -446,10 +457,17 @@ export default function ValidacoesPage() {
                   : 'Jhoston • Validação por Mensagem'}
               </span>
             </div>
-            {dataCorteOperacional && (
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
-                <Scissors className="w-3 h-3 text-slate-500" />
-                <span>Corte: até {dataCorteOperacional}</span>
+            {corteFormatado && (
+              <div
+                className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200 tabular-nums"
+                title={
+                  dataCorteOperacional
+                    ? `Ponto de corte de validação (${dataCorteOperacional})`
+                    : undefined
+                }
+              >
+                <Scissors className="w-3 h-3 text-slate-500 shrink-0" />
+                <span>Corte: até {corteFormatado}</span>
               </div>
             )}
           </div>
