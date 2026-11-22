@@ -20,7 +20,7 @@ BT
 (DIARIA.AI   RELATORIO OFICIAL DE HOMOLOGACAO \(SPRINT V15\)) Tj
 /F2 10 Tf
 1 0 0 1 36 787 Tm
-(Data de Geracao: 2026-11-22T20:29:51.803Z  |  Veredito Final: APROVADO PARA PRODUCAO) Tj
+(Data de Geracao: 2026-11-22T20:32:43.348Z  |  Veredito Final: APROVADO PARA PRODUCAO) Tj
 /F2 11 Tf
 1 0 0 1 36 765 Tm
 (1. RESUMO EXECUTIVO) Tj
@@ -59,7 +59,7 @@ BT
 (---------------------------------------------------------------------------------------------) Tj
 /F2 9 Tf
 1 0 0 1 36 603 Tm
-(Taxa de Aprovacao dos Testes: 100.0% \(46/46 aprovados, 0 falhas\) | Duracao: 2325 ms) Tj
+(Taxa de Aprovacao dos Testes: 100.0% \(46/46 aprovados, 0 falhas\) | Duracao: 1925 ms) Tj
 /F1 9 Tf
 1 0 0 1 36 590 Tm
 (Checagem Estrita TypeScript \(0 'any'\): APROVADO \(0 ocorrencias\)) Tj
@@ -176,25 +176,25 @@ BT
 (STATUS | DUR\(ms\) | CENARIO / REGRA AVALIADA) Tj
 /F1 8 Tf
 1 0 0 1 36 120 Tm
-([PASS] |    1.7 | Bordero   Selecao Global, Por Funcionario & Pagar por Obra: 1. Desmarcar Todos \(G...) Tj
+([PASS] |    1.4 | Bordero   Selecao Global, Por Funcionario & Pagar por Obra: 1. Desmarcar Todos \(G...) Tj
 /F1 8 Tf
 1 0 0 1 36 109 Tm
 ([PASS] |    0.6 | Bordero   Selecao Global, Por Funcionario & Pagar por Obra: 2. Marcar Todos / Des...) Tj
 /F1 8 Tf
 1 0 0 1 36 98 Tm
-([PASS] |   17.3 | Bordero   Selecao Global, Por Funcionario & Pagar por Obra: 3. Pagar por Obra sel...) Tj
+([PASS] |   15.9 | Bordero   Selecao Global, Por Funcionario & Pagar por Obra: 3. Pagar por Obra sel...) Tj
 /F1 8 Tf
 1 0 0 1 36 87 Tm
 ([PASS] |    1.1 | Bordero   Selecao Global, Por Funcionario & Pagar por Obra: 4. Integridade da tel...) Tj
 /F1 8 Tf
 1 0 0 1 36 76 Tm
-([PASS] |    3.5 | 12. Deduplicacao de Vales \(31 -> 27 = R$ 2.700,00\), Idempotencia & Dropdown Solic...) Tj
+([PASS] |    2.5 | 12. Deduplicacao de Vales \(31 -> 27 = R$ 2.700,00\), Idempotencia & Dropdown Solic...) Tj
 /F1 8 Tf
 1 0 0 1 36 65 Tm
-([PASS] |    0.9 | 12. Deduplicacao de Vales \(31 -> 27 = R$ 2.700,00\), Idempotencia & Dropdown Solic...) Tj
+([PASS] |    0.8 | 12. Deduplicacao de Vales \(31 -> 27 = R$ 2.700,00\), Idempotencia & Dropdown Solic...) Tj
 /F1 8 Tf
 1 0 0 1 36 54 Tm
-([PASS] |    1.6 | 12. Deduplicacao de Vales \(31 -> 27 = R$ 2.700,00\), Idempotencia & Dropdown Solic...) Tj
+([PASS] |    1.2 | 12. Deduplicacao de Vales \(31 -> 27 = R$ 2.700,00\), Idempotencia & Dropdown Solic...) Tj
 ET
 endstream
 endobj
@@ -210,121 +210,121 @@ BT
 (DIARIA.AI   RELATORIO DE HOMOLOGACAO SPRINT V15 | PAGINA 2) Tj
 /F1 8 Tf
 1 0 0 1 36 805 Tm
-([PASS] |   55.1 | 12. Deduplicacao de Vales \(31 -> 27 = R$ 2.700,00\), Idempotencia & Dropdown Solic...) Tj
+([PASS] |   28.7 | 12. Deduplicacao de Vales \(31 -> 27 = R$ 2.700,00\), Idempotencia & Dropdown Solic...) Tj
 /F1 8 Tf
 1 0 0 1 36 794 Tm
-([PASS] |    9.8 | Extracao de Diarias   Anti-Truncamento \(Pontos / Quebras / Domingo 22/11\): 1. Ext...) Tj
+([PASS] |   10.6 | Pipeline 2 Passagens + Checagem de Contagem \(Anti-Truncamento Domingo 22/11\): 1. ...) Tj
 /F1 8 Tf
 1 0 0 1 36 783 Tm
-([PASS] |    1.8 | Extracao de Diarias   Anti-Truncamento \(Pontos / Quebras / Domingo 22/11\): 2. Saf...) Tj
+([PASS] |    4.6 | Pipeline 2 Passagens + Checagem de Contagem \(Anti-Truncamento Domingo 22/11\): 2. ...) Tj
 /F1 8 Tf
 1 0 0 1 36 772 Tm
-([PASS] |    1.5 | Extracao de Diarias   Anti-Truncamento \(Pontos / Quebras / Domingo 22/11\): 3. Sup...) Tj
+([PASS] |    3.0 | Pipeline 2 Passagens + Checagem de Contagem \(Anti-Truncamento Domingo 22/11\): 3. ...) Tj
 /F1 8 Tf
 1 0 0 1 36 761 Tm
-([PASS] |    1.2 | Extracao de Diarias   Anti-Truncamento \(Pontos / Quebras / Domingo 22/11\): 4. Res...) Tj
+([PASS] |    1.2 | Pipeline 2 Passagens + Checagem de Contagem \(Anti-Truncamento Domingo 22/11\): 4. ...) Tj
 /F1 8 Tf
 1 0 0 1 36 750 Tm
-([PASS] |    1.7 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): impoe grafia ...) Tj
+([PASS] |    1.3 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): impoe grafia ...) Tj
 /F1 8 Tf
 1 0 0 1 36 739 Tm
 ([PASS] |    0.4 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): isola acesso ...) Tj
 /F1 8 Tf
 1 0 0 1 36 728 Tm
-([PASS] |   13.4 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma zero...) Tj
+([PASS] |   14.7 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma zero...) Tj
 /F1 8 Tf
 1 0 0 1 36 717 Tm
-([PASS] |    2.1 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma isol...) Tj
+([PASS] |    2.2 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma isol...) Tj
 /F1 8 Tf
 1 0 0 1 36 706 Tm
 ([PASS] |    3.1 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: aplica valor padra...) Tj
 /F1 8 Tf
 1 0 0 1 36 695 Tm
-([PASS] |    1.1 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: pareia legendas in...) Tj
+([PASS] |    1.2 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: pareia legendas in...) Tj
 /F1 8 Tf
 1 0 0 1 36 684 Tm
-([PASS] |    0.5 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: garante visibilida...) Tj
+([PASS] |    0.4 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: garante visibilida...) Tj
 /F1 8 Tf
 1 0 0 1 36 673 Tm
 ([PASS] |    0.6 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
 /F1 8 Tf
 1 0 0 1 36 662 Tm
-([PASS] |   33.3 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+([PASS] |   29.6 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
 /F1 8 Tf
 1 0 0 1 36 651 Tm
-([PASS] |    6.5 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+([PASS] |    6.2 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
 /F1 8 Tf
 1 0 0 1 36 640 Tm
 ([PASS] |    0.4 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): unifica Gil, Gilvan, ...) Tj
 /F1 8 Tf
 1 0 0 1 36 629 Tm
-([PASS] |    1.6 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): preserva saldo pre-im...) Tj
+([PASS] |    1.4 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): preserva saldo pre-im...) Tj
 /F1 8 Tf
 1 0 0 1 36 618 Tm
-([PASS] |    2.1 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: isola ...) Tj
+([PASS] |    1.9 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: isola ...) Tj
 /F1 8 Tf
 1 0 0 1 36 607 Tm
-([PASS] |    0.7 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: calcul...) Tj
+([PASS] |    0.4 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: calcul...) Tj
 /F1 8 Tf
 1 0 0 1 36 596 Tm
 ([PASS] |    2.4 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
 /F1 8 Tf
 1 0 0 1 36 585 Tm
-([PASS] |    5.1 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+([PASS] |    4.6 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
 /F1 8 Tf
 1 0 0 1 36 574 Tm
-([PASS] |    3.8 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+([PASS] |    3.0 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
 /F1 8 Tf
 1 0 0 1 36 563 Tm
-([PASS] |   11.3 | 11. Reprocessamento Historico de Diarias & Loop Self-Healing \(54 Diarias = R$ 9.7...) Tj
+([PASS] |    9.6 | 11. Reprocessamento Historico de Diarias & Loop Self-Healing \(54 Diarias = R$ 9.7...) Tj
 /F1 8 Tf
 1 0 0 1 36 552 Tm
-([PASS] |    0.7 | 11. Reprocessamento Historico de Diarias & Loop Self-Healing \(54 Diarias = R$ 9.7...) Tj
+([PASS] |    0.6 | 11. Reprocessamento Historico de Diarias & Loop Self-Healing \(54 Diarias = R$ 9.7...) Tj
 /F1 8 Tf
 1 0 0 1 36 541 Tm
-([PASS] |   37.7 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
+([PASS] |   34.9 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
 /F1 8 Tf
 1 0 0 1 36 530 Tm
-([PASS] |    4.1 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
+([PASS] |    3.4 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
 /F1 8 Tf
 1 0 0 1 36 519 Tm
-([PASS] |    4.7 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
+([PASS] |    4.3 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
 /F1 8 Tf
 1 0 0 1 36 508 Tm
-([PASS] |    0.8 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
+([PASS] |    0.6 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
 /F1 8 Tf
 1 0 0 1 36 497 Tm
-([PASS] |    2.2 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
+([PASS] |    2.1 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
 /F1 8 Tf
 1 0 0 1 36 486 Tm
-([PASS] |    8.2 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
+([PASS] |    6.2 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
 /F1 8 Tf
 1 0 0 1 36 475 Tm
-([PASS] |   32.9 | Saude do Sistema & Caca-Fantasmas \(V18\): 1. Base limpa retorna Health Score 100 \(...) Tj
+([PASS] |   30.0 | Saude do Sistema & Caca-Fantasmas \(V18\): 1. Base limpa retorna Health Score 100 \(...) Tj
 /F1 8 Tf
 1 0 0 1 36 464 Tm
-([PASS] |    1.9 | Saude do Sistema & Caca-Fantasmas \(V18\): 2. Detecta Diaria duplicada, Vale duplic...) Tj
+([PASS] |    1.6 | Saude do Sistema & Caca-Fantasmas \(V18\): 2. Detecta Diaria duplicada, Vale duplic...) Tj
 /F1 8 Tf
 1 0 0 1 36 453 Tm
-([PASS] |    1.2 | Saude do Sistema & Caca-Fantasmas \(V18\): 3. Caca-Fantasmas detecta data anomala, ...) Tj
+([PASS] |    0.9 | Saude do Sistema & Caca-Fantasmas \(V18\): 3. Caca-Fantasmas detecta data anomala, ...) Tj
 /F1 8 Tf
 1 0 0 1 36 442 Tm
-([PASS] |    4.4 | Saude do Sistema & Caca-Fantasmas \(V18\): 4. Integridade da Aba em /relatorios e i...) Tj
+([PASS] |    2.2 | Saude do Sistema & Caca-Fantasmas \(V18\): 4. Integridade da Aba em /relatorios e i...) Tj
 /F1 8 Tf
 1 0 0 1 36 431 Tm
 ([PASS] |    4.8 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: g...) Tj
 /F1 8 Tf
 1 0 0 1 36 420 Tm
-([PASS] |    0.3 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+([PASS] |    0.2 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
 /F1 8 Tf
 1 0 0 1 36 409 Tm
-([PASS] |    5.6 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+([PASS] |    4.2 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
 /F1 8 Tf
 1 0 0 1 36 398 Tm
-([PASS] |   28.6 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+([PASS] |   26.3 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
 /F1 8 Tf
 1 0 0 1 36 387 Tm
-([PASS] |    3.4 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+([PASS] |    2.0 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
 /F2 11 Tf
 1 0 0 1 36 370 Tm
 (5. MELHORIAS DE PROCESSO SUGERIDAS E JA APLICADAS NO SISTEMA) Tj

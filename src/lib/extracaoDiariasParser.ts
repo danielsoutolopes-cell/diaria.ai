@@ -648,3 +648,332 @@ export function reconciliarExtracaoComParserDeterministico(
 
   return { obras: obrasFinais };
 }
+
+export interface ResultadoSanitizacaoMensagem {
+  /** Texto bruto preservado integralmente para auditoria ("Ver Mensagem Original") */
+  textoOriginal: string;
+  /** Versão higienizada usada exclusivamente pelo parser/IA */
+  textoHigienizado: string;
+  /** Lista de higienizações cirúrgicas aplicadas */
+  alteracoesAplicadas: string[];
+  /** Nomes candidatos encontrados na lista após higienização */
+  candidatosLista: string[];
+}
+
+export interface AuditoriaContagemLista {
+  qtdEsperadaLista: number;
+  qtdExtraida: number;
+  nomesFaltantes: string[];
+  divergenciaDetectada: boolean;
+}
+
+export interface ResultadoPipelineDuasPassagens {
+  extracao: NLPExtracaoResponse;
+  sanitizacao: ResultadoSanitizacaoMensagem;
+  auditoriaPassagem1: AuditoriaContagemLista;
+  segundaPassagemExecutada: boolean;
+  logsAjuste: string[];
+}
+
+/**
+ * PASSAGEM 1 — SANITIZAÇÃO CIRÚRGICA (SEM ALTERAR O TEXTO ORIGINAL SALVO):
+ * Remove pontos finais de frase/nome ("seguro.", "Gil.", "Daniel."), abreviações com ponto
+ * em iniciais de nomes ("Lucas. J" -> "Lucas J"), ruídos de pontuação solta e linhas em branco
+ * duplicadas, PRESERVANDO INTACTOS pontos/vírgulas em números decimais e valores
+ * (0.5, 1.0, 0,5, 120.00, 230.00, 1.250,00).
+ */
+export function higienizarMensagemParaExtracao(
+  textoOriginal: string,
+  opcoes: OpcoesExtracaoDiarias = {}
+): ResultadoSanitizacaoMensagem {
+  const alteracoesAplicadas: string[] = [];
+  if (!textoOriginal || !textoOriginal.trim()) {
+    return {
+      textoOriginal,
+      textoHigienizado: '',
+      alteracoesAplicadas,
+      candidatosLista: [],
+    };
+  }
+
+  // 1. Protege números decimais e valores monetários (0.5, 1.0, 120.00, 230.00, 1.250,00)
+  const numerosProtegidos: string[] = [];
+  let trabalhando = textoOriginal.replace(/\r\n?/g, '\n').replace(
+    /\b\d+(?:[.,]\d+)+\b/g,
+    (match) => {
+      const idx = numerosProtegidos.length;
+      numerosProtegidos.push(match);
+      return `__NUMPROT${idx}__`;
+    }
+  );
+
+  // 2. Normaliza abreviações de iniciais em nomes ("Lucas. J" / "Lucas. J." -> "Lucas J")
+  const antesIniciais = trabalhando;
+  trabalhando = trabalhando.replace(
+    /\b([A-Za-zÀ-ÿ]{2,})\.\s*([A-Za-zÀ-ÿ])\.?(?=\s|$|[,;])/g,
+    '$1 $2'
+  );
+  if (trabalhando !== antesIniciais) {
+    alteracoesAplicadas.push('NORMALIZAR_INICIAIS_COM_PONTO');
+  }
+
+  // 3. Remove pontos finais de frase/nome (ex.: "seguro.", "Gil.", "Daniel.", "...")
+  const antesPontosFinais = trabalhando;
+  trabalhando = trabalhando.replace(
+    /([A-Za-zÀ-ÿ])\.+(?=\s|$|[,;])/g,
+    '$1'
+  );
+  if (trabalhando !== antesPontosFinais) {
+    alteracoesAplicadas.push('REMOVER_PONTOS_FINAIS_TEXTO');
+  }
+
+  // 4. Remove ruídos de pontuação solta e colapsa linhas em branco duplicadas
+  const linhasRaw = trabalhando.split('\n');
+  const linhasLimpas: string[] = [];
+  let removeuLinhasVaziasOuRuido = false;
+
+  for (const linhaRaw of linhasRaw) {
+    const limpa = linhaRaw
+      .replace(/^[\s.,;•·*–—-]+$/, '')
+      .replace(/\s+[.,;]+\s+/g, ' ')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+
+    if (!limpa) {
+      removeuLinhasVaziasOuRuido = true;
+      continue;
+    }
+    linhasLimpas.push(limpa);
+  }
+
+  if (removeuLinhasVaziasOuRuido && linhasLimpas.length < linhasRaw.length) {
+    alteracoesAplicadas.push('COLAPSAR_QUEBRAS_E_RUIDO');
+  }
+
+  // 5. Restaura todos os números decimais/valores protegidos intactos
+  const textoHigienizado = linhasLimpas
+    .join('\n')
+    .replace(/__NUMPROT(\d+)__/g, (_m, idxStr: string) => {
+      const idx = Number(idxStr);
+      return numerosProtegidos[idx] ?? '';
+    });
+
+  // 6. Extrai contagem de nomes candidatos presentes na lista higienizada
+  const detLista = extrairListaTrabalhadoresDeterministica(textoHigienizado, opcoes);
+  const candidatosLista = detLista.obras.flatMap((b) =>
+    b.apontamentos.map((a) => a.nome)
+  );
+
+  return {
+    textoOriginal,
+    textoHigienizado,
+    alteracoesAplicadas,
+    candidatosLista,
+  };
+}
+
+/**
+ * Audita a contagem de trabalhadores extraídos comparando com os nomes candidatos
+ * presentes na lista da mensagem higienizada.
+ */
+export function auditarContagemListaExtracao(
+  candidatosLista: readonly string[],
+  extracao: NLPExtracaoResponse | null | undefined
+): AuditoriaContagemLista {
+  const extraidos = (extracao?.obras || []).flatMap((o) => o.apontamentos || []);
+  const chavesExtraidas = new Set(
+    extraidos.map((a) =>
+      removerAcentosUpper(normalizarNomeTrabalhadorCanonico(a.nome))
+    )
+  );
+
+  const nomesFaltantes: string[] = [];
+  const chavesFaltantesVistas = new Set<string>();
+
+  for (const candidato of candidatosLista) {
+    const chave = removerAcentosUpper(normalizarNomeTrabalhadorCanonico(candidato));
+    if (!chavesExtraidas.has(chave) && !chavesFaltantesVistas.has(chave)) {
+      nomesFaltantes.push(candidato);
+      chavesFaltantesVistas.add(chave);
+    }
+  }
+
+  return {
+    qtdEsperadaLista: candidatosLista.length,
+    qtdExtraida: chavesExtraidas.size,
+    nomesFaltantes,
+    divergenciaDetectada: nomesFaltantes.length > 0,
+  };
+}
+
+/**
+ * Monta o prompt focado da Passagem 2B para recuperar exclusivamente os nomes faltantes
+ * detectados pela auditoria de contagem da lista.
+ */
+export function montarPromptSegundaPassagemFocada(params: {
+  textoHigienizado: string;
+  nomesFaltantes: readonly string[];
+  obraJaIdentificada?: string;
+  dataJaIdentificada?: string;
+}): string {
+  return (
+    `AUDITORIA DE CONTAGEM — SEGUNDA PASSAGEM FOCADA EM NOMES FALTANTES:\n` +
+    `A primeira extração omitiu ${params.nomesFaltantes.length} trabalhador(es) presentes na lista da mensagem.\n` +
+    `Extraia OBRIGATORIAMENTE os seguintes trabalhadores faltantes (com obra, data_referencia, fracao e motivo):\n` +
+    `- Faltantes: ${params.nomesFaltantes.join(', ')}\n` +
+    (params.obraJaIdentificada ? `- Obra detectada na 1ª passagem: ${params.obraJaIdentificada}\n` : '') +
+    (params.dataJaIdentificada ? `- Data detectada na 1ª passagem: ${params.dataJaIdentificada}\n` : '') +
+    `\nMENSAGEM HIGIENIZADA:\n${params.textoHigienizado}`
+  );
+}
+
+/**
+ * Pipeline Completo em 2 Passagens + Checagem de Contagem de Lista:
+ * - Passagem 1: Sanitização cirúrgica (sem alterar o texto original de auditoria).
+ * - Passagem 2A: Extração estruturada sobre o texto higienizado.
+ * - Auditoria de Contagem: Se extraídos < candidatos da lista, dispara automaticamente
+ *   Passagem 2B focada nos nomes faltantes + reconciliação determinística final.
+ */
+export async function executarPipelineDuasPassagens(params: {
+  textoOriginal: string;
+  opcoes?: OpcoesExtracaoDiarias;
+  executarExtracaoLLM: (promptTexto: string) => Promise<NLPExtracaoResponse | null>;
+}): Promise<ResultadoPipelineDuasPassagens> {
+  const opcoes = params.opcoes || {};
+  const logsAjuste: string[] = [];
+
+  // PASSAGEM 1 — Sanitização cirúrgica preservando textoOriginal intacto
+  const sanitizacao = higienizarMensagemParaExtracao(params.textoOriginal, opcoes);
+  if (sanitizacao.alteracoesAplicadas.length > 0) {
+    logsAjuste.push(
+      `[PASSAGEM_1_SANITIZACAO] Regras aplicadas: ${sanitizacao.alteracoesAplicadas.join(', ')} (candidatos na lista: ${sanitizacao.candidatosLista.length}).`
+    );
+  }
+
+  // PASSAGEM 2A — Extração estruturada sobre o texto higienizado
+  let extracaoPassagem2A: NLPExtracaoResponse | null = null;
+  try {
+    extracaoPassagem2A = await params.executarExtracaoLLM(
+      sanitizacao.textoHigienizado || params.textoOriginal
+    );
+  } catch (errPass1) {
+    logsAjuste.push(
+      `[PASSAGEM_2A_FALLBACK] Falha na chamada inicial da IA: ${errPass1 instanceof Error ? errPass1.message : String(errPass1)}`
+    );
+  }
+
+  // AUDITORIA DE CONTAGEM DA LISTA
+  const auditoriaPassagem1 = auditarContagemListaExtracao(
+    sanitizacao.candidatosLista,
+    extracaoPassagem2A
+  );
+
+  let extracaoCombinada: NLPExtracaoResponse | null = extracaoPassagem2A;
+  let segundaPassagemExecutada = false;
+
+  // Se houver nomes faltantes em relação à lista, dispara Passagem 2B focada
+  if (
+    auditoriaPassagem1.divergenciaDetectada &&
+    auditoriaPassagem1.nomesFaltantes.length > 0
+  ) {
+    segundaPassagemExecutada = true;
+    logsAjuste.push(
+      `[AUDITORIA_CONTAGEM] Extraídos ${auditoriaPassagem1.qtdExtraida}/${auditoriaPassagem1.qtdEsperadaLista}. Disparando 2ª passagem focada para: ${auditoriaPassagem1.nomesFaltantes.join(', ')}.`
+    );
+
+    const primeiraObra = extracaoPassagem2A?.obras?.[0];
+    const promptFocado = montarPromptSegundaPassagemFocada({
+      textoHigienizado: sanitizacao.textoHigienizado,
+      nomesFaltantes: auditoriaPassagem1.nomesFaltantes,
+      obraJaIdentificada: primeiraObra?.nome_obra,
+      dataJaIdentificada: primeiraObra?.data_referencia,
+    });
+
+    try {
+      const extracaoPassagem2B = await params.executarExtracaoLLM(promptFocado);
+      if (extracaoPassagem2B && extracaoPassagem2B.obras?.length) {
+        const obrasBase = extracaoPassagem2A?.obras
+          ? extracaoPassagem2A.obras.map((o) => ({
+              ...o,
+              apontamentos: [...(o.apontamentos || [])],
+              vales: [...(o.vales || [])],
+            }))
+          : [];
+
+        for (const bloco2B of extracaoPassagem2B.obras) {
+          const chaveObra2B = removerAcentosUpper(
+            normalizarNomeObraCanonica(bloco2B.nome_obra || 'GERAL')
+          );
+          let destino = obrasBase.find(
+            (o) =>
+              removerAcentosUpper(normalizarNomeObraCanonica(o.nome_obra || 'GERAL')) ===
+              chaveObra2B
+          );
+          if (!destino && obrasBase.length === 1) {
+            destino = obrasBase[0];
+          }
+          if (!destino) {
+            obrasBase.push({
+              ...bloco2B,
+              apontamentos: [...(bloco2B.apontamentos || [])],
+              vales: [...(bloco2B.vales || [])],
+            });
+            continue;
+          }
+          const jaNoDestino = new Set(
+            destino.apontamentos.map((a) =>
+              removerAcentosUpper(normalizarNomeTrabalhadorCanonico(a.nome))
+            )
+          );
+          for (const ap2B of bloco2B.apontamentos || []) {
+            const chaveAp = removerAcentosUpper(
+              normalizarNomeTrabalhadorCanonico(ap2B.nome)
+            );
+            if (!jaNoDestino.has(chaveAp)) {
+              destino.apontamentos.push(ap2B);
+              jaNoDestino.add(chaveAp);
+            }
+          }
+        }
+
+        extracaoCombinada = { obras: obrasBase };
+        const posPass2B = auditarContagemListaExtracao(
+          sanitizacao.candidatosLista,
+          extracaoCombinada
+        );
+        logsAjuste.push(
+          `[PASSAGEM_2B_CONCLUIDA] Cobertura após 2ª passagem IA: ${posPass2B.qtdExtraida}/${posPass2B.qtdEsperadaLista}.`
+        );
+      }
+    } catch (errPass2) {
+      logsAjuste.push(
+        `[PASSAGEM_2B_FALLBACK] Erro na 2ª passagem IA (recuperação determinística acionada): ${errPass2 instanceof Error ? errPass2.message : String(errPass2)}`
+      );
+    }
+  }
+
+  // Reconciliação final determinística (garante 100% de completude e resolução de aliases)
+  const extracaoFinal = reconciliarExtracaoComParserDeterministico(
+    sanitizacao.textoHigienizado || params.textoOriginal,
+    extracaoCombinada,
+    opcoes
+  );
+
+  const auditoriaFinal = auditarContagemListaExtracao(
+    sanitizacao.candidatosLista,
+    extracaoFinal
+  );
+  if (segundaPassagemExecutada) {
+    logsAjuste.push(
+      `[RESULTADO_FINAL] Total consolidado: ${auditoriaFinal.qtdExtraida}/${auditoriaFinal.qtdEsperadaLista} trabalhador(es).`
+    );
+  }
+
+  return {
+    extracao: extracaoFinal,
+    sanitizacao,
+    auditoriaPassagem1,
+    segundaPassagemExecutada,
+    logsAjuste,
+  };
+}

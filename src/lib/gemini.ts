@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NLPExtracaoResponse } from '@/types/database';
-import { reconciliarExtracaoComParserDeterministico } from '@/lib/extracaoDiariasParser';
+import {
+  executarPipelineDuasPassagens,
+  reconciliarExtracaoComParserDeterministico,
+} from '@/lib/extracaoDiariasParser';
 
 const apiKey = (process.env.GEMINI_API_KEY || '').replace(/^"|"$/g, '');
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -161,51 +164,69 @@ export async function extrairDadosMensagem(
     console.warn('Não foi possível carregar tabela dinâmica de apelidos:', errAlias);
   }
 
+  const opcoesTenant = {
+    funcionariosOficiais: funcionariosOficiaisTenant,
+    obrasOficiais: obrasOficiaisTenant,
+  };
+
   try {
-    if (!apiKey) {
-      return reconciliarExtracaoComParserDeterministico(textoMensagem, null, {
-        funcionariosOficiais: funcionariosOficiaisTenant,
-        obrasOficiais: obrasOficiaisTenant,
-      });
+    const model = apiKey
+      ? genAI.getGenerativeModel({
+          model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.1,
+            maxOutputTokens: 4096,
+          },
+          systemInstruction: SYSTEM_INSTRUCTION + instrucoesAdicionais,
+        })
+      : null;
+
+    const resultadoPipeline = await executarPipelineDuasPassagens({
+      textoOriginal: textoMensagem,
+      opcoes: opcoesTenant,
+      executarExtracaoLLM: async (promptTexto: string) => {
+        if (!model) return null;
+        const result = await model.generateContent(promptTexto);
+        const responseText = result.response.text().trim();
+        const jsonClean = responseText
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/, '')
+          .replace(/\s*```$/, '')
+          .trim();
+        return JSON.parse(jsonClean) as NLPExtracaoResponse;
+      },
+    });
+
+    if (resultadoPipeline.logsAjuste.length > 0) {
+      console.log(
+        `[EXTRACAO_2_PASSAGENS] ${resultadoPipeline.logsAjuste.join(' | ')}`
+      );
     }
 
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.1,
-        maxOutputTokens: 4096,
-      },
-      systemInstruction: SYSTEM_INSTRUCTION + instrucoesAdicionais,
-    });
+    if (resultadoPipeline.extracao.obras.length > 0) {
+      return resultadoPipeline.extracao;
+    }
 
-    const result = await model.generateContent(textoMensagem);
-    const responseText = result.response.text().trim();
-
-    // Limpar possíveis delimitadores markdown residuais
-    const jsonClean = responseText
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/, '')
-      .replace(/\s*```$/, '')
-      .trim();
-
-    const parsed: NLPExtracaoResponse = JSON.parse(jsonClean);
-
-    // Safety-net determinístico: recupera qualquer trabalhador que a IA tenha
-    // truncado após pontos (".", ex.: "seguro." ou "Lucas. J") ou linhas em branco
-    return reconciliarExtracaoComParserDeterministico(textoMensagem, parsed, {
-      funcionariosOficiais: funcionariosOficiaisTenant,
-      obrasOficiais: obrasOficiaisTenant,
-    });
+    return {
+      obras: [
+        {
+          nome_obra: 'GERAL',
+          apontamentos: [],
+          vales: [],
+          setup: false,
+        },
+      ],
+    };
   } catch (error) {
-    console.error('Erro na extração NLP via Gemini (acionando fallback determinístico):', error);
+    console.error(
+      'Erro na extração NLP via Gemini (acionando fallback determinístico):',
+      error
+    );
     const fallback = reconciliarExtracaoComParserDeterministico(
       textoMensagem,
       null,
-      {
-        funcionariosOficiais: funcionariosOficiaisTenant,
-        obrasOficiais: obrasOficiaisTenant,
-      }
+      opcoesTenant
     );
     if (fallback.obras.length > 0) {
       return fallback;
