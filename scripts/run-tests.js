@@ -73,6 +73,7 @@ try {
     path.join(repoRoot, 'tests/deduplicacao_vales_v17.test.ts'),
     path.join(repoRoot, 'tests/saude_sistema_auditoria.test.ts'),
     path.join(repoRoot, 'tests/bordero_selecao_obra.test.ts'),
+    path.join(repoRoot, 'tests/extracao_diarias_domingo_pontos.test.ts'),
     path.join(repoRoot, 'tests/reporters/pdfTestReportGenerator.ts'),
   ];
 
@@ -111,6 +112,7 @@ try {
     path.join(outDir, 'tests/deduplicacao_vales_v17.test.js'),
     path.join(outDir, 'tests/saude_sistema_auditoria.test.js'),
     path.join(outDir, 'tests/bordero_selecao_obra.test.js'),
+    path.join(outDir, 'tests/extracao_diarias_domingo_pontos.test.js'),
   ];
 
   const startedAt = Date.now();

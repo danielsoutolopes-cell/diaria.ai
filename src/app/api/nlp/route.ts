@@ -1,19 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extrairDadosMensagem } from '@/lib/gemini';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
+
+interface NlpRequestBody {
+  mensagem?: string;
+  tenantId?: string;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { mensagem, tenantId = '00000000-0000-0000-0000-000000000001' } = body;
+    const body = (await req.json()) as NlpRequestBody;
+    const activeTenant = getActiveTenantFromRequest(req);
+    const mensagem = body.mensagem;
+    const tenantId = body.tenantId || activeTenant.id;
 
     if (!mensagem || typeof mensagem !== 'string') {
       return NextResponse.json({ error: 'Mensagem inválida ou ausente.' }, { status: 400 });
     }
 
-    const extracao = await extrairDadosMensagem(mensagem);
+    const extracao = await extrairDadosMensagem(mensagem, tenantId);
 
-    // Opcionalmente grava histórico de apontamento preliminar
     return NextResponse.json({
       success: true,
       mensagemOriginal: mensagem,

@@ -78,7 +78,8 @@ export const ALIAS_TRABALHADORES_PADRAO: Record<string, string> = {
   // Zé Baiano
   'JOSE BAIANO': 'Zé Baiano',
   'ZE BAIANO': 'Zé Baiano',
-  // Lucas J (unificação Lucas J, Lucas.j., Lucas. J., Lucas J., Lucas-J, etc.)
+  // Lucas J (unificação Lucas J, Lucas.j., Lucas. J, Lucas. J., Lucas J., Lucas-J, etc.)
+  'LUCAS. J': 'Lucas J',
   'LUCAS. J.': 'Lucas J',
   'LUCAS J.': 'Lucas J',
   'LUCAS J': 'Lucas J',

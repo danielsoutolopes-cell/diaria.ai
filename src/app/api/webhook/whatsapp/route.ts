@@ -951,7 +951,8 @@ export async function POST(req: NextRequest) {
         const listaAbertos = (pontosAbertosDia as PontoAbertoDiaRow[] | null) || [];
 
         for (const ap of obra.apontamentos) {
-          const nomeCanonico = normalizarNomeTrabalhadorCanonico(ap.nome);
+          const nomeExibicao = ap.nome.trim() || normalizarNomeTrabalhadorCanonico(ap.nome);
+          const nomeCanonico = normalizarNomeTrabalhadorCanonico(nomeExibicao);
           const nomeChave = nomeCanonico.toUpperCase();
           const fracaoAp = Number(ap.fracao ?? 1.0);
 
@@ -983,7 +984,7 @@ export async function POST(req: NextRequest) {
           await supabaseAdmin.from('ponto_detalhe').insert({
             tenant_id: tenantId,
             ponto_lote_id: loteId,
-            nome_trabalhador: nomeCanonico,
+            nome_trabalhador: nomeExibicao,
             fracao_dia: fracaoAp,
             motivo_excecao: ap.motivo || null,
           });
@@ -991,7 +992,7 @@ export async function POST(req: NextRequest) {
           await supabaseAdmin.from('lancamentos_financeiros').insert({
             tenant_id: tenantId,
             obra_id: obraId,
-            nome_trabalhador: nomeCanonico,
+            nome_trabalhador: nomeExibicao,
             tipo_lancamento: 'PONTO',
             fracao_dia: fracaoAp,
             valor_monetario:

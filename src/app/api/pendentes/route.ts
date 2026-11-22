@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getActiveTenantFromRequest } from '@/lib/tenant';
+import { normalizarNomeTrabalhadorCanonico } from '@/lib/normalizarObra';
 
 export const dynamic = 'force-dynamic';
 
@@ -264,6 +265,10 @@ export async function GET(req: NextRequest) {
     ((funcsData as unknown as FuncionarioRow[]) || []).forEach((f) => {
       if (f.nome_trabalhador) {
         mapaFuncs.set(f.nome_trabalhador.trim().toUpperCase(), f);
+        mapaFuncs.set(
+          normalizarNomeTrabalhadorCanonico(f.nome_trabalhador).toUpperCase(),
+          f
+        );
       }
     });
 
@@ -299,22 +304,26 @@ export async function GET(req: NextRequest) {
       };
 
       detalhes.forEach((d) => {
+        const dCanonUpper = normalizarNomeTrabalhadorCanonico(
+          d.nome_trabalhador
+        ).toUpperCase();
         const lancPonto = lancamentos.find(
           (l) =>
             l.tipo_lancamento === 'PONTO' &&
-            l.nome_trabalhador?.trim().toLowerCase() ===
-              d.nome_trabalhador?.trim().toLowerCase()
+            normalizarNomeTrabalhadorCanonico(l.nome_trabalhador).toUpperCase() ===
+              dCanonUpper
         );
         const lancComprovante =
           lancamentos.find(
             (l) =>
-              l.nome_trabalhador?.trim().toLowerCase() ===
-                d.nome_trabalhador?.trim().toLowerCase() && l.comprovante_url
+              normalizarNomeTrabalhadorCanonico(l.nome_trabalhador).toUpperCase() ===
+                dCanonUpper && l.comprovante_url
           ) || lancamentos.find((l) => l.comprovante_url);
 
         const nomeUpper = (d.nome_trabalhador || '').trim().toUpperCase();
         const funcInfo =
           mapaFuncs.get(nomeUpper) ||
+          mapaFuncs.get(dCanonUpper) ||
           Array.from(mapaFuncs.values()).find((f) =>
             f.nome_trabalhador.toUpperCase().includes(nomeUpper)
           );
