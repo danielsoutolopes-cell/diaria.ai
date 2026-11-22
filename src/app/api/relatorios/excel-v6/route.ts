@@ -73,8 +73,8 @@ const PRE_IMPLANTACAO_GIL_13_11: ExcelV6CaixinhaMovimento[] = [
   {
     data: '2026-11-13',
     hora: '09:00',
-    encarregado: 'Gilvan - Gil',
-    perfisUnificados: 'Gil / Gil335Revest',
+    encarregado: 'Gil',
+    perfisUnificados: 'Gil / Gilvan / Gil335Revest',
     obra: 'PISCINA PORTO SEGURO',
     tipo: 'ENTRADA_PIX',
     categoria: 'Suprimento PIX',
@@ -86,8 +86,8 @@ const PRE_IMPLANTACAO_GIL_13_11: ExcelV6CaixinhaMovimento[] = [
   {
     data: '2026-11-13',
     hora: '17:30',
-    encarregado: 'Gilvan - Gil',
-    perfisUnificados: 'Gil / Gil335Revest',
+    encarregado: 'Gil',
+    perfisUnificados: 'Gil / Gilvan / Gil335Revest',
     obra: 'PISCINA PORTO SEGURO',
     tipo: 'NOTA_DESPESA',
     categoria: 'Material / Despesas de Campo',

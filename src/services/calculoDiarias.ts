@@ -57,11 +57,14 @@ interface TrabalhadorObraValorRow {
  * ainda não possui valor_diaria_piscina / valor_diaria_obra explicitamente preenchido.
  */
 const REFERENCIA_DIARIA_PISCINA: Record<string, number> = {
+  GIL: 400.0,
   'GILVAN - GIL': 400.0,
+  PEU: 450.0,
   'EDMILSON - PEU': 450.0,
   MATEUS: 340.0,
   IAN: 300.0,
   DANIEL: 280.0,
+  'LUCAS J': 150.0,
   'LUCAS J.': 150.0,
   'ZÉ BAIANO': 150.0,
 };

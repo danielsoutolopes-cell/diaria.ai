@@ -122,10 +122,12 @@ CREATE POLICY "Tenant isolation for trabalhador_aliases" ON trabalhador_aliases
 -- Seed idempotente dos aliases oficiais da Jhoston (V11)
 INSERT INTO trabalhador_aliases (tenant_id, alias_texto, nome_canonico)
 VALUES
-    ('00000000-0000-0000-0000-000000000001', 'Gil', 'Gilvan - Gil'),
-    ('00000000-0000-0000-0000-000000000001', 'Gil335Revest', 'Gilvan - Gil'),
-    ('00000000-0000-0000-0000-000000000001', 'Gilvan', 'Gilvan - Gil'),
-    ('00000000-0000-0000-0000-000000000001', 'Gil (Gilvan)', 'Gilvan - Gil'),
+    ('00000000-0000-0000-0000-000000000001', 'Gil', 'Gil'),
+    ('00000000-0000-0000-0000-000000000001', 'Gil335Revest', 'Gil'),
+    ('00000000-0000-0000-0000-000000000001', 'Gilvan', 'Gil'),
+    ('00000000-0000-0000-0000-000000000001', 'Gil (Gilvan)', 'Gil'),
+    ('00000000-0000-0000-0000-000000000001', 'Gilvan (Gil)', 'Gil'),
+    ('00000000-0000-0000-0000-000000000001', 'Gilvan - Gil', 'Gil'),
     ('00000000-0000-0000-0000-000000000001', 'Weslen', 'Wender'),
     ('00000000-0000-0000-0000-000000000001', 'Wender 22', 'Wender'),
     ('00000000-0000-0000-0000-000000000001', 'Wender', 'Wender'),
@@ -136,8 +138,10 @@ VALUES
     ('00000000-0000-0000-0000-000000000001', 'Jose baiano', 'Zé Baiano'),
     ('00000000-0000-0000-0000-000000000001', 'Zé baiano', 'Zé Baiano'),
     ('00000000-0000-0000-0000-000000000001', 'Daniel.', 'Daniel'),
-    ('00000000-0000-0000-0000-000000000001', 'Lucas. J.', 'Lucas J.'),
-    ('00000000-0000-0000-0000-000000000001', 'Lucas.j.', 'Lucas J.')
+    ('00000000-0000-0000-0000-000000000001', 'Lucas J', 'Lucas J'),
+    ('00000000-0000-0000-0000-000000000001', 'Lucas J.', 'Lucas J'),
+    ('00000000-0000-0000-0000-000000000001', 'Lucas. J.', 'Lucas J'),
+    ('00000000-0000-0000-0000-000000000001', 'Lucas.j.', 'Lucas J')
 ON CONFLICT (tenant_id, alias_texto) DO UPDATE SET
     nome_canonico = EXCLUDED.nome_canonico,
     ativo = TRUE;
@@ -179,7 +183,7 @@ CREATE POLICY "Tenant isolation for caixinha_movimentacoes" ON caixinha_moviment
         OR auth.uid() IS NOT NULL
     );
 
--- Seed idempotente do Caixinha Unificado de Gilvan - Gil (Gil + Gil335Revest)
+-- Seed idempotente do Caixinha Unificado de Gil (Gil + Gilvan + Gil335Revest)
 -- Preserva os saldos pré-implantação de 13/11/2026:
 -- Entradas PIX: R$ 700,00 | Saídas/Notas: R$ 546,94 | Troco em Mãos: R$ 153,06
 INSERT INTO caixinha_movimentacoes (
@@ -200,7 +204,7 @@ INSERT INTO caixinha_movimentacoes (
 ) VALUES
     (
         '00000000-0000-0000-0000-000000000001',
-        'Gilvan - Gil',
+        'Gil',
         'Gil / Gil335Revest',
         'PISCINA PORTO SEGURO',
         '2026-11-13',
@@ -216,7 +220,7 @@ INSERT INTO caixinha_movimentacoes (
     ),
     (
         '00000000-0000-0000-0000-000000000001',
-        'Gilvan - Gil',
+        'Gil',
         'Gil / Gil335Revest',
         'PISCINA PORTO SEGURO',
         '2026-11-13',
@@ -227,7 +231,7 @@ INSERT INTO caixinha_movimentacoes (
         546.94,
         'APROVADO',
         TRUE,
-        'Gilvan - Gil',
+        'Gil',
         'v11-preimp-2026-11-13-gil-saidas-54694'
     )
 ON CONFLICT (chave_idempotencia) DO NOTHING;

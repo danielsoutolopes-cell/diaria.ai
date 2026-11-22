@@ -52,14 +52,14 @@ interface AliasDbRow {
 }
 
 /**
- * Lançamentos pré-implantação oficiais de 13/11/2026 (Gil + Gil335Revest -> Gilvan - Gil):
+ * Lançamentos pré-implantação oficiais de 13/11/2026 (Gil + Gilvan + Gil335Revest -> Gil):
  * Entradas PIX: R$ 700,00 | Saídas/Notas: R$ 546,94 | Troco em Mãos: R$ 153,06
  */
 const MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON: MovimentoCaixaCampo[] = [
   {
     id: 'v11-preimp-2026-11-13-gil-entradas-700',
-    encarregado: 'Gilvan - Gil',
-    encarregadoOrigem: 'Gil / Gil335Revest',
+    encarregado: 'Gil',
+    encarregadoOrigem: 'Gil / Gilvan / Gil335Revest',
     obra: 'PISCINA PORTO SEGURO',
     data: '2026-11-13',
     hora: '09:00',
@@ -75,8 +75,8 @@ const MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON: MovimentoCaixaCampo[] = [
   },
   {
     id: 'v11-preimp-2026-11-13-gil-saidas-54694',
-    encarregado: 'Gilvan - Gil',
-    encarregadoOrigem: 'Gil / Gil335Revest',
+    encarregado: 'Gil',
+    encarregadoOrigem: 'Gil / Gilvan / Gil335Revest',
     obra: 'PISCINA PORTO SEGURO',
     data: '2026-11-13',
     hora: '17:30',
@@ -87,7 +87,7 @@ const MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON: MovimentoCaixaCampo[] = [
     valor: 546.94,
     status: 'APROVADO',
     isPreImplantacao: true,
-    enviadoPor: 'Gilvan - Gil',
+    enviadoPor: 'Gil',
     criadoEm: '2026-11-13T20:30:00.000Z',
   },
 ];
@@ -188,13 +188,13 @@ async function lerCaixaCampo(tenantId: string): Promise<{
   movimentosJsonb.forEach(adicionarUnico);
 
   // Para o tenant Jhoston, garante preservação dos lançamentos pré-implantação de 13/11/2026
-  // caso o banco ainda não tenha registros consolidados de Gilvan - Gil em 13/11/2026
+  // caso o banco ainda não tenha registros consolidados de Gil em 13/11/2026
   if (tenantId === TENANTS.jhoston.id) {
     const listaAtual = Array.from(porId.values());
     const jaTemPreImpGil = listaAtual.some((m) => {
       const canon = normalizarNomeTrabalhadorCanonico(m.encarregado);
       return (
-        canon === 'Gilvan - Gil' &&
+        canon === 'Gil' &&
         (m.isPreImplantacao || m.data === '2026-11-13')
       );
     });
@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
       carregarAliasesTenant(activeTenant.id),
     ]);
 
-    // Consolidar Conta Corrente por Encarregado Canônico (unificando Gil + Gil335Revest -> Gilvan - Gil)
+    // Consolidar Conta Corrente por Encarregado Canônico (unificando Gil + Gilvan + Gil335Revest -> Gil)
     const contasMap = new Map<
       string,
       {
@@ -282,8 +282,9 @@ export async function GET(req: NextRequest) {
       } else if (m.encarregado.trim() !== nomeCanonico) {
         c.aliasesUnificados.add(m.encarregado.trim());
       }
-      if (nomeCanonico === 'Gilvan - Gil') {
+      if (nomeCanonico === 'Gil') {
         c.aliasesUnificados.add('Gil');
+        c.aliasesUnificados.add('Gilvan');
         c.aliasesUnificados.add('Gil335Revest');
       }
       if (m.isPreImplantacao || m.data === '2026-11-13') {
@@ -403,7 +404,7 @@ Retorne APENAS JSON puro (sem markdown):
       ]);
 
     if (body.action === 'registrar') {
-      const encarregadoBruto = (body.encarregado || 'Gilvan - Gil').trim();
+      const encarregadoBruto = (body.encarregado || 'Gil').trim();
       const encarregadoCanonico = normalizarNomeTrabalhadorCanonico(
         encarregadoBruto,
         aliasesExtras

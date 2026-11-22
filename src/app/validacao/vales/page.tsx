@@ -89,7 +89,7 @@ export default function ValidacaoValesPage() {
   const [dataInput, setDataInput] = useState<string>(() =>
     new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
   );
-  const [solicitanteInput, setSolicitanteInput] = useState<string>('Gilvan - Gil');
+  const [solicitanteInput, setSolicitanteInput] = useState<string>('Gil');
   const [obsInput, setObsInput] = useState<string>('');
   const [salvando, setSalvando] = useState<boolean>(false);
 

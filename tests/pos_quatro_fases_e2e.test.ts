@@ -175,7 +175,7 @@ describe('2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel', () => 
     assert.equal(pedido1[0].valor, 100);
 
     registrarContextoSolicitacaoVale(grupoId, {
-      solicitadoPor: 'Gilvan - Gil',
+      solicitadoPor: 'Gil',
       obra: 'PISCINA PORTO SEGURO',
       dataReferencia: '2026-11-21',
       valorPadrao: 100,
@@ -451,7 +451,7 @@ describe('3. Rateio Multi-Obra (0,5 + 0,5), Dia de Chuva (R$ 120,00), Espelho, P
       periodoLabel: 'QUINZENAL',
       resumoTrabalhadores: [
         {
-          trabalhador: 'Gilvan - Gil',
+          trabalhador: 'Gil',
           obras: 'PISCINA PORTO SEGURO',
           chavePix: '11999990000',
           qtdDiarias: 1,
@@ -491,7 +491,7 @@ describe('3. Rateio Multi-Obra (0,5 + 0,5), Dia de Chuva (R$ 120,00), Espelho, P
           trabalhador: 'Mateus',
           obra: 'PISCINA PORTO SEGURO',
           etapa: 'PAGO_CONFIRMADO',
-          solicitadoPor: 'Gilvan - Gil',
+          solicitadoPor: 'Gil',
           pagoPor: 'Patrícia Grubel',
           valor: 100,
           status: 'VALIDADO',
@@ -502,8 +502,8 @@ describe('3. Rateio Multi-Obra (0,5 + 0,5), Dia de Chuva (R$ 120,00), Espelho, P
         {
           data: '2026-11-13',
           hora: '09:00',
-          encarregado: 'Gilvan - Gil',
-          perfisUnificados: 'Gil / Gil335Revest',
+          encarregado: 'Gil',
+          perfisUnificados: 'Gil / Gilvan / Gil335Revest',
           obra: 'PISCINA PORTO SEGURO',
           tipo: 'ENTRADA_PIX',
           categoria: 'Suprimento PIX',
@@ -515,8 +515,8 @@ describe('3. Rateio Multi-Obra (0,5 + 0,5), Dia de Chuva (R$ 120,00), Espelho, P
         {
           data: '2026-11-13',
           hora: '17:30',
-          encarregado: 'Gilvan - Gil',
-          perfisUnificados: 'Gil / Gil335Revest',
+          encarregado: 'Gil',
+          perfisUnificados: 'Gil / Gilvan / Gil335Revest',
           obra: 'PISCINA PORTO SEGURO',
           tipo: 'NOTA_DESPESA',
           categoria: 'Material',
@@ -553,13 +553,24 @@ describe('3. Rateio Multi-Obra (0,5 + 0,5), Dia de Chuva (R$ 120,00), Espelho, P
   });
 });
 
-describe('4. Caixinha Unificado (Gilvan - Gil) & Pré-Implantação (13/11/2026)', () => {
-  it('unifica Gil e Gil335Revest em Gilvan - Gil e demais aliases canônicos V11', () => {
-    assert.equal(normalizarNomeTrabalhadorCanonico('Gil'), 'Gilvan - Gil');
+describe('4. Caixinha Unificado (Gil) & Pré-Implantação (13/11/2026)', () => {
+  it('unifica Gil, Gilvan, Gil335Revest em Gil; Lucas J variações em Lucas J; e demais aliases canônicos V11', () => {
+    // Gil (todas as variações)
+    assert.equal(normalizarNomeTrabalhadorCanonico('Gil'), 'Gil');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Gilvan'), 'Gil');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Gilvan (Gil)'), 'Gil');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Gil (Gilvan)'), 'Gil');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Gilvan - Gil'), 'Gil');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Gil335Revest'), 'Gil');
+    // Mesmo que o banco tenha alias legado apontando para 'Gilvan - Gil', resolve para 'Gil'
     assert.equal(
-      normalizarNomeTrabalhadorCanonico('Gil335Revest'),
-      'Gilvan - Gil'
+      normalizarNomeTrabalhadorCanonico('Gil335Revest', {
+        GIL335REVEST: 'Gilvan - Gil',
+      }),
+      'Gil'
     );
+
+    // Wender & Peu & Zé Baiano & Daniel
     assert.equal(normalizarNomeTrabalhadorCanonico('Weslen'), 'Wender');
     assert.equal(normalizarNomeTrabalhadorCanonico('Wender 22'), 'Wender');
     assert.equal(normalizarNomeTrabalhadorCanonico('Peu'), 'Peu');
@@ -567,7 +578,15 @@ describe('4. Caixinha Unificado (Gilvan - Gil) & Pré-Implantação (13/11/2026)
     assert.equal(normalizarNomeTrabalhadorCanonico('Edmilson - Peu'), 'Peu');
     assert.equal(normalizarNomeTrabalhadorCanonico('José baiano'), 'Zé Baiano');
     assert.equal(normalizarNomeTrabalhadorCanonico('Daniel.'), 'Daniel');
-    assert.equal(normalizarNomeTrabalhadorCanonico('Lucas. J.'), 'Lucas J.');
+
+    // Lucas J (todas as pontuações e variações)
+    assert.equal(normalizarNomeTrabalhadorCanonico('Lucas J'), 'Lucas J');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Lucas J.'), 'Lucas J');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Lucas.j.'), 'Lucas J');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Lucas. J.'), 'Lucas J');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Lucas.J'), 'Lucas J');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Lucas - J'), 'Lucas J');
+    assert.equal(normalizarNomeTrabalhadorCanonico('Lucas . J.'), 'Lucas J');
   });
 
   it('preserva saldo pré-implantação 13/11 (700 - 546,94 = 153,06) sem desconto automático da folha', () => {
@@ -581,7 +600,7 @@ describe('4. Caixinha Unificado (Gilvan - Gil) & Pré-Implantação (13/11/2026)
       dataReferenciaLabel: '27/11/2026 18:00',
       linhas: [
         {
-          nome: 'Gilvan - Gil',
+          nome: 'Gil',
           obras: 'PISCINA PORTO SEGURO',
           chavePix: '11999990000',
           diariasQtd: 1,
@@ -675,9 +694,9 @@ describe('5. Reinício Pós-Quitação (21/11), Lotes 16:39 / 18:12 & Regimes Es
       },
       // Lote Piscina Porto Seguro 21/11 18:12 — 7 trabalhadores (+R$ 2.070,00)
       ...[
-        { id: 'ps-gil', nome: 'Gilvan - Gil', valor: 400 },
+        { id: 'ps-gil', nome: 'Gil', valor: 400 },
         { id: 'ps-mat', nome: 'Mateus', valor: 340 },
-        { id: 'ps-luc', nome: 'Lucas J.', valor: 150 },
+        { id: 'ps-luc', nome: 'Lucas J', valor: 150 },
         { id: 'ps-peu', nome: 'Peu', valor: 450 },
         { id: 'ps-ian', nome: 'Ian', valor: 300 },
         { id: 'ps-zeb', nome: 'Zé Baiano', valor: 150 },
@@ -704,9 +723,9 @@ describe('5. Reinício Pós-Quitação (21/11), Lotes 16:39 / 18:12 & Regimes Es
     const funcs21Nov: FuncionarioAuditoriaInput[] = [
       { id: '1', nomeTrabalhador: 'Manoel', chavePix: 'm@pix', valorDiaria: 230, valorDiariaObra: 230, valorDiariaPiscina: 230, regimeRemuneracao: 'DIARISTA' },
       { id: '2', nomeTrabalhador: 'Wender', chavePix: 'w@pix', valorDiaria: 180, valorDiariaObra: 180, valorDiariaPiscina: 180, regimeRemuneracao: 'DIARISTA' },
-      { id: '3', nomeTrabalhador: 'Gilvan - Gil', chavePix: 'g@pix', valorDiaria: 400, valorDiariaObra: 400, valorDiariaPiscina: 400, regimeRemuneracao: 'DIARISTA' },
+      { id: '3', nomeTrabalhador: 'Gil', chavePix: 'g@pix', valorDiaria: 400, valorDiariaObra: 400, valorDiariaPiscina: 400, regimeRemuneracao: 'DIARISTA' },
       { id: '4', nomeTrabalhador: 'Mateus', chavePix: 'mt@pix', valorDiaria: 340, valorDiariaObra: 340, valorDiariaPiscina: 340, regimeRemuneracao: 'DIARISTA' },
-      { id: '5', nomeTrabalhador: 'Lucas J.', chavePix: 'l@pix', valorDiaria: 150, valorDiariaObra: 150, valorDiariaPiscina: 150, regimeRemuneracao: 'DIARISTA' },
+      { id: '5', nomeTrabalhador: 'Lucas J', chavePix: 'l@pix', valorDiaria: 150, valorDiariaObra: 150, valorDiariaPiscina: 150, regimeRemuneracao: 'DIARISTA' },
       { id: '6', nomeTrabalhador: 'Peu', chavePix: 'p@pix', valorDiaria: 450, valorDiariaObra: 450, valorDiariaPiscina: 450, regimeRemuneracao: 'DIARISTA' },
       { id: '7', nomeTrabalhador: 'Ian', chavePix: 'i@pix', valorDiaria: 300, valorDiariaObra: 300, valorDiariaPiscina: 300, regimeRemuneracao: 'DIARISTA' },
       { id: '8', nomeTrabalhador: 'Zé Baiano', chavePix: 'zb@pix', valorDiaria: 150, valorDiariaObra: 150, valorDiariaPiscina: 150, regimeRemuneracao: 'DIARISTA' },

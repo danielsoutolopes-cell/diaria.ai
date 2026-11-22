@@ -11,7 +11,9 @@ const PRECOS_CONFIG_KEY = 'SYSTEM_DOUBLE_RATES_CONFIG';
 
 // Tabela oficial do Daniel Lopes (Fallback padrão)
 export const TABELA_OFICIAL_PADRAO: Record<string, PrecosDuplos> = {
+  'PEU': { obra: 250.0, piscina: 450.0 },
   'EDMILSON - PEU': { obra: 250.0, piscina: 450.0 },
+  'GIL': { obra: 250.0, piscina: 400.0 },
   'GILVAN - GIL': { obra: 250.0, piscina: 400.0 },
   'MATEUS': { obra: 200.0, piscina: 340.0 },
   'MANOEL': { obra: 230.0, piscina: 300.0 },
@@ -27,6 +29,7 @@ export const TABELA_OFICIAL_PADRAO: Record<string, PrecosDuplos> = {
   'SAMARINO': { obra: 200.0, piscina: 300.0 },
   'ALEX DINHO': { obra: 300.0, piscina: null },
   'DIEGO': { obra: 8700.0, piscina: null },
+  'LUCAS J': { obra: 180.0, piscina: 280.0 },
   'LUCAS J.': { obra: 180.0, piscina: 280.0 },
 };
 

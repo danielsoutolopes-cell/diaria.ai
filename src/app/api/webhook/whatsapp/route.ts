@@ -626,7 +626,7 @@ export async function POST(req: NextRequest) {
             comprovante_url: comprovanteUrl,
             comprovante_pix_url: comprovanteUrl,
             vale_etapa: 'CONCILIADO',
-            solicitado_por: 'Gilvan - Gil',
+            solicitado_por: 'Gil',
             pago_por: leituraOcr?.pagador || 'Patrícia Grubel',
             mensagem_origem_id: messageId,
             horario_origem: horaBrasilia,
@@ -679,7 +679,7 @@ export async function POST(req: NextRequest) {
       }
 
       registrarContextoSolicitacaoVale(remoteJid, {
-        solicitadoPor: senderNumber || 'Gilvan - Gil',
+        solicitadoPor: senderNumber || 'Gil',
         obra: normalizarNomeObraCanonica(alvoObra.nome_obra || ctxAnterior?.obra),
         dataReferencia: alvoObra.data_referencia || hojeBrasilia,
         valorPadrao: valesNaturais[0]?.valor || 100.0,
@@ -860,7 +860,7 @@ export async function POST(req: NextRequest) {
           .maybeSingle();
 
         const nomeSolicitanteVale =
-          encSolicitante?.nome || senderNumber || 'Gilvan - Gil';
+          encSolicitante?.nome || senderNumber || 'Gil';
 
         for (const vale of obra.vales) {
           const nomeValeCanonico = normalizarNomeTrabalhadorCanonico(vale.nome);

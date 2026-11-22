@@ -370,7 +370,7 @@ export async function POST(req: NextRequest) {
             body.observacao?.trim() ||
             `Solicitação de Vale (${body.solicitadoPor || 'Encarregado'}) — aguardando envio PIX`,
           vale_etapa: 'SOLICITADO',
-          solicitado_por: body.solicitadoPor || 'Gilvan - Gil',
+          solicitado_por: body.solicitadoPor || 'Gil',
           horario_origem: horaRef,
         })
         .select('id')
@@ -491,7 +491,7 @@ export async function POST(req: NextRequest) {
           comprovante_url: comprovantePixUrl,
           comprovante_pix_url: comprovantePixUrl,
           vale_etapa: 'CONCILIADO',
-          solicitado_por: body.solicitadoPor || 'Gilvan - Gil',
+          solicitado_por: body.solicitadoPor || 'Gil',
           pago_por: pagador,
           horario_origem: body.horario || getHoraBrasilia(),
         })

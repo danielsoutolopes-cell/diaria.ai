@@ -51,15 +51,17 @@ export function normalizarNomeObraCanonica(
  * em apontamentos, borderô, relatórios e Caixinha de Campo.
  */
 export const ALIAS_TRABALHADORES_PADRAO: Record<string, string> = {
-  // Gilvan - Gil (unificação Gil + Gil335Revest)
-  GIL: 'Gilvan - Gil',
-  GIL335REVEST: 'Gilvan - Gil',
-  'GIL 335 REVEST': 'Gilvan - Gil',
-  'GIL 335': 'Gilvan - Gil',
-  GILVAN: 'Gilvan - Gil',
-  'GILVAN - GIL': 'Gilvan - Gil',
-  'GIL (GILVAN)': 'Gilvan - Gil',
-  'GILVAN (GIL)': 'Gilvan - Gil',
+  // Gil (unificação Gil + Gilvan + Gilvan (Gil) + Gil335Revest)
+  GIL: 'Gil',
+  GIL335REVEST: 'Gil',
+  'GIL 335 REVEST': 'Gil',
+  'GIL 335': 'Gil',
+  GILVAN: 'Gil',
+  'GILVAN - GIL': 'Gil',
+  'GIL - GILVAN': 'Gil',
+  'GIL (GILVAN)': 'Gil',
+  'GILVAN (GIL)': 'Gil',
+  'GILVAN GIL': 'Gil',
   // Wender (unificação Wender + Wender 22 + Weslen)
   WENDER: 'Wender',
   'WENDER 22': 'Wender',
@@ -76,12 +78,17 @@ export const ALIAS_TRABALHADORES_PADRAO: Record<string, string> = {
   // Zé Baiano
   'JOSE BAIANO': 'Zé Baiano',
   'ZE BAIANO': 'Zé Baiano',
-  // Lucas J.
-  'LUCAS. J.': 'Lucas J.',
-  'LUCAS J.': 'Lucas J.',
-  'LUCAS J': 'Lucas J.',
-  'LUCAS.J.': 'Lucas J.',
-  'LUCAS.J': 'Lucas J.',
+  // Lucas J (unificação Lucas J, Lucas.j., Lucas. J., Lucas J., Lucas-J, etc.)
+  'LUCAS. J.': 'Lucas J',
+  'LUCAS J.': 'Lucas J',
+  'LUCAS J': 'Lucas J',
+  'LUCAS.J.': 'Lucas J',
+  'LUCAS.J': 'Lucas J',
+  'LUCAS . J': 'Lucas J',
+  'LUCAS . J.': 'Lucas J',
+  'LUCAS-J': 'Lucas J',
+  'LUCAS - J': 'Lucas J',
+  'LUCAS - J.': 'Lucas J',
   // Daniel
   DANIEL: 'Daniel',
   'DANIEL.': 'Daniel',
@@ -119,7 +126,15 @@ export function normalizarNomeTrabalhadorCanonico(
 
   if (aliasesExtras) {
     const extraDireto = aliasesExtras[chave] || aliasesExtras[chaveSemPontoFinal];
-    if (extraDireto) return extraDireto;
+    if (extraDireto) {
+      const chaveExtra = limparChaveNome(extraDireto);
+      const chaveExtraSemPonto = chaveExtra.replace(/\.+$/, '').trim();
+      return (
+        ALIAS_TRABALHADORES_PADRAO[chaveExtra] ||
+        ALIAS_TRABALHADORES_PADRAO[chaveExtraSemPonto] ||
+        extraDireto
+      );
+    }
   }
 
   const direto =
@@ -127,8 +142,19 @@ export function normalizarNomeTrabalhadorCanonico(
     ALIAS_TRABALHADORES_PADRAO[chaveSemPontoFinal];
   if (direto) return direto;
 
-  if (chave.includes('GIL335') || chave === 'GILVAN GIL') {
-    return 'Gilvan - Gil';
+  if (
+    chave.includes('GIL335') ||
+    chave === 'GILVAN GIL' ||
+    chave.startsWith('GILVAN ') ||
+    chave.startsWith('GILVAN(') ||
+    chave.startsWith('GIL (') ||
+    chave.startsWith('GIL(') ||
+    chave.startsWith('GIL -')
+  ) {
+    return 'Gil';
+  }
+  if (/^LUCAS[\s.\-]+J\.?$/.test(chave)) {
+    return 'Lucas J';
   }
   if (chave.includes('WESLEN') || chave.includes('WENDER')) {
     return 'Wender';

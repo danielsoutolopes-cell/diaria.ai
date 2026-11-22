@@ -233,12 +233,12 @@ export async function POST(req: NextRequest) {
           );
         });
       } else if (activeTenant.id === TENANTS.jhoston.id) {
-        // Fallback pré-implantação oficial 13/11 (Gilvan - Gil: 700 - 546,94 = 153,06)
-        mapaCaixinha.set('GILVAN - GIL', 153.06);
+        // Fallback pré-implantação oficial 13/11 (Gil: 700 - 546,94 = 153,06)
+        mapaCaixinha.set('GIL', 153.06);
       }
     } catch {
       if (activeTenant.id === TENANTS.jhoston.id) {
-        mapaCaixinha.set('GILVAN - GIL', 153.06);
+        mapaCaixinha.set('GIL', 153.06);
       }
     }
 
