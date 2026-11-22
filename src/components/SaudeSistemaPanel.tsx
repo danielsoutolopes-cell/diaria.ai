@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -19,6 +19,10 @@ import {
   Copy,
   Wrench,
   Scissors,
+  Clock,
+  History,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import type {
   AnomaliaAuditoria,
@@ -29,11 +33,23 @@ import type {
   RelatorioAuditoriaInterna,
   SeveridadeAnomalia,
 } from '@/services/auditoriaEngine';
+import {
+  OPCOES_CADENCIA_SAUDE,
+  type CadenciaSaudeSistema,
+  type ConfiguracaoCadenciaSaude,
+  type HistoricoLaudoSaudeRecord,
+} from '@/services/saudeCadenciaService';
 
 interface AuditoriaApiResponse extends RelatorioAuditoriaInterna {
   success?: boolean;
   tenant?: { id: string; slug: string; nome: string };
   periodo?: string;
+  cacheHit?: boolean;
+  cadenciaConfig?: ConfiguracaoCadenciaSaude;
+  proximaExecucaoIso?: string | null;
+  proximaExecucaoFormatada?: string | null;
+  ultimoLaudoMeta?: HistoricoLaudoSaudeRecord | null;
+  historico?: HistoricoLaudoSaudeRecord[];
   error?: string;
 }
 
@@ -113,10 +129,21 @@ export default function SaudeSistemaPanel({
   onScoreCarregado,
 }: SaudeSistemaPanelProps) {
   const [periodo, setPeriodo] = useState<'7d' | '15d' | '30d' | 'todos'>('15d');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [carregandoInicial, setCarregandoInicial] = useState<boolean>(true);
+  const [varrendo, setVarrendo] = useState<boolean>(false);
+  const [salvandoCadencia, setSalvandoCadencia] = useState<boolean>(false);
   const [tenantNome, setTenantNome] = useState<string>('Jhoston');
   const [usuarioAtual, setUsuarioAtual] = useState<string>('Patrícia Grubel');
   const [dados, setDados] = useState<RelatorioAuditoriaInterna | null>(null);
+  const [ultimoLaudoMeta, setUltimoLaudoMeta] =
+    useState<HistoricoLaudoSaudeRecord | null>(null);
+  const [historico, setHistorico] = useState<HistoricoLaudoSaudeRecord[]>([]);
+  const [historicoExpandido, setHistoricoExpandido] = useState<boolean>(false);
+  const [cadencia, setCadencia] =
+    useState<CadenciaSaudeSistema>('SOB_DEMANDA_19H30');
+  const [proximaExecucaoFormatada, setProximaExecucaoFormatada] = useState<
+    string | null
+  >(null);
   const [filtroCat, setFiltroCat] = useState<'TODAS' | CategoriaAnomaliaSaude>('TODAS');
   const [filtroSev, setFiltroSev] = useState<'TODAS' | SeveridadeAnomalia>('TODAS');
   const [aplicandoId, setAplicandoId] = useState<string | null>(null);
@@ -129,48 +156,79 @@ export default function SaudeSistemaPanel({
     texto: string;
   } | null>(null);
 
-  const carregarAuditoria = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/auditoria?periodo=${periodo}`, {
-        cache: 'no-store',
+  // Ref estável para evitar recriação de efeito / loop infinito de varredura
+  const onScoreCarregadoRef = useRef(onScoreCarregado);
+  useEffect(() => {
+    onScoreCarregadoRef.current = onScoreCarregado;
+  }, [onScoreCarregado]);
+
+  const aplicarRespostaAuditoria = useCallback((data: AuditoriaApiResponse) => {
+    setTenantNome(data.tenant?.nome || 'Jhoston');
+    const relatorio: RelatorioAuditoriaInterna = {
+      anomalias: data.anomalias || [],
+      simulacao: data.simulacao,
+      cruzamentoLotes: data.cruzamentoLotes || [],
+      saudeSistema: data.saudeSistema,
+      totalLancamentosAnalisados: data.totalLancamentosAnalisados || 0,
+      totalLotesAnalisados: data.totalLotesAnalisados || 0,
+    };
+    setDados(relatorio);
+    if (data.ultimoLaudoMeta !== undefined) {
+      setUltimoLaudoMeta(data.ultimoLaudoMeta || null);
+    }
+    if (Array.isArray(data.historico)) {
+      setHistorico(data.historico);
+    }
+    if (data.cadenciaConfig?.cadencia) {
+      setCadencia(data.cadenciaConfig.cadencia);
+    }
+    if (data.proximaExecucaoFormatada !== undefined) {
+      setProximaExecucaoFormatada(data.proximaExecucaoFormatada || null);
+    }
+    if (onScoreCarregadoRef.current && data.saudeSistema) {
+      onScoreCarregadoRef.current({
+        scoreGeral: data.saudeSistema.scoreGeral,
+        anomaliasAlta: data.simulacao?.anomaliasAlta || 0,
+        nivel: data.saudeSistema.nivel,
       });
-      const data = (await res.json()) as AuditoriaApiResponse;
-      if (res.ok && data.success) {
-        setTenantNome(data.tenant?.nome || 'Jhoston');
-        const relatorio: RelatorioAuditoriaInterna = {
-          anomalias: data.anomalias || [],
-          simulacao: data.simulacao,
-          cruzamentoLotes: data.cruzamentoLotes || [],
-          saudeSistema: data.saudeSistema,
-          totalLancamentosAnalisados: data.totalLancamentosAnalisados || 0,
-          totalLotesAnalisados: data.totalLotesAnalisados || 0,
-        };
-        setDados(relatorio);
-        if (onScoreCarregado && data.saudeSistema) {
-          onScoreCarregado({
-            scoreGeral: data.saudeSistema.scoreGeral,
-            anomaliasAlta: data.simulacao?.anomaliasAlta || 0,
-            nivel: data.saudeSistema.nivel,
+    }
+  }, []);
+
+  // Carga estável do último laudo salvo (ou primeira varredura caso ainda não exista laudo)
+  const carregarAuditoria = useCallback(
+    async (forcarNovaVarredura = false) => {
+      if (forcarNovaVarredura) {
+        setVarrendo(true);
+      } else {
+        setCarregandoInicial((prev) => prev);
+      }
+      try {
+        const url = `/api/auditoria?periodo=${periodo}${forcarNovaVarredura ? '&forcar=1' : ''}`;
+        const res = await fetch(url, { cache: 'no-store' });
+        const data = (await res.json()) as AuditoriaApiResponse;
+        if (res.ok && data.success) {
+          aplicarRespostaAuditoria(data);
+        } else {
+          setFeedback({
+            tipo: 'erro',
+            texto: data.error || 'Falha ao carregar o relatório de saúde.',
           });
         }
-      } else {
+      } catch (err) {
+        console.error('Erro ao carregar saúde do sistema:', err);
         setFeedback({
           tipo: 'erro',
-          texto: data.error || 'Falha ao carregar o relatório de saúde.',
+          texto: 'Não foi possível conectar ao motor de saúde do sistema.',
         });
+      } finally {
+        setCarregandoInicial(false);
+        setVarrendo(false);
       }
-    } catch (err) {
-      console.error('Erro ao carregar saúde do sistema:', err);
-      setFeedback({
-        tipo: 'erro',
-        texto: 'Não foi possível conectar ao motor de saúde do sistema.',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [periodo, onScoreCarregado]);
+    },
+    [periodo, aplicarRespostaAuditoria]
+  );
 
+  // Lê usuário logado uma única vez no mount
   useEffect(() => {
     const cookies = document.cookie.split('; ');
     const userCookie = cookies.find((c) => c.startsWith('diaria_user='));
@@ -182,8 +240,90 @@ export default function SaudeSistemaPanel({
         setUsuarioAtual(decodeURIComponent(raw).replace(/%20/g, ' ').trim());
       }
     }
-    void carregarAuditoria();
+  }, []);
+
+  // Carrega o último laudo salvo apenas quando o período muda (zero polling/loop!)
+  useEffect(() => {
+    void carregarAuditoria(false);
   }, [carregarAuditoria]);
+
+  async function handleExecutarVarreduraManual() {
+    setVarrendo(true);
+    setFeedback(null);
+    try {
+      const res = await fetch('/api/auditoria', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'executar-varredura',
+          periodo,
+          executadoPor: usuarioAtual,
+        }),
+      });
+      const data = (await res.json()) as AuditoriaApiResponse;
+      if (res.ok && data.success) {
+        aplicarRespostaAuditoria(data);
+        setFeedback({
+          tipo: 'sucesso',
+          texto: `Varredura concluída e salva no histórico (${data.ultimoLaudoMeta?.executadoEmFormatado || 'agora'}) — Score ${data.saudeSistema?.scoreGeral ?? 100}/100.`,
+        });
+      } else {
+        setFeedback({
+          tipo: 'erro',
+          texto: data.error || 'Falha ao executar varredura manual.',
+        });
+      }
+    } catch {
+      setFeedback({
+        tipo: 'erro',
+        texto: 'Erro de conexão ao executar varredura manual.',
+      });
+    } finally {
+      setVarrendo(false);
+    }
+  }
+
+  async function handleAlterarCadencia(novaCadencia: CadenciaSaudeSistema) {
+    setCadencia(novaCadencia);
+    setSalvandoCadencia(true);
+    setFeedback(null);
+    try {
+      const res = await fetch('/api/auditoria', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'configurar-cadencia',
+          cadencia: novaCadencia,
+          executadoPor: usuarioAtual,
+        }),
+      });
+      const data = (await res.json()) as {
+        success?: boolean;
+        cadenciaConfig?: ConfiguracaoCadenciaSaude;
+        proximaExecucaoFormatada?: string | null;
+        error?: string;
+      };
+      if (res.ok && data.success) {
+        if (data.cadenciaConfig?.cadencia) {
+          setCadencia(data.cadenciaConfig.cadencia);
+        }
+        setProximaExecucaoFormatada(data.proximaExecucaoFormatada || null);
+        setFeedback({
+          tipo: 'sucesso',
+          texto: data.proximaExecucaoFormatada
+            ? `Cadência atualizada! Próxima varredura prevista: ${data.proximaExecucaoFormatada} (BRT).`
+            : 'Cadência atualizada para Apenas Manual (Sob Demanda).',
+        });
+      } else {
+        setFeedback({
+          tipo: 'erro',
+          texto: data.error || 'Falha ao salvar cadência.',
+        });
+      }
+    } finally {
+      setSalvandoCadencia(false);
+    }
+  }
 
   async function handleAprovarCorrecaoUmClique(anomalia: AnomaliaAuditoria) {
     if (!anomalia.acaoCorretiva.podeAprovarUmClique) return;
@@ -220,7 +360,7 @@ export default function SaudeSistemaPanel({
         tipo: 'sucesso',
         texto: `Correção aplicada para ${anomalia.trabalhadorCanonico}: ${anomalia.antes.valor} → ${anomalia.depoisSugerido.valor}`,
       });
-      await carregarAuditoria();
+      await carregarAuditoria(true);
     } finally {
       setAplicandoId(null);
     }
@@ -272,7 +412,7 @@ export default function SaudeSistemaPanel({
         tipo: 'sucesso',
         texto: data.message || 'Ajustes seguros aplicados!',
       });
-      await carregarAuditoria();
+      await carregarAuditoria(true);
     } finally {
       setAplicandoLote(false);
     }
@@ -400,26 +540,103 @@ export default function SaudeSistemaPanel({
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
-              onClick={() => void handleGerarParecerIa()}
-              disabled={gerandoParecerIa || loading}
-              className="flex-1 sm:flex-none justify-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+              onClick={() => void handleExecutarVarreduraManual()}
+              disabled={varrendo}
+              className="flex-1 sm:flex-none justify-center px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-60"
+              title="Executar nova varredura agora e salvar laudo no histórico auditável"
             >
-              <Sparkles className="w-4 h-4 shrink-0" />
-              <span>
-                {gerandoParecerIa ? 'Analisando IA...' : 'Diagnóstico Pericial IA'}
-              </span>
+              <RefreshCw className={`w-4 h-4 shrink-0 ${varrendo ? 'animate-spin' : ''}`} />
+              <span>{varrendo ? 'Varrendo...' : 'Executar Varredura'}</span>
             </button>
 
             <button
               type="button"
-              onClick={() => void carregarAuditoria()}
-              disabled={loading}
-              className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl shadow-sm shrink-0"
-              title="Reexecutar varredura agora"
+              onClick={() => void handleGerarParecerIa()}
+              disabled={gerandoParecerIa || varrendo}
+              className="flex-1 sm:flex-none justify-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <Sparkles className="w-4 h-4 shrink-0" />
+              <span>
+                {gerandoParecerIa ? 'Analisando IA...' : 'Diagnóstico IA'}
+              </span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Faixa de Estabilidade: Último Laudo Salvo + Cadência Configurável (Sob Demanda + 19:30 padrão) */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="space-y-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span className="inline-flex items-center gap-1 font-black text-slate-800">
+              <Clock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Último laudo:</span>
+            </span>
+            <span className="font-bold text-slate-900 tabular-nums">
+              {ultimoLaudoMeta?.executadoEmFormatado ||
+                (carregandoInicial ? 'Carregando...' : 'Ainda não registrado')}
+            </span>
+            {ultimoLaudoMeta && (
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                  ultimoLaudoMeta.origem === 'CADENCIA'
+                    ? 'bg-sky-50 text-sky-700 border-sky-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}
+              >
+                {ultimoLaudoMeta.origem === 'CADENCIA' ? 'Cadência' : 'Manual'}
+              </span>
+            )}
+            {varrendo && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200">
+                Atualizando...
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 tabular-nums">
+            {ultimoLaudoMeta && (
+              <span>
+                Auditados: <strong className="text-slate-700">{ultimoLaudoMeta.totalLancamentosAuditados}</strong> lançamentos •{' '}
+                <strong className="text-slate-700">{ultimoLaudoMeta.totalValesAuditados}</strong> vales •{' '}
+                <strong className="text-slate-700">{ultimoLaudoMeta.totalLotesAuditados}</strong> lotes
+              </span>
+            )}
+            <span>
+              Próxima cadência:{' '}
+              <strong className="text-slate-800">
+                {proximaExecucaoFormatada
+                  ? `${proximaExecucaoFormatada} (BRT)`
+                  : 'Sob demanda apenas'}
+              </strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Seletor de Cadência por Tenant */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 shrink-0">
+          <label
+            htmlFor="saude-cadencia-select"
+            className="text-[11px] font-black text-slate-600 uppercase tracking-wider shrink-0"
+          >
+            Cadência ({tenantNome}):
+          </label>
+          <select
+            id="saude-cadencia-select"
+            aria-label="Cadência de varredura de saúde"
+            value={cadencia}
+            disabled={salvandoCadencia}
+            onChange={(e) =>
+              void handleAlterarCadencia(e.target.value as CadenciaSaudeSistema)
+            }
+            className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none disabled:opacity-60"
+          >
+            {OPCOES_CADENCIA_SAUDE.map((op) => (
+              <option key={op.id} value={op.id}>
+                {op.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -446,7 +663,7 @@ export default function SaudeSistemaPanel({
         </div>
       )}
 
-      {/* Hero Health Score Card (0-100) */}
+      {/* Hero Health Score Card (0-100) — Estável, exibe o último laudo salvo sem piscar */}
       <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-5 sm:p-6 shadow-xl border border-slate-800 space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -454,7 +671,7 @@ export default function SaudeSistemaPanel({
               <span
                 className={`text-3xl font-black tabular-nums leading-none ${nivelEstilo.ring}`}
               >
-                {loading ? '—' : saude?.scoreGeral ?? 100}
+                {carregandoInicial && !dados ? '—' : saude?.scoreGeral ?? 100}
               </span>
               <span className="text-[10px] font-bold text-slate-400 mt-1">
                 de 100
@@ -469,12 +686,12 @@ export default function SaudeSistemaPanel({
                 <span
                   className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${nivelEstilo.badge}`}
                 >
-                  {loading ? 'Varrendo...' : nivelEstilo.label}
+                  {carregandoInicial && !dados ? 'Carregando...' : nivelEstilo.label}
                 </span>
               </div>
               <h3 className="text-base sm:text-lg font-black text-white">
-                {loading
-                  ? 'Executando diagnóstico estrutural...'
+                {carregandoInicial && !dados
+                  ? 'Carregando último laudo auditado...'
                   : (saude?.duplicadosDetectados || 0) === 0 &&
                       (saude?.fantasmasDetectados || 0) === 0 &&
                       (sim?.anomaliasAlta || 0) === 0
@@ -709,7 +926,7 @@ export default function SaudeSistemaPanel({
           </div>
         </div>
 
-        {loading ? (
+        {carregandoInicial && !dados ? (
           <div className="p-4 sm:p-6 space-y-3 animate-pulse">
             <div className="h-20 bg-slate-100 rounded-2xl" />
             <div className="h-20 bg-slate-100 rounded-2xl" />
@@ -955,6 +1172,128 @@ export default function SaudeSistemaPanel({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Histórico Auditável de Laudos Salvos (Manual & Cadência) */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setHistoricoExpandido((prev) => !prev)}
+          className="w-full p-4 sm:p-5 bg-slate-50/90 hover:bg-slate-100/80 transition-colors flex flex-wrap items-center justify-between gap-3 text-left"
+        >
+          <div className="flex items-center gap-2.5">
+            <History className="w-4 h-4 text-slate-600 shrink-0" />
+            <div>
+              <h3 className="text-sm font-black text-slate-900">
+                Histórico Auditável de Laudos ({historico.length})
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                Registro persistido por empresa ({tenantNome}) de varreduras manuais e automáticas — visível mesmo sem manter a aba aberta.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+            {historicoExpandido ? (
+              <>
+                Recolher <ChevronUp className="w-3.5 h-3.5" />
+              </>
+            ) : (
+              <>
+                Ver Histórico <ChevronDown className="w-3.5 h-3.5" />
+              </>
+            )}
+          </span>
+        </button>
+
+        {historicoExpandido && (
+          <div className="border-t border-slate-200 overflow-x-auto">
+            {historico.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-500">
+                Nenhuma varredura registrada no histórico ainda. Clique em{' '}
+                <strong className="text-slate-700">Executar Varredura</strong> para gerar o primeiro laudo auditável.
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="p-3.5">Data / Hora (BRT)</th>
+                    <th className="p-3.5">Origem</th>
+                    <th className="p-3.5">Executado por</th>
+                    <th className="p-3.5">Período</th>
+                    <th className="p-3.5 text-right">Auditados</th>
+                    <th className="p-3.5 text-right">Dupl. / Fant.</th>
+                    <th className="p-3.5 text-right">Críticos</th>
+                    <th className="p-3.5 text-center">Score</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {historico.map((item: HistoricoLaudoSaudeRecord) => {
+                    const estiloItem = getNivelEstilo(item.nivel);
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/70">
+                        <td className="p-3.5 font-semibold text-slate-800 tabular-nums whitespace-nowrap">
+                          {item.executadoEmFormatado}
+                        </td>
+                        <td className="p-3.5 whitespace-nowrap">
+                          {item.origem === 'CADENCIA' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-black uppercase">
+                              <Clock className="w-3 h-3" /> Cadência
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-black uppercase">
+                              Manual
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3.5 text-slate-600 whitespace-nowrap">
+                          {item.executadoPor}
+                        </td>
+                        <td className="p-3.5 text-slate-600 uppercase font-bold whitespace-nowrap">
+                          {item.periodo}
+                        </td>
+                        <td className="p-3.5 text-right text-slate-700 tabular-nums whitespace-nowrap">
+                          <span className="font-bold">{item.totalLancamentosAuditados}</span> lanç. ·{' '}
+                          <span className="font-bold">{item.totalValesAuditados}</span> vales ·{' '}
+                          <span className="font-bold">{item.totalLotesAuditados}</span> lotes
+                        </td>
+                        <td className="p-3.5 text-right tabular-nums whitespace-nowrap">
+                          <span className="font-bold text-slate-800">{item.duplicadosDetectados}</span>
+                          {' / '}
+                          <span className="font-bold text-slate-800">{item.fantasmasDetectados}</span>
+                        </td>
+                        <td className="p-3.5 text-right tabular-nums whitespace-nowrap">
+                          <span
+                            className={`font-black ${
+                              item.anomaliasAlta > 0 ? 'text-rose-600' : 'text-emerald-600'
+                            }`}
+                          >
+                            {item.anomaliasAlta}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-center whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-black tabular-nums ${
+                              item.nivel === 'EXCELENTE'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : item.nivel === 'SAUDAVEL'
+                                  ? 'bg-sky-50 text-sky-700 border-sky-200'
+                                  : item.nivel === 'ATENCAO'
+                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                            }`}
+                            title={estiloItem.label}
+                          >
+                            {item.scoreGeral}/100
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

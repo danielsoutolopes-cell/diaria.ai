@@ -297,13 +297,13 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
           'Permite descartar duplicados/fantasmas (Soft Delete) ou aprovar ajustes seguros (apelidos e chaves de idempotência) sempre com confirmação explícita.',
       },
       {
-        nome: 'Diagnóstico Pericial IA & Aba em Relatórios',
+        nome: 'Diagnóstico Pericial IA, Cadência Configurável & Histórico Auditável',
         descricao:
-          'Acessível também pela aba "Saúde do Sistema & IA" na tela de Relatórios, com parecer executivo sob demanda antes do fechamento PIX.',
+          'Exibe imediatamente o último laudo salvo sem piscar. Roda sob demanda no botão "Executar Varredura" e em cadência automática configurável (padrão: 1x ao dia às 19:30 BRT, ou Manual / 6h / 12h), mantendo histórico auditável mesmo com a aba fechada.',
       },
     ],
     exemplo:
-      'Antes de fechar a quinzena, abra a aba "Saúde do Sistema & IA" em Relatórios, confira se Duplicados = 0 e Fantasmas = 0, e clique em "Diagnóstico Pericial IA" para validar a folha.',
+      'Antes de fechar a quinzena, abra a aba "Saúde & IA" em Relatórios: o último laudo salvo aparece na hora (com data/hora, lançamentos, vales e lotes auditados). Se desejar nova checagem imediata, clique em "Executar Varredura" ou consulte o Histórico Auditável.',
   },
   '/config-geral': {
     titulo: 'Configuração Geral (Hub Multi-Empresa)',

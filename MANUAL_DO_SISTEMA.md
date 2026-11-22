@@ -325,7 +325,11 @@ Na tela **Fechamento & Pagamentos** (`/bordero`):
   - O botão **Diagnóstico IA** aciona a IA para emitir um parecer executivo priorizado (pontos críticos, duplicados, fantasmas e próximos passos).
   - O botão **Corrigir Lote Seguro** aplica em massa apenas correções sem risco financeiro (normalização de apelidos e preenchimento de chaves de idempotência).
   - Qualquer ajuste financeiro ou descarte de duplicidade exige clique humano (**Human-in-the-Loop**) com **Soft Delete** (`CANCELADO`) e simulação pré-fechamento em tempo real.
-- **Exemplo Prático**: Antes de fechar a folha da semana em uma Empresa Modo Diarista, abra **Relatórios → Saúde & IA**, veja o selo do Health Score, clique em **Diagnóstico IA** e revise no Diff `Antes × Depois` se existe algum vale duplicado ou lançamento com data anômala antes de liberar os pagamentos no Borderô.
+- **Último Laudo Estável, Cadência Configurável (`19:30` Padrão) & Histórico Auditável**:
+  - Ao carregar a aba, o **último laudo salvo** da empresa é exibido de imediato (data/hora BRT, origem `Manual` ou `Cadência`, quantidade de lançamentos, vales e lotes auditados, score e anomalias), sem recarregamentos contínuos.
+  - A cadência padrão recomendada é **Sob Demanda + 1x ao dia às 19:30 (Horário de Brasília)**, podendo ser alterada por empresa para **Apenas Manual**, **A cada 6h (07:00, 13:00, 19:00)** ou **A cada 12h (07:30 e 19:30)** diretamente no painel.
+  - Todas as execuções (manuais e agendadas) ficam registradas no **Histórico Auditável de Laudos**, visível mesmo sem manter a tela aberta.
+- **Exemplo Prático**: Antes de fechar a folha da semana em uma Empresa Modo Diarista, abra **Relatórios → Saúde & IA** para visualizar imediatamente o último laudo automático das 19:30 (com score, duplicados e fantasmas). Caso tenha acabado de aprovar novas mensagens, clique em **Executar Varredura** e confira o Diff `Antes × Depois` antes de liberar os pagamentos no Borderô.
 
 ---
 

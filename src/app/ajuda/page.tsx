@@ -427,11 +427,14 @@ export default function AjudaPage() {
               <strong>Diagnóstico Executivo IA + Correções Seguras em 1 Clique</strong>: Gera um parecer executivo via IA sobre os principais riscos da empresa ativa, oferece botão de <strong>Lote Seguro</strong> (apenas normalização de nomes e chaves de idempotência) e exibe <strong>Diff Antes × Depois</strong> para cada correção sob aprovação humana (<em>Human-in-the-Loop</em> — descartes usam exclusão lógica segura).
             </li>
             <li>
+              <strong>Último Laudo Estável, Cadência Configurável (19:30 Padrão) &amp; Histórico Auditável</strong>: Ao abrir a aba, o último laudo salvo é exibido instantaneamente (data/hora, origem <em>Manual</em> ou <em>Cadência</em>, total de lançamentos/vales/lotes auditados e score). A empresa pode escolher entre <strong>Sob Demanda + 19:30 (Recomendado)</strong>, <strong>Apenas Manual</strong>, <strong>A cada 6h</strong> ou <strong>A cada 12h</strong>, consultando todas as execuções no <strong>Histórico Auditável de Laudos</strong> sem precisar deixar a tela aberta.
+            </li>
+            <li>
               <strong>Gerador de Pedido de Compras (<code>/compras</code>) &amp; Logística da Obra (<code>/setup</code>)</strong>: Nas empresas com módulo de compras habilitado, o cadastro da obra exige <strong>Alias / Cliente p/ Fornecedores</strong> e <strong>Endereço de Entrega</strong> (CEP, complemento de descarga e contato). Os pedidos agrupados pela IA permitem clicar em <strong>&quot;Copiar só esta categoria&quot;</strong> para enviar direto a cada fornecedor.
             </li>
           </ul>
           <div className="p-3 bg-slate-100 rounded-2xl text-[11px] text-slate-700 border border-slate-200">
-            <strong>Exemplo Prático:</strong> Antes de fechar o pagamento da semana em uma Empresa Modo Diarista, abra <strong>Relatórios → Aba &quot;Saúde &amp; IA&quot;</strong>, confira se o Health Score está acima de 90, clique em <strong>&quot;Diagnóstico IA&quot;</strong> e revise eventuais vales duplicados ou registros fantasmas no Diff <em>Antes × Depois</em> antes de aprovar em 1 clique.
+            <strong>Exemplo Prático:</strong> Antes de fechar o pagamento da semana em uma Empresa Modo Diarista, abra <strong>Relatórios → Aba &quot;Saúde &amp; IA&quot;</strong>: o último laudo das 19:30 já estará disponível na tela. Clique em <strong>&quot;Executar Varredura&quot;</strong> se acabou de lançar novos apontamentos ou consulte o <strong>Histórico Auditável</strong> para confirmar a evolução do Health Score.
           </div>
         </div>
       ),

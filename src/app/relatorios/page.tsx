@@ -453,7 +453,7 @@ export default function RelatoriosPage() {
       {abaAtiva === 'saude' ? (
         <SaudeSistemaPanel
           embutidoEmRelatorios
-          onScoreCarregado={(info) => setResumoSaude(info)}
+          onScoreCarregado={setResumoSaude}
         />
       ) : (
         <div className="space-y-6 sm:space-y-8">
