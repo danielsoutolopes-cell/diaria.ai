@@ -66,16 +66,16 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-8">
       {/* Top Executive Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-slate-200/80">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-3 border-b border-slate-200/80">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center gap-1.5 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className="px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center gap-1.5 shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
               Ambiente Executivo VIP
             </span>
-            <span className="text-xs text-slate-500 font-medium capitalize">
+            <span className="text-[11px] sm:text-xs text-slate-500 font-medium capitalize">
               •{' '}
               {new Date().toLocaleDateString('pt-BR', {
                 timeZone: 'America/Sao_Paulo',
@@ -85,32 +85,32 @@ export default function DashboardPage() {
               })}
             </span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-950 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-950 tracking-tight">
             {usuarioAtual.toLowerCase().includes('daniel')
               ? 'Olá, Daniel 🚀'
               : `Olá, ${usuarioAtual.split(' ')[0] || 'Patrícia'} ✨`}
           </h1>
-          <p className="text-sm text-slate-600 mt-1 max-w-xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-xl leading-relaxed">
             {usuarioAtual.toLowerCase().includes('daniel')
               ? 'Painel de Diretoria & Operações Multi-Empresa pronto. Acompanhe obras, efetivo, validações e medições em tempo real.'
               : 'Seu centro de comando financeiro e de pessoal está pronto. Nenhuma diária é liquidada sem seu aval direto.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="grid grid-cols-1 sm:flex sm:items-center gap-2.5 w-full md:w-auto">
           <Link
-            href="/whatsapp"
-            className="px-5 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl text-sm font-bold transition-all shadow-sm flex items-center gap-2"
+            href="/validacao/diarias"
+            className="px-4 sm:px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-emerald-700/25 flex items-center justify-center gap-2.5 active:scale-95 order-1 sm:order-2"
           >
-            <QrCode className="w-4 h-4 text-emerald-600" />
-            <span>Conectar WhatsApp</span>
+            <CalendarCheck2 className="w-4 h-4 shrink-0" />
+            <span>Fila de Aprovação ({metrics.lotesPendentes})</span>
           </Link>
           <Link
-            href="/validacoes"
-            className="px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-emerald-700/25 flex items-center gap-2.5 active:scale-95"
+            href="/whatsapp"
+            className="px-4 sm:px-5 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 order-2 sm:order-1"
           >
-            <CalendarCheck2 className="w-4 h-4" />
-            <span>Fila de Aprovação ({metrics.lotesPendentes})</span>
+            <QrCode className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Conectar WhatsApp</span>
           </Link>
         </div>
       </div>
@@ -119,22 +119,22 @@ export default function DashboardPage() {
       <OnboardingChecklist />
 
       {/* Hero: O 'Cofre Executivo' da Patrícia */}
-      <div className="luxury-card-gradient rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl">
+      <div className="luxury-card-gradient rounded-2xl sm:rounded-3xl p-5 sm:p-8 text-white relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-1/3 -mb-20 w-60 h-60 rounded-full bg-teal-500/10 blur-3xl pointer-events-none"></div>
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Posição Consolidada da Semana (Previsão de Sexta)</span>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-8">
+          <div className="space-y-2.5 sm:space-y-3">
+            <div className="flex items-center gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-400">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>Posição Consolidada da Semana</span>
             </div>
 
             <div className="space-y-1">
               <span className="text-xs text-slate-400 font-medium block">Total Líquido Validado a Pagar</span>
-              <div className="text-4xl md:text-5xl font-black tracking-tight text-white flex items-baseline gap-2">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white flex flex-wrap items-baseline gap-2 tabular-nums">
                 <span>R$ {metrics.saldoLiquidoSemana.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <span className="text-xs font-semibold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800/60">
+                <span className="text-[11px] sm:text-xs font-semibold text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-800/60">
                   {metrics.obrasAtivas} {metrics.obrasAtivas === 1 ? 'Canteiro' : 'Canteiros'}
                 </span>
               </div>
@@ -147,98 +147,98 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 shrink-0">
-            <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-slate-700/60 space-y-1">
-              <div className="text-[11px] text-slate-400 font-medium">Vales Deduzidos</div>
-              <div className="text-xl font-black text-rose-400">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 shrink-0">
+            <div className="bg-slate-900/80 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-slate-700/60 space-y-1">
+              <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium">Vales Deduzidos</div>
+              <div className="text-base sm:text-xl font-black text-rose-400 tabular-nums">
                 - R$ {metrics.totalVales.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
-              <div className="text-[10px] text-slate-400">Proteção de caixa ativa</div>
+              <div className="text-[10px] text-slate-400">Proteção ativa</div>
             </div>
 
-            <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-slate-700/60 space-y-1">
-              <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-                <CloudSun className="w-3.5 h-3.5 text-sky-400" /> Previsão Clima
+            <div className="bg-slate-900/80 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-slate-700/60 space-y-1">
+              <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                <CloudSun className="w-3.5 h-3.5 text-sky-400 shrink-0" /> Clima
               </div>
-              <div className="text-xl font-black text-sky-300">Tempo Aberto</div>
+              <div className="text-base sm:text-xl font-black text-sky-300">Tempo Aberto</div>
               <div className="text-[10px] text-slate-400">OpenWeather ativo</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Pendências</span>
-            <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
-              <Clock className="w-4 h-4" />
+      {/* KPI Cards Row (2x2 compacto no celular em pé) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm space-y-2 sm:space-y-3 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Pendências</span>
+            <div className="p-1.5 sm:p-2 rounded-xl bg-amber-50 text-amber-600 shrink-0">
+              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-900">{metrics.lotesPendentes} Lotes</div>
-            <div className="text-xs text-amber-600 font-semibold mt-0.5">
-              {metrics.lotesPendentes > 0 ? 'Aguardando seu clique de aprovação' : 'Nenhuma pendência na fila'}
+            <div className="text-lg sm:text-2xl font-black text-slate-900 tabular-nums">{metrics.lotesPendentes} Lotes</div>
+            <div className="text-[11px] sm:text-xs text-amber-600 font-semibold mt-0.5 leading-snug">
+              {metrics.lotesPendentes > 0 ? 'Aguardando aprovação' : 'Fila zerada'}
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Canteiros Ativos</span>
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
-              <HardHat className="w-4 h-4" />
+        <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm space-y-2 sm:space-y-3 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Canteiros</span>
+            <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
+              <HardHat className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-900">{metrics.obrasAtivas} Obras</div>
-            <div className="text-xs text-slate-500 font-medium mt-0.5 truncate max-w-[200px]">
+            <div className="text-lg sm:text-2xl font-black text-slate-900 tabular-nums">{metrics.obrasAtivas} Obras</div>
+            <div className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5 truncate">
               {metrics.obrasLista.length > 0 ? metrics.obrasLista.map((o) => o.nome).join(', ') : 'Cadastre em Setup'}
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Equipe de Campo</span>
-            <div className="p-2 rounded-xl bg-sky-50 text-sky-600">
-              <Users className="w-4 h-4" />
+        <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm space-y-2 sm:space-y-3 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Equipe</span>
+            <div className="p-1.5 sm:p-2 rounded-xl bg-sky-50 text-sky-600 shrink-0">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-900">{metrics.totalOperarios} Operários</div>
-            <div className="text-xs text-slate-500 font-medium mt-0.5">Com chave PIX e cadastro</div>
+            <div className="text-lg sm:text-2xl font-black text-slate-900 tabular-nums">{metrics.totalOperarios} Operários</div>
+            <div className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5 leading-snug">Com PIX e cadastro</div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Segurança de Caixa</span>
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
-              <ShieldCheck className="w-4 h-4" />
+        <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm space-y-2 sm:space-y-3 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Caixa</span>
+            <div className="p-1.5 sm:p-2 rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-black text-emerald-700">100% Blindado</div>
-            <div className="text-xs text-emerald-600 font-semibold mt-0.5">Sem pagamento automático da IA</div>
+            <div className="text-lg sm:text-2xl font-black text-emerald-700">100% Blindado</div>
+            <div className="text-[11px] sm:text-xs text-emerald-600 font-semibold mt-0.5 leading-snug">Aval humano obrigatório</div>
           </div>
         </div>
       </div>
 
       {/* Main Grid: Terminal IA + Quick Panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="lg:col-span-2 space-y-3 sm:space-y-4">
+          <div className="flex items-center justify-between gap-2">
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
                 Terminal Omnichannel & IA
               </h2>
               <p className="text-xs text-slate-500">
                 Converse com o Gemini ou veja o processamento das mensagens do WhatsApp
               </p>
             </div>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold shrink-0">
               Online
             </span>
           </div>
@@ -247,7 +247,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
+          <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
               <span>Atalhos Imediatos</span>
             </div>

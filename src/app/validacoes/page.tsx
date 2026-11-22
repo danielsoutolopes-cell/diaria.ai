@@ -423,63 +423,63 @@ export default function ValidacoesPage() {
   );
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5 sm:space-y-8">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <div
-              className={`flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full w-fit border shadow-sm ${
+              className={`flex items-center gap-2 text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full w-fit border shadow-sm ${
                 isEmpreita
                   ? 'text-indigo-800 bg-indigo-50 border-indigo-200/80'
                   : 'text-emerald-800 bg-emerald-50 border-emerald-200/80'
               }`}
             >
               <Sparkles
-                className={`w-3.5 h-3.5 ${
+                className={`w-3.5 h-3.5 shrink-0 ${
                   isEmpreita ? 'text-indigo-600' : 'text-emerald-600'
                 }`}
               />
               <span>
                 {isEmpreita
-                  ? 'Intermack • Controle de Efetivo (Empreita)'
-                  : 'Jhoston • Validação por Mensagem Enviada'}
+                  ? 'Intermack • Controle de Efetivo'
+                  : 'Jhoston • Validação por Mensagem'}
               </span>
             </div>
             {dataCorteOperacional && (
               <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
                 <Scissors className="w-3 h-3 text-slate-500" />
-                <span>Corte ativo: até {dataCorteOperacional}</span>
+                <span>Corte: até {dataCorteOperacional}</span>
               </div>
             )}
           </div>
-          <h1 className="text-3xl font-black text-slate-950 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
             {isEmpreita ? 'Validações de Efetivo' : 'Validações de Campo'}
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 mt-1">
             {isEmpreita
               ? 'Controle de presença da equipe do empreiteiro por mensagem enviada (Dia Inteiro ou Meio Dia, sem valores financeiros).'
               : 'Cada mensagem recebida no WhatsApp forma um card independente com seu horário exato. Aprove ou exclua registros individualmente.'}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={handleAplicarCorteOntem}
             disabled={aplicandoCorte}
-            className="px-3.5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+            className="flex-1 sm:flex-none justify-center px-3.5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
             title="Marcar todas as mensagens enviadas até ontem como validadas e inseridas"
           >
             <Scissors className="w-3.5 h-3.5 text-slate-500" />
-            <span>{aplicandoCorte ? 'Aplicando corte...' : 'Corte até Ontem'}</span>
+            <span>{aplicandoCorte ? 'Aplicando...' : 'Corte até Ontem'}</span>
           </button>
 
           <button
             type="button"
             onClick={carregarPendentes}
             disabled={loading}
-            className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl transition-all shadow-sm"
+            className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl transition-all shadow-sm shrink-0"
             title="Atualizar fila"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -490,7 +490,7 @@ export default function ValidacoesPage() {
               type="button"
               onClick={handleValidarTodasMensagens}
               disabled={validandoTodos || validandoLoteId !== null}
-              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all shadow-sm flex items-center gap-2"
+              className="w-full sm:w-auto justify-center px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all shadow-sm flex items-center gap-2"
             >
               <Check className="w-4 h-4 stroke-[3]" />
               <span>
@@ -498,7 +498,7 @@ export default function ValidacoesPage() {
                   ? 'Validando...'
                   : isEmpreita
                     ? `Aprovar Todas (${mensagens.length} msgs)`
-                    : `Aprovar Todas (${mensagens.length} msgs • R$ ${totalGeral.toFixed(2)})`}
+                    : `Aprovar Todas (${mensagens.length} • R$ ${totalGeral.toFixed(2)})`}
               </span>
             </button>
           )}
@@ -587,28 +587,28 @@ export default function ValidacoesPage() {
                 className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden"
               >
                 {/* Cabeçalho da Mensagem Enviada */}
-                <div className="px-6 py-4 bg-slate-50/90 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <div className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-black text-xs shadow-sm">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Mensagem às {grupo.horarioMensagem}</span>
+                <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-50/90 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1.5 bg-emerald-600 text-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-black text-[11px] sm:text-xs shadow-sm tabular-nums">
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <span>{grupo.horarioMensagem}</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-black text-slate-800">
-                      <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                    <div className="flex items-center gap-1.5 bg-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-slate-200 text-[11px] sm:text-xs font-black text-slate-800">
+                      <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                       <span>{grupo.obra}</span>
                     </div>
 
-                    <span className="text-xs font-semibold text-slate-500">
+                    <span className="text-[11px] sm:text-xs font-semibold text-slate-500 tabular-nums">
                       📅 {grupo.data}
                     </span>
 
-                    <span className="text-[11px] font-semibold text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200/70">
+                    <span className="text-[11px] font-semibold text-slate-500 bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border border-slate-200/70">
                       📱 {grupo.origem}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between sm:justify-end gap-2">
                     {grupo.mensagemOriginal && (
                       <button
                         type="button"
@@ -618,14 +618,14 @@ export default function ValidacoesPage() {
                             [grupo.loteId]: !prev[grupo.loteId],
                           }))
                         }
-                        className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                        className="flex-1 sm:flex-none justify-center px-3 py-2 sm:py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
                       >
-                        <MessageSquareText className="w-3.5 h-3.5 text-emerald-600" />
+                        <MessageSquareText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         <span>{msgAberta ? 'Ocultar Texto' : 'Ver Mensagem Original'}</span>
                         {msgAberta ? (
-                          <ChevronUp className="w-3.5 h-3.5" />
+                          <ChevronUp className="w-3.5 h-3.5 shrink-0" />
                         ) : (
-                          <ChevronDown className="w-3.5 h-3.5" />
+                          <ChevronDown className="w-3.5 h-3.5 shrink-0" />
                         )}
                       </button>
                     )}
@@ -634,7 +634,7 @@ export default function ValidacoesPage() {
                       type="button"
                       onClick={() => solicitarDescarteMensagem(grupo)}
                       disabled={isDescartandoEsta || isValidandoEsta}
-                      className="p-2 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-500 hover:text-rose-600 rounded-xl transition-all"
+                      className="p-2 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-500 hover:text-rose-600 rounded-xl transition-all shrink-0"
                       title="Descartar esta mensagem inteira"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -644,7 +644,7 @@ export default function ValidacoesPage() {
 
                 {/* Texto Original do WhatsApp (Expansível) */}
                 {msgAberta && grupo.mensagemOriginal && (
-                  <div className="px-6 py-3.5 bg-emerald-50/50 border-b border-emerald-100 text-xs text-slate-700">
+                  <div className="px-4 sm:px-6 py-3.5 bg-emerald-50/50 border-b border-emerald-100 text-xs text-slate-700">
                     <span className="font-bold text-emerald-900 block mb-1">
                       Texto original recebido no WhatsApp ({grupo.timestampOriginal || grupo.horarioMensagem}):
                     </span>
@@ -663,11 +663,11 @@ export default function ValidacoesPage() {
                     return (
                       <div
                         key={item.id}
-                        className="p-5 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-5 hover:bg-slate-50/50 transition-colors"
+                        className="p-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-5 hover:bg-slate-50/50 transition-colors"
                       >
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <div className="w-7 h-7 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
+                            <div className="w-7 h-7 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
                               <User className="w-4 h-4 text-slate-600" />
                             </div>
                             <h3 className="text-base font-black text-slate-950 tracking-tight">
@@ -675,7 +675,7 @@ export default function ValidacoesPage() {
                             </h3>
 
                             {/* Seletor de Obra por Segurança */}
-                            <div className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200/80 px-2 py-0.5 rounded-lg border border-slate-200/70 transition-all">
+                            <div className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200/80 px-2 py-0.5 rounded-lg border border-slate-200/70 transition-all max-w-full">
                               <select
                                 value={item.obra}
                                 onChange={(e) => {
@@ -685,7 +685,7 @@ export default function ValidacoesPage() {
                                     obra: novaObra,
                                   }));
                                 }}
-                                className="bg-transparent text-[11px] font-bold text-slate-700 cursor-pointer focus:outline-none"
+                                className="bg-transparent text-[11px] font-bold text-slate-700 cursor-pointer focus:outline-none max-w-[180px] truncate"
                                 title="Confirmar ou alterar a obra deste apontamento"
                               >
                                 <option value={item.obra}>{item.obra}</option>
@@ -756,7 +756,7 @@ export default function ValidacoesPage() {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-3 self-end md:self-center">
+                        <div className="flex flex-wrap items-center justify-between md:justify-end gap-2.5 sm:gap-3 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
                           {item.tipo === 'VALE' ? (
                             <div className="flex items-center gap-2 bg-rose-50/70 p-2 rounded-2xl border border-rose-200/80">
                               <div className="flex flex-col">
@@ -782,18 +782,18 @@ export default function ValidacoesPage() {
                                       valorDiariaBase: Number.isNaN(val) ? 0 : val,
                                     }));
                                   }}
-                                  className="w-28 px-2.5 py-1 bg-white border border-rose-200 rounded-xl text-sm font-black text-rose-950 focus:ring-2 focus:ring-rose-500"
+                                  className="w-28 px-2.5 py-1 bg-white border border-rose-200 rounded-xl text-sm font-black text-rose-950 focus:ring-2 focus:ring-rose-500 tabular-nums"
                                 />
                               </div>
                             </div>
                           ) : (
                             <>
                               {!isEmpreita && (
-                                <div className="text-right pr-1">
+                                <div className="text-left md:text-right pr-1">
                                   <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
                                     A Pagar
                                   </span>
-                                  <span className="text-lg font-black text-slate-950">
+                                  <span className="text-base sm:text-lg font-black text-slate-950 tabular-nums">
                                     R$ {valorCalculado.toFixed(2)}
                                   </span>
                                 </div>
@@ -805,7 +805,7 @@ export default function ValidacoesPage() {
                                   onClick={() =>
                                     handleFracaoChange(grupo.loteId, item.id, 1.0)
                                   }
-                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                  className={`px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold transition-all ${
                                     item.fracao === 1.0
                                       ? isEmpreita
                                         ? 'bg-indigo-600 text-white shadow-sm font-black'
@@ -820,7 +820,7 @@ export default function ValidacoesPage() {
                                   onClick={() =>
                                     handleFracaoChange(grupo.loteId, item.id, 0.5)
                                   }
-                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                  className={`px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold transition-all ${
                                     item.fracao === 0.5
                                       ? 'bg-amber-500 text-white shadow-sm font-black'
                                       : 'text-slate-600 hover:text-slate-900'
@@ -834,7 +834,7 @@ export default function ValidacoesPage() {
                                     onClick={() =>
                                       handleFracaoChange(grupo.loteId, item.id, 0.0)
                                     }
-                                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    className={`px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold transition-all ${
                                       item.fracao === 0.0
                                         ? 'bg-rose-500 text-white shadow-sm font-black'
                                         : 'text-slate-600 hover:text-slate-900'
@@ -852,7 +852,7 @@ export default function ValidacoesPage() {
                             type="button"
                             onClick={() => solicitarExclusaoItem(grupo, item)}
                             disabled={isDescartandoItem || isValidandoEsta}
-                            className="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all"
+                            className="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all shrink-0"
                             title={`Excluir ${item.trabalhador} desta validação`}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -864,14 +864,14 @@ export default function ValidacoesPage() {
                 </div>
 
                 {/* Rodapé do Card: Subtotal + Ação de Aprovar Esta Mensagem */}
-                <div className="px-6 py-4 bg-slate-50/70 border-t border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="px-4 sm:px-6 py-4 bg-slate-50/70 border-t border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="text-xs text-slate-500 font-medium">
                     <span className="font-bold text-slate-700">
                       {grupo.itens.length} profissional(is)
                     </span>{' '}
                     nesta mensagem •{' '}
                     {isEmpreita ? (
-                      <span className="font-black text-indigo-700 text-sm">
+                      <span className="font-black text-indigo-700 text-sm tabular-nums">
                         {grupo.itens
                           .reduce((acc, it) => acc + (it.fracao || 0), 0)
                           .toFixed(1)}{' '}
@@ -880,7 +880,7 @@ export default function ValidacoesPage() {
                     ) : (
                       <>
                         Subtotal:{' '}
-                        <span className="font-black text-emerald-700 text-sm">
+                        <span className="font-black text-emerald-700 text-sm tabular-nums">
                           R$ {subtotalMensagem.toFixed(2)}
                         </span>
                       </>
@@ -891,7 +891,7 @@ export default function ValidacoesPage() {
                     type="button"
                     onClick={() => executarValidacaoMensagem(grupo, false)}
                     disabled={isValidandoEsta || validandoTodos}
-                    className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-bold transition-all shadow-md shadow-emerald-700/20 flex items-center justify-center gap-2 active:scale-95"
+                    className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-bold transition-all shadow-md shadow-emerald-700/20 flex items-center justify-center gap-2 active:scale-95"
                   >
                     <Check className="w-4 h-4 stroke-[3]" />
                     <span>

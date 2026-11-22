@@ -363,9 +363,9 @@ export default function RelatoriosPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-slate-200 pb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5 border-b border-slate-200 pb-5 sm:pb-6">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
@@ -375,19 +375,19 @@ export default function RelatoriosPage() {
               Controladoria & Fechamento
             </span>
           </div>
-          <h1 className="text-2xl font-black text-slate-950 mt-1">Relatórios & Exportações</h1>
-          <p className="text-sm text-slate-600 mt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-950 mt-1">Relatórios & Exportações</h1>
+          <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
             Demonstrativos consolidados com exportação direta para Excel (.xlsx) e disparo executivo via WhatsApp.
           </p>
         </div>
 
         {/* Filtro de Período + Disparo WhatsApp Master */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
           {/* Seletor Semanal / Quinzenal / Mensal */}
-          <div className="flex items-center bg-slate-200/80 p-1.5 rounded-2xl gap-1">
+          <div className="grid grid-cols-3 sm:flex items-center bg-slate-200/80 p-1.5 rounded-2xl gap-1 w-full sm:w-auto">
             <button
               onClick={() => setPeriodo('semanal')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all text-center ${
                 periodo === 'semanal'
                   ? 'bg-white text-emerald-700 shadow-sm'
                   : 'text-slate-600 hover:text-slate-950'
@@ -397,7 +397,7 @@ export default function RelatoriosPage() {
             </button>
             <button
               onClick={() => setPeriodo('quinzenal')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all text-center ${
                 periodo === 'quinzenal'
                   ? 'bg-white text-emerald-700 shadow-sm'
                   : 'text-slate-600 hover:text-slate-950'
@@ -407,7 +407,7 @@ export default function RelatoriosPage() {
             </button>
             <button
               onClick={() => setPeriodo('mensal')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all text-center ${
                 periodo === 'mensal'
                   ? 'bg-white text-emerald-700 shadow-sm'
                   : 'text-slate-600 hover:text-slate-950'
@@ -417,30 +417,32 @@ export default function RelatoriosPage() {
             </button>
           </div>
 
-          {/* Excel V6 — 5 Abas Inteligentes com Fórmulas =SUM(...) */}
-          <button
-            type="button"
-            onClick={() => void handleExportarExcel5AbasV6()}
-            disabled={exportandoExcelV6}
-            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50"
-            title="Baixar planilha Excel V6 em 5 abas inteligentes com fórmulas =SUM nativas"
-          >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-            <span>
-              {exportandoExcelV6 ? 'Gerando Excel V6...' : 'Excel V6 (5 Abas)'}
-            </span>
-          </button>
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+            {/* Excel V6 — 5 Abas Inteligentes com Fórmulas =SUM(...) */}
+            <button
+              type="button"
+              onClick={() => void handleExportarExcel5AbasV6()}
+              disabled={exportandoExcelV6}
+              className="px-3 sm:px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+              title="Baixar planilha Excel V6 em 5 abas inteligentes com fórmulas =SUM nativas"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>
+                {exportandoExcelV6 ? 'Gerando...' : 'Excel (5 Abas)'}
+              </span>
+            </button>
 
-          {/* Enviar Resumo WhatsApp para Diretoria */}
-          <button
-            onClick={handleEnviarWhatsappDiretoria}
-            disabled={dadosBordero.length === 0}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-md shadow-emerald-700/20 active:scale-95 transition-all disabled:opacity-50"
-            title="Enviar resumo executivo consolidado via WhatsApp"
-          >
-            <Share2 className="w-4 h-4" />
-            <span>Enviar no WhatsApp</span>
-          </button>
+            {/* Enviar Resumo WhatsApp para Diretoria */}
+            <button
+              onClick={handleEnviarWhatsappDiretoria}
+              disabled={dadosBordero.length === 0}
+              className="px-3 sm:px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 shadow-md shadow-emerald-700/20 active:scale-95 transition-all disabled:opacity-50"
+              title="Enviar resumo executivo consolidado via WhatsApp"
+            >
+              <Share2 className="w-4 h-4 shrink-0" />
+              <span>WhatsApp</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -481,7 +483,7 @@ export default function RelatoriosPage() {
       )}
 
       {/* Faixa de Automação Quinzenal (Prompt 5: PDF Paisagem Base64 — 2ª e última sexta 18:00 BRT) */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-black">
@@ -543,9 +545,9 @@ export default function RelatoriosPage() {
           type="button"
           onClick={() => void handleDispararPdfQuinzenalAgora()}
           disabled={disparandoQuinzenal}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50 shrink-0"
+          className="w-full lg:w-auto px-4 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50 shrink-0"
         >
-          <FileText className="w-4 h-4" />
+          <FileText className="w-4 h-4 shrink-0" />
           <span>
             {disparandoQuinzenal
               ? 'Gerando e Enviando PDF...'
@@ -554,62 +556,63 @@ export default function RelatoriosPage() {
         </button>
       </div>
 
-      {/* Cards de Métricas do Período */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
-            <span>Total em Diárias (Bruto)</span>
-            <TrendingUp className="w-4 h-4 text-emerald-500" />
+      {/* Cards de Métricas do Período (2x2 compacto no celular em pé) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm space-y-1.5 sm:space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] sm:text-xs font-semibold gap-1">
+            <span>Diárias (Bruto)</span>
+            <TrendingUp className="w-4 h-4 text-emerald-500 shrink-0" />
           </div>
-          <div className="text-2xl font-black text-slate-950">
+          <div className="text-lg sm:text-2xl font-black text-slate-950 tabular-nums">
             R$ {totais.totalGeralDiarias.toFixed(2)}
           </div>
-          <p className="text-[11px] text-slate-400">Total apurado no período {periodo}</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400">Período {periodo}</p>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm space-y-1.5 sm:space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] sm:text-xs font-semibold gap-1">
             <span>Vales Deduzidos</span>
-            <TrendingDown className="w-4 h-4 text-rose-500" />
+            <TrendingDown className="w-4 h-4 text-rose-500 shrink-0" />
           </div>
-          <div className="text-2xl font-black text-rose-600">
+          <div className="text-lg sm:text-2xl font-black text-rose-600 tabular-nums">
             - R$ {totais.totalGeralVales.toFixed(2)}
           </div>
-          <p className="text-[11px] text-slate-400">Abatimentos e adiantamentos de campo</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400">Adiantamentos de campo</p>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
-            <span>Total Líquido a Pagar</span>
-            <Receipt className="w-4 h-4 text-emerald-600" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm space-y-1.5 sm:space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] sm:text-xs font-semibold gap-1">
+            <span>Líquido a Pagar</span>
+            <Receipt className="w-4 h-4 text-emerald-600 shrink-0" />
           </div>
-          <div className="text-2xl font-black text-emerald-700">
+          <div className="text-lg sm:text-2xl font-black text-emerald-700 tabular-nums">
             R$ {totais.totalLiquido.toFixed(2)}
           </div>
-          <p className="text-[11px] text-slate-400">Volume financeiro a liquidar via PIX</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400">Volume via PIX</p>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
-            <span>Colaboradores / Canteiros</span>
-            <Users className="w-4 h-4 text-sky-500" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm space-y-1.5 sm:space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] sm:text-xs font-semibold gap-1">
+            <span>Equipe / Obras</span>
+            <Users className="w-4 h-4 text-sky-500 shrink-0" />
           </div>
-          <div className="text-2xl font-black text-slate-950">
-            {totais.totalTrabalhadores} <span className="text-sm font-semibold text-slate-400">em {totais.totalObras} obras</span>
+          <div className="text-lg sm:text-2xl font-black text-slate-950 tabular-nums">
+            {totais.totalTrabalhadores}{' '}
+            <span className="text-xs sm:text-sm font-semibold text-slate-400">em {totais.totalObras} obras</span>
           </div>
-          <p className="text-[11px] text-slate-400">Mão de obra ativa com lançamentos</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-400">Mão de obra ativa</p>
         </div>
       </div>
 
       {/* ================= RELATÓRIO 1: BORDERÔ CONSOLIDADO ================= */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
-        <div className="p-6 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-6 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 Relatório 1
               </span>
-              <h2 className="text-lg font-black text-white">Borderô Consolidado ({periodo.toUpperCase()})</h2>
+              <h2 className="text-base sm:text-lg font-black text-white">Borderô Consolidado ({periodo.toUpperCase()})</h2>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
               Extrato consolidado por trabalhador com diárias, vales, saldo líquido e chave PIX para conferência.
@@ -619,7 +622,7 @@ export default function RelatoriosPage() {
           <button
             onClick={handleExportarBorderoXls}
             disabled={dadosBordero.length === 0}
-            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 border border-white/20 disabled:opacity-40"
+            className="w-full sm:w-auto justify-center px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 border border-white/20 disabled:opacity-40"
           >
             <Download className="w-4 h-4 text-emerald-400" />
             <span>Exportar Excel (.xlsx)</span>
@@ -627,7 +630,7 @@ export default function RelatoriosPage() {
         </div>
 
         {loading ? (
-          <div className="p-6 space-y-3 animate-pulse">
+          <div className="p-4 sm:p-6 space-y-3 animate-pulse">
             <div className="h-10 bg-slate-100 rounded-xl" />
             <div className="h-12 bg-slate-50 rounded-xl" />
             <div className="h-12 bg-slate-50 rounded-xl" />
@@ -650,8 +653,8 @@ export default function RelatoriosPage() {
           return (
             <div>
               {/* Barra de Busca & Contagem (UX/UI SaaS Seção 3.2) */}
-              <div className="px-6 py-3 bg-slate-50/80 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 flex-1 min-w-[220px] max-w-md">
+              <div className="px-4 sm:px-6 py-3 bg-slate-50/80 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+                <div className="flex items-center gap-2 flex-1 w-full sm:max-w-md">
                   <input
                     type="text"
                     value={buscaBordero}
@@ -688,65 +691,145 @@ export default function RelatoriosPage() {
                   </button>
                 </div>
               ) : (
-                <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold shadow-xs">
-                      <tr>
-                        <th className="p-4">Colaborador</th>
-                        <th className="p-4">Canteiro Principal</th>
-                        <th className="p-4">Chave PIX</th>
-                        <th className="p-4 text-right">Diárias</th>
-                        <th className="p-4 text-right">Bruto</th>
-                        <th className="p-4 text-right">Vales</th>
-                        <th className="p-4 text-right">Líquido a Pagar</th>
-                        <th className="p-4 text-center">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filtradosBordero.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="p-4 font-bold text-slate-950">
+                <>
+                  {/* Visão Mobile Retrato: Cards Empilhados de Leitura Rápida */}
+                  <div className="md:hidden divide-y divide-slate-100">
+                    {filtradosBordero.map((item, idx) => (
+                      <div
+                        key={`mob-${idx}`}
+                        className="p-4 space-y-3 bg-white active:bg-slate-50/80 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 space-y-1">
                             <button
                               type="button"
                               onClick={() => setModalExtrato(item)}
-                              className="text-left hover:text-emerald-700 hover:underline flex items-center gap-1.5 transition-colors"
-                              title="Clique para ver o extrato dia a dia e remover duplicidades"
+                              className="text-left font-black text-sm text-slate-950 hover:text-emerald-700 underline decoration-emerald-300 underline-offset-2"
                             >
-                              <span>{item.nome}</span>
+                              {item.nome}
                             </button>
-                          </td>
-                          <td className="p-4 text-slate-600">
-                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[11px] font-semibold text-slate-700">
-                              {item.obra}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-700">
+                                {item.obra}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-500 truncate max-w-[180px]">
+                                {item.chavePix ? `PIX: ${item.chavePix}` : 'Sem chave PIX'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                              Líquido
                             </span>
-                          </td>
-                          <td className="p-4 font-mono text-[11px] text-slate-600">
-                            {item.chavePix || <span className="text-amber-600 italic">Não informada</span>}
-                          </td>
-                          <td className="p-4 text-right font-bold text-slate-800 tabular-nums">{item.totalDiariasQtd}x</td>
-                          <td className="p-4 text-right font-medium text-slate-700 tabular-nums">
-                            R$ {item.totalDiariasValor.toFixed(2)}
-                          </td>
-                          <td className="p-4 text-right font-bold text-rose-600 tabular-nums">
-                            {item.totalValesValor > 0 ? `- R$ ${item.totalValesValor.toFixed(2)}` : '—'}
-                          </td>
-                          <td className="p-4 text-right font-black text-sm text-emerald-700 tabular-nums">
-                            R$ {item.liquidoPagar.toFixed(2)}
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              onClick={() => handleEnviarExtratoTrabalhador(item)}
-                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
-                              title="Enviar extrato individual via WhatsApp"
-                            >
-                              <MessageCircle className="w-4 h-4" />
-                            </button>
-                          </td>
+                            <span className="text-base font-black text-emerald-700 tabular-nums">
+                              R$ {item.liquidoPagar.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-[11px]">
+                          <div>
+                            <span className="text-slate-400 block text-[10px]">Diárias</span>
+                            <strong className="text-slate-800 tabular-nums">{item.totalDiariasQtd}x</strong>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[10px]">Bruto</span>
+                            <strong className="text-slate-800 tabular-nums">
+                              R$ {item.totalDiariasValor.toFixed(2)}
+                            </strong>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[10px]">Vales</span>
+                            <strong className="text-rose-600 tabular-nums">
+                              {item.totalValesValor > 0 ? `- R$ ${item.totalValesValor.toFixed(2)}` : '—'}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setModalExtrato(item)}
+                            className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold text-center"
+                          >
+                            Ver Extrato Dia a Dia
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleEnviarExtratoTrabalhador(item)}
+                            className="py-2 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 shrink-0"
+                            title="Enviar extrato individual via WhatsApp"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>WhatsApp</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Visão Desktop / Tablet: Tabela Completa */}
+                  <div className="hidden md:block overflow-x-auto max-h-[520px] overflow-y-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold shadow-xs">
+                        <tr>
+                          <th className="p-4">Colaborador</th>
+                          <th className="p-4">Canteiro Principal</th>
+                          <th className="p-4">Chave PIX</th>
+                          <th className="p-4 text-right">Diárias</th>
+                          <th className="p-4 text-right">Bruto</th>
+                          <th className="p-4 text-right">Vales</th>
+                          <th className="p-4 text-right">Líquido a Pagar</th>
+                          <th className="p-4 text-center">Ações</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filtradosBordero.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="p-4 font-bold text-slate-950">
+                              <button
+                                type="button"
+                                onClick={() => setModalExtrato(item)}
+                                className="text-left hover:text-emerald-700 hover:underline flex items-center gap-1.5 transition-colors"
+                                title="Clique para ver o extrato dia a dia e remover duplicidades"
+                              >
+                                <span>{item.nome}</span>
+                              </button>
+                            </td>
+                            <td className="p-4 text-slate-600">
+                              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[11px] font-semibold text-slate-700">
+                                {item.obra}
+                              </span>
+                            </td>
+                            <td className="p-4 font-mono text-[11px] text-slate-600">
+                              {item.chavePix || <span className="text-amber-600 italic">Não informada</span>}
+                            </td>
+                            <td className="p-4 text-right font-bold text-slate-800 tabular-nums">{item.totalDiariasQtd}x</td>
+                            <td className="p-4 text-right font-medium text-slate-700 tabular-nums">
+                              R$ {item.totalDiariasValor.toFixed(2)}
+                            </td>
+                            <td className="p-4 text-right font-bold text-rose-600 tabular-nums">
+                              {item.totalValesValor > 0 ? `- R$ ${item.totalValesValor.toFixed(2)}` : '—'}
+                            </td>
+                            <td className="p-4 text-right font-black text-sm text-emerald-700 tabular-nums">
+                              R$ {item.liquidoPagar.toFixed(2)}
+                            </td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => handleEnviarExtratoTrabalhador(item)}
+                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                                title="Enviar extrato individual via WhatsApp"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           );

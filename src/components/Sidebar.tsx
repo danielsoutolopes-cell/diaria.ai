@@ -253,6 +253,10 @@ export default function Sidebar() {
     router.push('/login');
   }
 
+  if (pathname === '/login' || pathname?.startsWith('/extrato/')) {
+    return null;
+  }
+
   return (
     <aside className="hidden lg:flex w-72 bg-slate-950 text-white min-h-screen flex-col border-r border-slate-800/80 shrink-0 select-none">
       {/* Brand Header */}

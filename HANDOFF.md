@@ -54,6 +54,20 @@
 - **Padrão White-Label / Genérico**: Os manuais, guias e ajudas voltados ao usuário final devem usar linguagem **genérica** (ex.: *Empresa Modo Diarista*, *Empresa Modo Empreita*, *Obra Residencial*, *Encarregado*), **sem citar nomes reais de empresas ou clientes específicos**, e sempre incluir **pequenos exemplos práticos de uso**.
 
 ## Últimas Ações (Ciclo Atual)
+- **Otimização Completa de UX/UI para Celular em Pé (Mobile Portrait `360px–430px`)**:
+  - **Barra de Navegação Inferior Nativa (`src/components/MobileBottomNav.tsx`)**: Nova barra fixa inferior (`lg:hidden`) com 5 atalhos ergonômicos adaptados ao tenant ativo (`Início`, `Diárias`/`Efetivo` com badge de pendências ao vivo, `Vales`/`Compras`, `PIX`/`Diário`, `Relatórios`), respeitando safe-area (`pb-safe`) e oculta em `/login` e `/extrato/*`.
+  - **Correção Crítica do Borderô (`/bordero`) no Celular em Pé (`src/app/bordero/page.tsx`)**:
+    - Corrigida a barra flutuante inferior **Total + Liquidar e Encerrar Semana** que antes usava `left-72` (empurrando o botão para fora da tela em celulares de 375px) → agora `fixed bottom-[60px] lg:bottom-0 left-0 lg:left-72 right-0` com layout empilhado full-width.
+    - Substituída a tabela apertada de 8 colunas em telas pequenas por **Cards Empilhados Toque-Fácil (`md:hidden`)** com checkbox ampliado, obra/descrição legível, `tabular-nums`, lightbox de comprovante e botão editar — mantendo a tabela completa intacta no Desktop (`hidden md:block`).
+    - Cabeçalho dos cards por colaborador, botões (`Recibo PIX`, `QR Code`, `Copiar PIX Copia e Cola`) e campo editável de `Chave PIX` (`w-full sm:w-64`) agora quebram e alinham sem estouro horizontal.
+  - **Relatórios (`/relatorios`, `EspelhoPontoMensal`, `CalendarioValesCaixa`)**:
+    - KPIs em grade compacta `2×2` no retrato (`grid-cols-2 lg:grid-cols-4`), seletor `Semanal / Quinzenal / Mensal` em grade 3 colunas full-width e **Cards Mobile (`md:hidden`)** no Relatório 1 (Borderô Consolidado) com acesso direto ao extrato dia a dia e disparo WhatsApp.
+    - Banner orientativo `md:hidden` (*"← Deslize lateralmente ou gire o celular..."*) + `touch-scroll-x` nas matrizes de 31 dias (`EspelhoPontoMensal`) e 7 colunas (`CalendarioValesCaixa`).
+  - **Home (`/`), Validações (`/validacao/diarias`, `/validacao/vales`, `ValidacaoTabsHeader`) e Shell Global**:
+    - KPIs `2×2` compactos na Home, Hero flexível com `tabular-nums` e CTAs full-width em retrato.
+    - Abas `Diárias / Vales PIX` em grade 2 colunas no retrato (`ValidacaoTabsHeader`), cards de validação com botões de fração (`1.0`, `½`, `0`) mais confortáveis ao toque e CTA `Aprovar Mensagem` full-width.
+    - `MobileHeader` agora inclui `/conciliacao`, badge de empresa ativa, truncamento seguro em 360px e ocultação automática em `/login` e `/extrato/*` (também aplicado a `Sidebar` e `ContextualHelp`).
+    - `ContextualHelp` reposicionado acima da barra inferior (`bottom-[74px]` e `bottom-44` no `/bordero`) evitando qualquer colisão visual; `viewport` atualizado (`userScalable: true, maximumScale: 5, viewportFit: 'cover'`) e padding mobile responsivo (`p-4 sm:p-6 lg:p-8`) unificado nas páginas auxiliares (`/setup`, `/compras`, `/whatsapp`, `/configuracoes`, `/mensageria`, `/auditoria`, `/ajuda`).
 - **Suíte Self-Healing de Reprocessamento de Diárias (`54 lançamentos = R$ 9.780,00`), Melhorias Aplicadas & PDF de Homologação**:
   - **Motor & Suíte (`src/services/reconciliacaoDiariasV16.ts` + `tests/reprocessamento_diarias_convergencia.test.ts`)**: Converge em **6 tentativas** (ativando `IsolateTenantIdStrict` → `IncludeWeekendEveningBatches24x7` → `PreservePostQuitacaoNewCycle` → `NormalizeCanonicalAliasesAndSplitObras` → `EnforceRateioCapAndRainPricing`) até discrepância zero:
     - **Total Jhoston**: **54 lançamentos = R$ 9.780,00** (`47` da base até `21/11 16:39` = `R$ 7.710,00` + `7` de **Piscina Porto Seguro** `21/11 18:12` = `R$ 2.070,00`).

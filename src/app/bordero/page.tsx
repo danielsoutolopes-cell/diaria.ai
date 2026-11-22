@@ -572,28 +572,28 @@ export default function BorderoPage() {
   }, 0);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8 pb-36">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5 sm:space-y-8 pb-52 lg:pb-36">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full w-fit mb-2 border border-amber-200/80 shadow-sm">
-            <Calendar className="w-3.5 h-3.5 text-amber-600" />
-            <span>Fechamento Multi-Ciclo • Diaristas, Mensalista, Seg–Sáb e Quitação PIX OCR</span>
+          <div className="flex items-center gap-2 text-[11px] sm:text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full w-fit mb-2 border border-amber-200/80 shadow-sm">
+            <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>Fechamento Multi-Ciclo • PIX &amp; Quitação OCR</span>
           </div>
-          <h1 className="text-3xl font-black text-slate-950 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
             Borderô e Pagamento da Folha
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-xs sm:text-sm text-slate-600 mt-1">
             Gestão integrada de mão de obra de campo com isolamento de ciclos pós-quitação e rateio multi-obra explícito no PIX.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
           {/* Seletor de Ciclo de Fechamento */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/80">
+          <div className="grid grid-cols-3 sm:flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/80 w-full sm:w-auto gap-1">
             <button
               onClick={() => setCicloAtivo('TODOS')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all text-center ${
                 cicloAtivo === 'TODOS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -601,15 +601,20 @@ export default function BorderoPage() {
             </button>
             <button
               onClick={() => setCicloAtivo('SEMANAL')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all text-center ${
                 cicloAtivo === 'SEMANAL' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              Toda Sexta / Semanal ({funcionarios.filter((f) => f.cicloPagamento === 'SEMANAL' || f.regimeRemuneracao === 'SEMANALISTA' || f.regimeRemuneracao === 'MENSALISTA').length})
+              <span className="sm:hidden">
+                Semanal ({funcionarios.filter((f) => f.cicloPagamento === 'SEMANAL' || f.regimeRemuneracao === 'SEMANALISTA' || f.regimeRemuneracao === 'MENSALISTA').length})
+              </span>
+              <span className="hidden sm:inline">
+                Toda Sexta / Semanal ({funcionarios.filter((f) => f.cicloPagamento === 'SEMANAL' || f.regimeRemuneracao === 'SEMANALISTA' || f.regimeRemuneracao === 'MENSALISTA').length})
+              </span>
             </button>
             <button
               onClick={() => setCicloAtivo('QUINZENAL')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all text-center ${
                 cicloAtivo === 'QUINZENAL' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -617,57 +622,59 @@ export default function BorderoPage() {
             </button>
           </div>
 
-          <label className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black transition-all shadow-sm flex items-center gap-2 cursor-pointer active:scale-95">
-            <Camera className="w-4 h-4" />
-            <span>
-              {lendoComprovantePix
-                ? 'Lendo PIX...'
-                : 'Liquidar PIX (Foto OCR)'}
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleLerComprovantePixLiquidacao}
-              className="hidden"
-            />
-          </label>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="flex-1 sm:flex-none justify-center px-3.5 sm:px-4 py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black transition-all shadow-sm flex items-center gap-2 cursor-pointer active:scale-95">
+              <Camera className="w-4 h-4 shrink-0" />
+              <span>
+                {lendoComprovantePix
+                  ? 'Lendo PIX...'
+                  : 'Liquidar PIX (Foto)'}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLerComprovantePixLiquidacao}
+                className="hidden"
+              />
+            </label>
 
-          <button
-            onClick={() => {
-              const linhasExport: LinhaBorderoExport[] = funcionarios.map((f) => {
-                const totais = calcularTotais(f);
-                return {
-                  Colaborador: f.nome,
-                  Obra: f.obra,
-                  'Chave PIX': f.chavePix || 'Não informada',
-                  'Diárias Qtd': totais.totalDiarias,
-                  'Total Diárias (R$)': totais.totalBruto,
-                  'Vales Deduzidos (R$)': totais.totalVales,
-                  'Líquido a Pagar (R$)': totais.totalLiquido,
-                  Período: 'FECHAMENTO',
-                };
-              });
-              exportarParaExcel(linhasExport, `fechamento-bordero-${new Date().toISOString().split('T')[0]}`);
-            }}
-            disabled={funcionarios.length === 0}
-            className="px-4 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-50"
-            title="Exportar borderô para planilha Excel"
-          >
-            <Download className="w-4 h-4 text-emerald-600" />
-            <span>Exportar XLS</span>
-          </button>
+            <button
+              onClick={() => {
+                const linhasExport: LinhaBorderoExport[] = funcionarios.map((f) => {
+                  const totais = calcularTotais(f);
+                  return {
+                    Colaborador: f.nome,
+                    Obra: f.obra,
+                    'Chave PIX': f.chavePix || 'Não informada',
+                    'Diárias Qtd': totais.totalDiarias,
+                    'Total Diárias (R$)': totais.totalBruto,
+                    'Vales Deduzidos (R$)': totais.totalVales,
+                    'Líquido a Pagar (R$)': totais.totalLiquido,
+                    Período: 'FECHAMENTO',
+                  };
+                });
+                exportarParaExcel(linhasExport, `fechamento-bordero-${new Date().toISOString().split('T')[0]}`);
+              }}
+              disabled={funcionarios.length === 0}
+              className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95 disabled:opacity-50 shrink-0"
+              title="Exportar borderô para planilha Excel"
+            >
+              <Download className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>XLS</span>
+            </button>
 
-          <button
-            onClick={carregarBordero}
-            disabled={loading}
-            className="p-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl transition-all shadow-sm"
-            title="Atualizar borderô"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+            <button
+              onClick={carregarBordero}
+              disabled={loading}
+              className="p-2.5 sm:p-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl transition-all shadow-sm shrink-0"
+              title="Atualizar borderô"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
 
-          <div className="bg-white p-3 px-5 rounded-2xl border border-slate-200 shadow-sm text-right">
-            <span className="text-[11px] text-slate-400 font-semibold block">Total em Vales Abatidos</span>
+          <div className="bg-white p-3 px-4 sm:px-5 rounded-2xl border border-slate-200 shadow-sm flex sm:block items-center justify-between sm:text-right">
+            <span className="text-[11px] text-slate-500 font-semibold block">Total em Vales Abatidos</span>
             <span className="text-base font-bold text-rose-600 tabular-nums">- R$ {totalValesGeral.toFixed(2)}</span>
           </div>
         </div>
@@ -819,11 +826,11 @@ export default function BorderoPage() {
             return (
               <div
                 key={f.id}
-                className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all overflow-hidden"
+                className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all overflow-hidden"
               >
-                <div className="p-6 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-slate-800">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                <div className="p-4 sm:p-6 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5 border-b border-slate-800">
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
                         {f.obra}
                       </span>
@@ -832,49 +839,62 @@ export default function BorderoPage() {
                           ? 'bg-purple-500/30 text-purple-200 border border-purple-500/40'
                           : 'bg-slate-800 text-slate-300'
                       }`}>
-                        {f.regimeRemuneracao === 'SEMANALISTA' ? 'Semanalista Fixo (Toda Sexta)' : 'Diarista Produção'}
+                        {f.regimeRemuneracao === 'SEMANALISTA' ? 'Semanalista Fixo' : 'Diarista Produção'}
                       </span>
-                      <span className="text-xs text-slate-400">
-                        • {f.regimeRemuneracao === 'SEMANALISTA' ? `Fixo Semanal: R$ ${(f.valorBaseContratual || 0).toFixed(2)}` : `Diária base: R$ ${f.diariaPadrao.toFixed(2)}`}
+                      <span className="text-[11px] sm:text-xs text-slate-400 tabular-nums">
+                        • {f.regimeRemuneracao === 'SEMANALISTA' ? `Fixo: R$ ${(f.valorBaseContratual || 0).toFixed(2)}` : `Diária: R$ ${f.diariaPadrao.toFixed(2)}`}
                       </span>
                     </div>
-                    <h3 className="text-xl font-black text-white tracking-tight">{f.nome}</h3>
+                    <div className="flex items-baseline justify-between gap-3 lg:block">
+                      <h3 className="text-lg sm:text-xl font-black text-white tracking-tight truncate">{f.nome}</h3>
+                      <div className="lg:hidden text-right shrink-0">
+                        <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider block">
+                          Líquido
+                        </span>
+                        <span className="text-xl font-black text-emerald-400 tabular-nums">
+                          R$ {totais.totalLiquido.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-3 self-end md:self-center">
-                    <div className="text-right pr-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
+                    <div className="hidden lg:block text-right pr-2 shrink-0">
                       <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">
                         Saldo Líquido
                       </span>
-                      <span className="text-2xl font-black text-emerald-400">
+                      <span className="text-2xl font-black text-emerald-400 tabular-nums">
                         R$ {totais.totalLiquido.toFixed(2)}
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => void handleGerarReciboIndividual(f)}
-                      disabled={gerandoReciboId === f.id}
-                      className="px-3.5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-2xl transition-all border border-slate-700 shadow-sm text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
-                      title="Gerar Comprovante Detalhado Individual de Liquidação PIX (salvo no R2, com impressão/download e envio opcional no WhatsApp)"
-                    >
-                      <FileText className="w-4 h-4 text-emerald-400" />
-                      <span>
-                        {gerandoReciboId === f.id ? 'Gerando...' : 'Recibo PIX'}
-                      </span>
-                    </button>
+                    <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+                      <button
+                        type="button"
+                        onClick={() => void handleGerarReciboIndividual(f)}
+                        disabled={gerandoReciboId === f.id}
+                        className="px-3 sm:px-3.5 py-2.5 sm:py-3 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl sm:rounded-2xl transition-all border border-slate-700 shadow-sm text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        title="Gerar Comprovante Detalhado Individual de Liquidação PIX (salvo no R2, com impressão/download e envio opcional no WhatsApp)"
+                      >
+                        <FileText className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>
+                          {gerandoReciboId === f.id ? 'Gerando...' : 'Recibo PIX'}
+                        </span>
+                      </button>
 
-                    <button
-                      onClick={() => handleAbrirModalPix(f)}
-                      className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl transition-all border border-slate-700 shadow-sm"
-                      title="Ver QR Code do PIX"
-                    >
-                      <QrCode className="w-4 h-4" />
-                    </button>
+                      <button
+                        onClick={() => handleAbrirModalPix(f)}
+                        className="px-3 sm:p-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl sm:rounded-2xl transition-all border border-slate-700 shadow-sm text-xs font-bold flex items-center justify-center gap-1.5"
+                        title="Ver QR Code do PIX"
+                      >
+                        <QrCode className="w-4 h-4 shrink-0" />
+                        <span className="sm:hidden">QR Code</span>
+                      </button>
+                    </div>
 
                     <button
                       onClick={() => handleCopiarPix(f)}
-                      className="px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-2xl transition-all shadow-lg shadow-emerald-950/50 flex items-center gap-2 active:scale-95"
+                      className="w-full sm:w-auto justify-center px-4 sm:px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-xl sm:rounded-2xl transition-all shadow-lg shadow-emerald-950/50 flex items-center gap-2 active:scale-95"
                     >
                       {copiadoId === f.id ? (
                         <>
@@ -883,7 +903,7 @@ export default function BorderoPage() {
                         </>
                       ) : (
                         <>
-                          <CreditCard className="w-4 h-4" />
+                          <CreditCard className="w-4 h-4 shrink-0" />
                           <span>Copiar PIX Copia e Cola</span>
                         </>
                       )}
@@ -891,24 +911,126 @@ export default function BorderoPage() {
                   </div>
                 </div>
 
-                <div className="px-6 py-3 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-700">Chave PIX Cadastrada:</span>
+                <div className="px-4 sm:px-6 py-3 bg-slate-50 border-b border-slate-100 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2.5 sm:gap-3 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                    <span className="font-bold text-slate-700 shrink-0">Chave PIX:</span>
                     <input
                       type="text"
                       value={f.chavePix}
                       onChange={(e) => updatePix(f.id, e.target.value)}
-                      className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:ring-2 focus:ring-emerald-500 w-64 shadow-sm"
+                      placeholder="Digite a chave PIX..."
+                      className="px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:ring-2 focus:ring-emerald-500 w-full sm:w-64 shadow-sm"
                     />
-                    <span className="text-slate-400 text-[11px]">(editável para conferência)</span>
+                    <span className="hidden sm:inline text-slate-400 text-[11px]">(editável para conferência)</span>
                   </div>
 
                   <div className="text-slate-500 text-[11px]">
-                    Clique em qualquer linha para incluir ou retirar da folha de hoje
+                    Toque em um lançamento para incluir ou retirar do pagamento
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* Visão Mobile Retrato: Cards Empilhados Toque-Fácil */}
+                <div className="md:hidden divide-y divide-slate-100">
+                  {f.lancamentos.map((l) => (
+                    <div
+                      key={`mob-${l.id}`}
+                      onClick={() => toggleItem(f.id, l.id)}
+                      className={`p-4 space-y-2 transition-colors cursor-pointer ${
+                        l.selecionado
+                          ? 'bg-white active:bg-slate-50'
+                          : 'bg-slate-100/60 text-slate-400'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={l.selecionado}
+                            onChange={() => {}}
+                            className="mt-0.5 w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 shrink-0 cursor-pointer"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-xs font-bold text-slate-700 tabular-nums">
+                                {l.data}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                                  l.tipo === 'PONTO'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                                    : 'bg-rose-50 text-rose-700 border border-rose-200/80'
+                                }`}
+                              >
+                                {l.tipo === 'PONTO' ? `DIÁRIA ${l.fracao}x` : 'VALE'}
+                              </span>
+                            </div>
+                            <p
+                              className={`text-xs font-bold mt-1 leading-snug ${
+                                l.selecionado
+                                  ? 'text-slate-900'
+                                  : 'text-slate-400 line-through'
+                              }`}
+                            >
+                              {l.descricao}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`text-sm font-black tabular-nums shrink-0 ${
+                            !l.selecionado
+                              ? 'text-slate-400 line-through'
+                              : l.tipo === 'PONTO'
+                                ? 'text-emerald-700'
+                                : 'text-rose-600'
+                          }`}
+                        >
+                          {l.tipo === 'PONTO'
+                            ? `+ R$ ${l.valor.toFixed(2)}`
+                            : `- R$ ${l.valor.toFixed(2)}`}
+                        </span>
+                      </div>
+
+                      <div
+                        className="flex items-center justify-end gap-2 pl-7 pt-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ReceiptLightbox
+                          comprovanteUrl={l.comprovanteUrl}
+                          nomeFuncionario={f.nome}
+                          dataReferencia={l.data}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEdicaoModal({
+                              aberto: true,
+                              lancamentoId: l.id,
+                              funcionarioNome: f.nome,
+                              data: l.data,
+                              tipo: l.tipo,
+                              fracao: l.fracao,
+                              valor: l.valor,
+                              descricao: l.descricao,
+                              salvando: false,
+                              confirmarSobrescrita: false,
+                              conflitoDetectado: false,
+                            });
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold flex items-center gap-1 transition-all"
+                          title="Editar este registro confirmado"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span>Editar</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Visão Desktop / Tablet: Tabela Completa */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold">
                       <tr>
@@ -943,7 +1065,7 @@ export default function BorderoPage() {
                             />
                           </td>
                           <td
-                            className="p-4 font-semibold text-slate-700 cursor-pointer"
+                            className="p-4 font-semibold text-slate-700 cursor-pointer tabular-nums"
                             onClick={() => toggleItem(f.id, l.id)}
                           >
                             {l.data}
@@ -975,13 +1097,13 @@ export default function BorderoPage() {
                             />
                           </td>
                           <td
-                            className="p-4 text-right font-medium text-slate-600 cursor-pointer"
+                            className="p-4 text-right font-medium text-slate-600 cursor-pointer tabular-nums"
                             onClick={() => toggleItem(f.id, l.id)}
                           >
                             {l.tipo === 'PONTO' ? `${l.fracao}x` : '—'}
                           </td>
                           <td
-                            className={`p-4 text-right font-black text-sm cursor-pointer ${l.tipo === 'PONTO' ? 'text-emerald-700' : 'text-rose-600'
+                            className={`p-4 text-right font-black text-sm cursor-pointer tabular-nums ${l.tipo === 'PONTO' ? 'text-emerald-700' : 'text-rose-600'
                               }`}
                             onClick={() => toggleItem(f.id, l.id)}
                           >
@@ -1018,17 +1140,17 @@ export default function BorderoPage() {
                   </table>
                 </div>
 
-                <div className="p-4 px-6 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs">
-                  <div className="flex items-center gap-4 text-slate-600">
+                <div className="p-4 sm:px-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 sm:gap-4 text-xs">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-slate-600">
                     <span>
-                      Diárias marcadas: <strong className="text-slate-900">{totais.totalDiarias}</strong>
+                      Diárias: <strong className="text-slate-900 tabular-nums">{totais.totalDiarias}</strong>
                     </span>
                     <span>
-                      Vales a deduzir hoje: <strong className="text-rose-600">R$ {totais.totalVales.toFixed(2)}</strong>
+                      Vales: <strong className="text-rose-600 tabular-nums">R$ {totais.totalVales.toFixed(2)}</strong>
                     </span>
                     {f.lancamentos.some((l) => l.tipo === 'VALE' && !l.selecionado) && (
-                      <span className="text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full font-bold border border-amber-200">
-                        Saldo a dever postergado: R${' '}
+                      <span className="text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full font-bold border border-amber-200 tabular-nums">
+                        Postergado: R${' '}
                         {f.lancamentos
                           .filter((l) => l.tipo === 'VALE' && !l.selecionado)
                           .reduce((acc, curr) => acc + curr.valor, 0)
@@ -1037,7 +1159,7 @@ export default function BorderoPage() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3">
                     {ffExtratoLink && (
                       <button
                         type="button"
@@ -1051,14 +1173,14 @@ export default function BorderoPage() {
                             : 'Link Extrato'}
                         </span>
                         <span className="text-[9px] uppercase px-1.5 py-0.5 rounded-full bg-amber-600 text-white">
-                          EM HOMOLOGAÇÃO
+                          HOMOLOGAÇÃO
                         </span>
                       </button>
                     )}
 
                     <div className="text-sm font-bold text-slate-900">
-                      Subtotal a transferir:{' '}
-                      <span className="text-emerald-700 font-black text-base ml-1">
+                      Subtotal:{' '}
+                      <span className="text-emerald-700 font-black text-base ml-1 tabular-nums">
                         R$ {totais.totalLiquido.toFixed(2)}
                       </span>
                     </div>
@@ -1070,31 +1192,31 @@ export default function BorderoPage() {
         </div>
       )}
 
-      {/* Floating Bottom Bar: Total Geral + Liquidar */}
+      {/* Floating Bottom Bar: Total Geral + Liquidar (Responsivo Retrato Mobile + Desktop) */}
       {funcionarios.length > 0 && (
-        <div className="fixed bottom-0 left-72 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 px-8 py-5 shadow-2xl flex items-center justify-between z-30">
-          <div>
-            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">
-              Total Consolidado para Transferência
+        <div className="fixed bottom-[60px] lg:bottom-0 left-0 lg:left-72 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 px-4 sm:px-6 lg:px-8 py-3 lg:py-4 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 z-30">
+          <div className="flex sm:block items-baseline justify-between gap-2">
+            <span className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider block">
+              Total a Transferir
             </span>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-slate-950">
+              <span className="text-xl sm:text-3xl font-black text-slate-950 tabular-nums">
                 R$ {totalGeral.toFixed(2)}
               </span>
-              <span className="text-xs text-slate-500 font-medium">
+              <span className="hidden md:inline text-xs text-slate-500 font-medium">
                 (calculado apenas nas caixas selecionadas)
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
             <button
               onClick={handleLiquidarSemana}
               disabled={liquidando || totalGeral === 0}
-              className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-black rounded-2xl transition-all shadow-xl shadow-emerald-700/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5 active:scale-95"
+              className="w-full sm:w-auto justify-center px-5 lg:px-8 py-3 lg:py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs sm:text-sm font-black rounded-2xl transition-all shadow-lg shadow-emerald-700/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
             >
-              <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-              <span>{liquidando ? 'Liquidando no Banco...' : 'Liquidar e Encerrar Semana'}</span>
+              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5] shrink-0" />
+              <span>{liquidando ? 'Liquidando...' : 'Liquidar e Encerrar Semana'}</span>
             </button>
           </div>
         </div>

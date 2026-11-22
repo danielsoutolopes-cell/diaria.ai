@@ -333,36 +333,26 @@ export default function ValidacaoValesPage() {
     <div>
       <ValidacaoTabsHeader activeTab="vales" />
 
-      <div className="p-6 sm:p-8 max-w-6xl mx-auto space-y-6">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5 sm:space-y-6">
         {/* Cabeçalho */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full w-fit mb-2 border border-emerald-200">
-              <Banknote className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Fluxo em 2 Etapas • Solicitação → Comprovante PIX (R2)</span>
+            <div className="flex items-center gap-2 text-[11px] sm:text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full w-fit mb-2 border border-emerald-200">
+              <Banknote className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Fluxo 2 Etapas • Pedido → PIX</span>
             </div>
-            <h1 className="text-3xl font-black text-slate-950 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
               Validação &amp; Controle de Vales
             </h1>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">
               Rastreabilidade completa do pedido de campo até a confirmação do comprovante PIX. Valor padrão R$ 100,00 quando omitido.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void carregar()}
-              disabled={loading}
-              className="px-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>Atualizar</span>
-            </button>
-
-            <label className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-2 shadow-sm cursor-pointer transition-all">
-              <Camera className="w-4 h-4" />
-              <span>{lendoOcr ? 'Lendo OCR Gemini...' : 'Ler Pedido / PIX com IA'}</span>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-2 shadow-sm cursor-pointer transition-all">
+              <Camera className="w-4 h-4 shrink-0" />
+              <span>{lendoOcr ? 'Lendo OCR...' : 'Ler Pedido / PIX com IA'}</span>
               <input
                 type="file"
                 accept="image/*"
@@ -370,6 +360,17 @@ export default function ValidacaoValesPage() {
                 className="hidden"
               />
             </label>
+
+            <button
+              type="button"
+              onClick={() => void carregar()}
+              disabled={loading}
+              className="p-2.5 sm:px-3.5 sm:py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0"
+              title="Atualizar"
+            >
+              <RefreshCw className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Atualizar</span>
+            </button>
           </div>
         </div>
 
@@ -388,43 +389,43 @@ export default function ValidacaoValesPage() {
         )}
 
         {/* KPIs (tabular-nums) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-3xl border border-amber-200 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-200 shadow-sm">
             <div className="flex items-center justify-between text-xs font-bold text-amber-800">
-              <span>Etapa 1 • Aguardando Envio PIX</span>
-              <Clock className="w-4 h-4 text-amber-600" />
+              <span>Etapa 1 • Aguardando PIX</span>
+              <Clock className="w-4 h-4 text-amber-600 shrink-0" />
             </div>
-            <p className="text-2xl font-black text-amber-900 tabular-nums mt-2">
+            <p className="text-xl sm:text-2xl font-black text-amber-900 tabular-nums mt-1.5 sm:mt-2">
               {kpis.aguardandoEnvioPixQtd} pedido(s) •{' '}
               {formatBRL(kpis.aguardandoEnvioPixValor)}
             </p>
-            <p className="text-[11px] text-amber-700/80 mt-1">
+            <p className="text-[11px] text-amber-700/80 mt-0.5">
               Solicitações pendentes de comprovante PIX
             </p>
           </div>
 
-          <div className="bg-white p-5 rounded-3xl border border-emerald-200 shadow-sm">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-emerald-200 shadow-sm">
             <div className="flex items-center justify-between text-xs font-bold text-emerald-800">
-              <span>Etapa 2 • Vales Confirmados (PIX)</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>Etapa 2 • Vales Confirmados</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             </div>
-            <p className="text-2xl font-black text-emerald-700 tabular-nums mt-2">
+            <p className="text-xl sm:text-2xl font-black text-emerald-700 tabular-nums mt-1.5 sm:mt-2">
               {kpis.confirmadosQtd} vale(s) • {formatBRL(kpis.confirmadosValor)}
             </p>
-            <p className="text-[11px] text-emerald-700/80 mt-1">
-              Conciliados e ativos para abatimento opcional no Borderô
+            <p className="text-[11px] text-emerald-700/80 mt-0.5">
+              Conciliados e ativos para abatimento no Borderô
             </p>
           </div>
 
-          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between text-xs font-bold text-slate-500">
               <span>Total Consolidado de Vales</span>
-              <Banknote className="w-4 h-4 text-slate-400" />
+              <Banknote className="w-4 h-4 text-slate-400 shrink-0" />
             </div>
-            <p className="text-2xl font-black text-slate-950 tabular-nums mt-2">
+            <p className="text-xl sm:text-2xl font-black text-slate-950 tabular-nums mt-1.5 sm:mt-2">
               {kpis.totalQtd} registro(s) • {formatBRL(kpis.totalValor)}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">
+            <p className="text-[11px] text-slate-400 mt-0.5">
               Excluindo registros descartados (Soft Delete)
             </p>
           </div>
@@ -579,12 +580,12 @@ export default function ValidacaoValesPage() {
         </form>
 
         {/* Filtros e Lista de Vales com Rastreabilidade */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="text-xs font-black uppercase tracking-wider text-slate-800">
               Trilha de Rastreabilidade (Pedido → Comprovante PIX)
             </h2>
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {(
                 [
                   { id: 'TODOS', label: `Todos (${vales.length})` },
@@ -615,7 +616,7 @@ export default function ValidacaoValesPage() {
           </div>
 
           {loading ? (
-            <div className="p-6 space-y-3 animate-pulse">
+            <div className="p-4 sm:p-6 space-y-3 animate-pulse">
               <div className="h-14 rounded-2xl bg-slate-100" />
               <div className="h-14 rounded-2xl bg-slate-100" />
             </div>
@@ -630,10 +631,10 @@ export default function ValidacaoValesPage() {
                 return (
                   <div
                     key={v.id}
-                    className="px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors"
+                    className="px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 hover:bg-slate-50/70 transition-colors"
                   >
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <span className="text-sm font-black text-slate-950">
                           {v.trabalhador}
                         </span>
@@ -641,7 +642,7 @@ export default function ValidacaoValesPage() {
                           {v.obra}
                         </span>
                         <span
-                          className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                          className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
                             isPendente
                               ? 'bg-amber-50 text-amber-800 border-amber-200'
                               : 'bg-emerald-50 text-emerald-800 border-emerald-200'
@@ -658,7 +659,7 @@ export default function ValidacaoValesPage() {
                         )}
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-slate-500">
                         <span className="tabular-nums">
                           Solicitado: {v.data} às {v.horario}
                         </span>
@@ -671,7 +672,7 @@ export default function ValidacaoValesPage() {
                           <>
                             <span>•</span>
                             <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                              <UserCheck className="w-3 h-3" />
+                              <UserCheck className="w-3 h-3 shrink-0" />
                               Aprovado/PIX: {v.aprovadoPor || v.pagoPor}
                               {v.dataHoraEnvioEfetivo && (
                                 <span className="text-emerald-600/80 font-normal tabular-nums">
@@ -696,58 +697,60 @@ export default function ValidacaoValesPage() {
                       <p className="text-[11px] text-slate-400">{v.observacao}</p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center justify-between lg:justify-end gap-2.5 pt-2.5 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                       <span className="text-base font-black text-slate-950 tabular-nums">
                         {formatBRL(v.valor)}
                       </span>
 
-                      {v.comprovantePixUrl && (
-                        <ReceiptLightbox
-                          comprovanteUrl={v.comprovantePixUrl}
-                          nomeFuncionario={v.trabalhador}
-                          dataReferencia={v.data}
-                        />
-                      )}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {v.comprovantePixUrl && (
+                          <ReceiptLightbox
+                            comprovanteUrl={v.comprovantePixUrl}
+                            nomeFuncionario={v.trabalhador}
+                            dataReferencia={v.data}
+                          />
+                        )}
 
-                      {isPendente && (
-                        <div className="flex items-center gap-1.5">
-                          <label className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black flex items-center gap-1.5 cursor-pointer shadow-sm">
-                            <FileImage className="w-3.5 h-3.5" />
-                            <span>
-                              {confirmandoId === v.id
-                                ? 'Enviando...'
-                                : 'Anexar PIX'}
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(ev) => {
-                                const f = ev.target.files?.[0];
-                                if (f) void handleConfirmarPixDireto(v, f);
-                                ev.target.value = '';
-                              }}
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            disabled={confirmandoId === v.id}
-                            onClick={() => void handleConfirmarPixDireto(v)}
-                            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold"
-                          >
-                            Confirmar sem foto
-                          </button>
-                        </div>
-                      )}
+                        {isPendente && (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <label className="px-3 py-2 sm:py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black flex items-center gap-1.5 cursor-pointer shadow-sm">
+                              <FileImage className="w-3.5 h-3.5" />
+                              <span>
+                                {confirmandoId === v.id
+                                  ? 'Enviando...'
+                                  : 'Anexar PIX'}
+                              </span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(ev) => {
+                                  const f = ev.target.files?.[0];
+                                  if (f) void handleConfirmarPixDireto(v, f);
+                                  ev.target.value = '';
+                                }}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              disabled={confirmandoId === v.id}
+                              onClick={() => void handleConfirmarPixDireto(v)}
+                              className="px-3 py-2 sm:py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold"
+                            >
+                              Confirmar sem foto
+                            </button>
+                          </div>
+                        )}
 
-                      <button
-                        type="button"
-                        onClick={() => void handleDescartar(v.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                        title="Descartar vale (Soft Delete)"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDescartar(v.id)}
+                          className="p-2 sm:p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          title="Descartar vale (Soft Delete)"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

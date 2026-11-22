@@ -373,9 +373,19 @@ export default function ContextualHelp() {
   const pathname = usePathname() || '/';
   const [aberto, setAberto] = useState(false);
 
-  if (pathname === '/login' || pathname === '/ajuda') return null;
+  if (
+    pathname === '/login' ||
+    pathname === '/ajuda' ||
+    pathname.startsWith('/extrato/')
+  ) {
+    return null;
+  }
 
   const ajuda = AJUDA_POR_ROTA[pathname] || AJUDA_PADRAO;
+  const mobileBottomOffsetClass =
+    pathname === '/bordero'
+      ? 'bottom-44 right-3 lg:bottom-5 lg:right-5'
+      : 'bottom-[74px] right-3 lg:bottom-5 lg:right-5';
 
   return (
     <>
@@ -383,8 +393,9 @@ export default function ContextualHelp() {
       <button
         type="button"
         onClick={() => setAberto(true)}
-        className="fixed bottom-5 right-5 z-40 px-3.5 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-lg border border-slate-700 flex items-center gap-2 transition-all active:scale-95 print:hidden"
+        className={`fixed ${mobileBottomOffsetClass} z-30 p-3 sm:px-3.5 sm:py-2.5 rounded-full bg-slate-900/95 hover:bg-slate-800 text-white text-xs font-bold shadow-lg border border-slate-700 flex items-center gap-2 transition-all active:scale-95 print:hidden`}
         title={`Ajuda desta tela: ${ajuda.titulo}`}
+        aria-label={`Ajuda desta tela: ${ajuda.titulo}`}
       >
         <HelpCircle className="w-4 h-4 text-emerald-400" />
         <span className="hidden sm:inline">Ajuda desta tela</span>

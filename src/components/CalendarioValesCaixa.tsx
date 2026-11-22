@@ -74,13 +74,13 @@ export default function CalendarioValesCaixa() {
   return (
     <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="p-6 bg-gradient-to-r from-rose-950 via-slate-900 to-slate-950 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 bg-gradient-to-r from-rose-950 via-slate-900 to-slate-950 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
-              Relatório 6 • Vales, Reembolsos & Caixa de Campo
+              Relatório 6 • Vales, Reembolsos & Caixa
             </span>
-            <h2 className="text-lg font-black text-white">
+            <h2 className="text-base sm:text-lg font-black text-white">
               Calendário Financeiro de Campo
             </h2>
           </div>
@@ -89,7 +89,7 @@ export default function CalendarioValesCaixa() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-700">
             <CalendarDays className="w-4 h-4 text-rose-400" />
             <input
@@ -112,49 +112,53 @@ export default function CalendarioValesCaixa() {
       </div>
 
       {/* 3 KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 border-b border-slate-200/80">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 p-4 bg-slate-50 border-b border-slate-200/80">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-slate-500 uppercase">
               Total em Vales no Mês
             </span>
-            <p className="text-xl font-black text-rose-600">
+            <p className="text-lg sm:text-xl font-black text-rose-600 tabular-nums">
               R$ {totalVales.toFixed(2)}
             </p>
           </div>
-          <Receipt className="w-6 h-6 text-rose-500" />
+          <Receipt className="w-6 h-6 text-rose-500 shrink-0" />
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-slate-500 uppercase">
               PIX Caixa de Campo (Entrada)
             </span>
-            <p className="text-xl font-black text-emerald-700">
+            <p className="text-lg sm:text-xl font-black text-emerald-700 tabular-nums">
               R$ {totalPixCaixa.toFixed(2)}
             </p>
           </div>
-          <ArrowDownCircle className="w-6 h-6 text-emerald-600" />
+          <ArrowDownCircle className="w-6 h-6 text-emerald-600 shrink-0" />
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-slate-500 uppercase">
               Notas Comprovadas • Saldo Campo
             </span>
-            <p className="text-lg font-black text-amber-800">
+            <p className="text-base sm:text-lg font-black text-amber-800 tabular-nums">
               R$ {totalNotasCampo.toFixed(2)}{' '}
               <span className="text-xs font-bold text-slate-500">
                 (Em mãos: R$ {saldoCampoEmMaos.toFixed(2)})
               </span>
             </p>
           </div>
-          <Wallet className="w-6 h-6 text-amber-600" />
+          <Wallet className="w-6 h-6 text-amber-600 shrink-0" />
         </div>
       </div>
 
+      <div className="md:hidden px-4 py-2 bg-rose-50 border-b border-rose-100 text-[11px] font-bold text-rose-800 text-center print:hidden">
+        ← Deslize lateralmente ou gire o celular para ver o calendário semanal →
+      </div>
+
       {/* Grade 7 colunas */}
-      <div className="p-4 overflow-x-auto">
+      <div className="p-3 sm:p-4 overflow-x-auto touch-scroll-x">
         {loading ? (
           <div className="p-8 text-center text-xs text-slate-500">
             Carregando calendário de vales e caixa de campo...

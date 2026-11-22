@@ -288,7 +288,7 @@ export default function ComprasPage() {
   // Modo Standby para Jhoston (modulo_compras_ativo = false)
   if (!loading && !moduloAtivo) {
     return (
-      <div className="p-8 max-w-4xl mx-auto space-y-6">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
         <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm space-y-5 text-center">
           <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto">
             <PauseCircle className="w-8 h-8" />
@@ -326,7 +326,7 @@ export default function ComprasPage() {
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 sm:space-y-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
         <div>

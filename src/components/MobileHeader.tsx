@@ -37,7 +37,7 @@ export default function MobileHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<string>('Patrícia Grubel');
   const [activeTenant, setActiveTenant] = useState<TenantConfig>(TENANTS.jhoston);
-  const pathname = usePathname();
+  const pathname = usePathname() || '/';
 
   useEffect(() => {
     const cookies = document.cookie.split('; ');
@@ -52,6 +52,10 @@ export default function MobileHeader() {
     }
     setActiveTenant(getActiveTenantFromBrowser());
   }, []);
+
+  if (pathname === '/login' || pathname.startsWith('/extrato/')) {
+    return null;
+  }
 
   const isAdmin = isDanielOuPatricia(currentUser);
   const isIntermack = activeTenant.slug === 'intermack';
@@ -109,6 +113,12 @@ export default function MobileHeader() {
       onlyDiarista: true,
     },
     {
+      name: 'Conciliação Bancária (OFX/CSV)',
+      href: '/conciliacao',
+      icon: Receipt,
+      onlyDiarista: true,
+    },
+    {
       name: isIntermack ? 'Relatório de Efetivo' : 'Relatórios & Exportações',
       href: '/relatorios',
       icon: BarChart3,
@@ -146,10 +156,10 @@ export default function MobileHeader() {
 
   return (
     <>
-      <header className="lg:hidden sticky top-0 z-50 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800 text-white px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="lg:hidden sticky top-0 z-50 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800 text-white px-3.5 py-2.5 flex items-center justify-between gap-2 print:hidden">
+        <Link href="/" className="flex items-center gap-2.5 min-w-0">
           <div
-            className={`w-9 h-9 rounded-xl p-[1.5px] shadow-md ${
+            className={`w-9 h-9 rounded-xl p-[1.5px] shadow-md shrink-0 ${
               isIntermack
                 ? 'bg-gradient-to-tr from-indigo-600 to-blue-400'
                 : 'bg-gradient-to-tr from-emerald-600 to-teal-400'
@@ -163,43 +173,51 @@ export default function MobileHeader() {
               />
             </div>
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h1 className="font-extrabold text-sm tracking-tight text-white">
+              <h1 className="font-extrabold text-sm tracking-tight text-white truncate">
                 {isIntermack ? 'Intermack' : 'Ponto Patrícia'}
               </h1>
               <span
-                className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+                className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border shrink-0 ${
                   isIntermack
                     ? 'bg-indigo-950 text-indigo-300 border-indigo-700/50'
                     : 'bg-emerald-950 text-emerald-400 border-emerald-800/40'
                 }`}
               >
-                {isMobile ? 'Mobile' : 'Tablet'}
+                {isIntermack ? 'Empreita' : 'Jhoston'}
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">{activeTenant.subtitulo}</p>
+            <p className="text-[10px] text-slate-400 truncate">
+              {activeTenant.subtitulo}
+            </p>
           </div>
-        </div>
+        </Link>
 
         <button
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
-          className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 hover:text-white active:scale-95 transition-transform"
+          className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 hover:text-white active:scale-95 transition-transform flex items-center gap-1.5 shrink-0"
           aria-label={menuOpen ? 'Fechar Menu' : 'Abrir Menu'}
         >
-          {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {menuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          <span className="text-[11px] font-bold">
+            {menuOpen ? 'Fechar' : 'Menu'}
+          </span>
         </button>
       </header>
 
       {/* Drawer Mobile FORA do <header> (evita clipping causado por backdrop-blur) */}
       {menuOpen && (
-        <div className="lg:hidden fixed inset-x-0 top-[61px] bottom-0 bg-slate-950 z-[60] p-4 space-y-3 overflow-y-auto">
+        <div className="lg:hidden fixed inset-x-0 top-[57px] bottom-0 bg-slate-950 z-[60] p-4 space-y-3 overflow-y-auto">
           <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs text-slate-300">
-            <span className="flex items-center gap-1.5 font-bold text-emerald-400">
-              <ShieldCheck className="w-4 h-4" /> {currentUser}
+            <span className="flex items-center gap-1.5 font-bold text-emerald-400 truncate">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span className="truncate">{currentUser}</span>
             </span>
-            <span className="text-[10px] text-slate-500">{viewportWidth}px</span>
+            <span className="text-[10px] text-slate-500 shrink-0 tabular-nums">
+              {isMobile ? 'Celular' : 'Tablet'} • {viewportWidth}px
+            </span>
           </div>
 
           {isAdmin && (
@@ -231,7 +249,7 @@ export default function MobileHeader() {
             </div>
           )}
 
-          <nav className="space-y-1 pb-8">
+          <nav className="space-y-1 pb-24">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;

@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import RegisterServiceWorker from '@/components/RegisterServiceWorker';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
 import ContextualHelp from '@/components/ContextualHelp';
@@ -16,8 +17,9 @@ export const viewport: Viewport = {
   themeColor: '#022c22',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
 };
 
 export const metadata: Metadata = {
@@ -53,11 +55,12 @@ export default function RootLayout({
           <div className="flex flex-col lg:flex-row min-h-screen max-w-[100vw] overflow-x-hidden">
             <MobileHeader />
             <Sidebar />
-            <main className="flex-1 bg-slate-50 min-h-screen overflow-y-auto overflow-x-hidden w-full">
+            <main className="flex-1 bg-slate-50 min-h-screen overflow-y-auto overflow-x-hidden w-full pb-20 lg:pb-0">
               <div className="w-full max-w-7xl mx-auto">
                 {children}
               </div>
             </main>
+            <MobileBottomNav />
           </div>
         </DeviceProvider>
       </body>

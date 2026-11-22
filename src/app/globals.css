@@ -26,6 +26,16 @@
 html, body {
   overflow-x: hidden;
   max-width: 100vw;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.touch-scroll-x {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
 .app-container {
