@@ -75,7 +75,7 @@ export default function ValidacoesPage() {
     undoAction?: () => void;
   } | null>(null);
   const [usuarioAtual, setUsuarioAtual] = useState<string>('Patrícia Grubel');
-  const [activeTenant, setActiveTenant] = useState<TenantConfig>(TENANTS.jhonton);
+  const [activeTenant, setActiveTenant] = useState<TenantConfig>(TENANTS.jhoston);
   const [obrasCadastradas, setObrasCadastradas] = useState<{ id: string; nome: string }[]>([]);
   const isEmpreita = activeTenant.modo === 'EMPREITA';
 
@@ -443,7 +443,7 @@ export default function ValidacoesPage() {
               <span>
                 {isEmpreita
                   ? 'Intermack • Controle de Efetivo (Empreita)'
-                  : 'Jhonton • Validação por Mensagem Enviada'}
+                  : 'Jhoston • Validação por Mensagem Enviada'}
               </span>
             </div>
             {dataCorteOperacional && (

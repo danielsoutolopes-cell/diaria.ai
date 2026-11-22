@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  isDanielOuPatricia,
+  normalizeTenantSlug,
+  TENANTS,
+  type TenantSlug,
+} from '@/lib/tenant';
 import { supabaseAdmin } from '@/lib/supabase';
-import { isDanielOuPatricia, TENANTS } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
-const MASTER_TENANT_ID = TENANTS.jhonton.id;
+const MASTER_TENANT_ID = TENANTS.jhoston.id;
 
 export interface GrupoWhatsAppMapeado {
   id: string;
   jid: string;
   nomeGrupo: string;
-  empresa: 'jhonton' | 'intermack';
+  empresa: TenantSlug;
   obraNome: string;
   ambiente: 'INTERNO' | 'EXTERNO';
   ativo: boolean;
@@ -19,7 +24,7 @@ export interface GrupoWhatsAppMapeado {
 export interface ConfigGeralGlobal {
   telefonePatricia: string;
   telefoneDaniel: string;
-  nomeExibicaoJhonton: string;
+  nomeExibicaoJhoston: string;
   nomeExibicaoIntermack: string;
   instanciaWhatsAppUrl: string;
   gruposWhatsApp: GrupoWhatsAppMapeado[];
@@ -27,14 +32,59 @@ export interface ConfigGeralGlobal {
   atualizadoPor?: string;
 }
 
+interface ConfigGeralLegada
+  extends Partial<Omit<ConfigGeralGlobal, 'gruposWhatsApp'>> {
+  nomeExibicaoJhonton?: string;
+  gruposWhatsApp?: Array<
+    Omit<GrupoWhatsAppMapeado, 'empresa'> & { empresa?: string }
+  >;
+}
+
 const DEFAULT_CONFIG_GERAL: ConfigGeralGlobal = {
   telefonePatricia: '5511978543369',
   telefoneDaniel: '5511988139833',
-  nomeExibicaoJhonton: 'Jhonton Engenharia & Piscinas',
-  nomeExibicaoIntermack: 'Intermack Reformas & Obras',
+  nomeExibicaoJhoston: 'Jhoston Construções e Revestimentos',
+  nomeExibicaoIntermack: 'Intermack Engenharia e Construção',
   instanciaWhatsAppUrl: 'https://diaria-ai.onrender.com',
   gruposWhatsApp: [],
 };
+
+function normalizarConfigGeral(salvo: ConfigGeralLegada): ConfigGeralGlobal {
+  const nomeLegado = salvo.nomeExibicaoJhonton;
+  const nomeCorrigido =
+    salvo.nomeExibicaoJhoston ||
+    (nomeLegado
+      ? nomeLegado.replace(/jhonton/gi, 'Jhoston')
+      : DEFAULT_CONFIG_GERAL.nomeExibicaoJhoston);
+
+  const gruposNormalizados: GrupoWhatsAppMapeado[] = Array.isArray(
+    salvo.gruposWhatsApp
+  )
+    ? salvo.gruposWhatsApp.map((g) => ({
+        id: g.id,
+        jid: g.jid,
+        nomeGrupo: g.nomeGrupo,
+        empresa: normalizeTenantSlug(g.empresa),
+        obraNome: g.obraNome,
+        ambiente: g.ambiente === 'INTERNO' ? 'INTERNO' : 'EXTERNO',
+        ativo: Boolean(g.ativo),
+      }))
+    : [];
+
+  return {
+    telefonePatricia:
+      salvo.telefonePatricia || DEFAULT_CONFIG_GERAL.telefonePatricia,
+    telefoneDaniel: salvo.telefoneDaniel || DEFAULT_CONFIG_GERAL.telefoneDaniel,
+    nomeExibicaoJhoston: nomeCorrigido,
+    nomeExibicaoIntermack:
+      salvo.nomeExibicaoIntermack || DEFAULT_CONFIG_GERAL.nomeExibicaoIntermack,
+    instanciaWhatsAppUrl:
+      salvo.instanciaWhatsAppUrl || DEFAULT_CONFIG_GERAL.instanciaWhatsAppUrl,
+    gruposWhatsApp: gruposNormalizados,
+    atualizadoEm: salvo.atualizadoEm,
+    atualizadoPor: salvo.atualizadoPor,
+  };
+}
 
 function verificarAdmin(req: NextRequest): { permitido: boolean; usuario: string } {
   const rawUser = req.cookies.get('diaria_user')?.value
@@ -63,15 +113,8 @@ export async function GET(req: NextRequest) {
       .maybeSingle();
 
     const configs = (paramData?.configuracoes || {}) as Record<string, unknown>;
-    const salvo = (configs.config_geral_global || {}) as Partial<ConfigGeralGlobal>;
-
-    const configGeral: ConfigGeralGlobal = {
-      ...DEFAULT_CONFIG_GERAL,
-      ...salvo,
-      gruposWhatsApp: Array.isArray(salvo.gruposWhatsApp)
-        ? salvo.gruposWhatsApp
-        : [],
-    };
+    const salvo = (configs.config_geral_global || {}) as ConfigGeralLegada;
+    const configGeral = normalizarConfigGeral(salvo);
 
     return NextResponse.json({ configGeral });
   } catch (error) {
@@ -93,7 +136,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = (await req.json()) as Partial<ConfigGeralGlobal>;
+    const body = (await req.json()) as ConfigGeralLegada;
 
     const { data: paramData } = await supabaseAdmin
       .from('parametros_sistema')
@@ -102,25 +145,23 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     const configsAtuais = (paramData?.configuracoes || {}) as Record<string, unknown>;
-    const anterior = (configsAtuais.config_geral_global ||
-      {}) as Partial<ConfigGeralGlobal>;
+    const anterior = normalizarConfigGeral(
+      (configsAtuais.config_geral_global || {}) as ConfigGeralLegada
+    );
 
-    const novaConfigGeral: ConfigGeralGlobal = {
-      ...DEFAULT_CONFIG_GERAL,
+    const mesclado = normalizarConfigGeral({
       ...anterior,
       ...body,
       gruposWhatsApp: Array.isArray(body.gruposWhatsApp)
         ? body.gruposWhatsApp
-        : Array.isArray(anterior.gruposWhatsApp)
-          ? anterior.gruposWhatsApp
-          : [],
+        : anterior.gruposWhatsApp,
       atualizadoEm: new Date().toISOString(),
       atualizadoPor: auth.usuario,
-    };
+    });
 
     const novasConfigs = {
       ...configsAtuais,
-      config_geral_global: novaConfigGeral,
+      config_geral_global: mesclado,
     };
 
     if (paramData?.id) {
@@ -137,7 +178,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      configGeral: novaConfigGeral,
+      configGeral: mesclado,
       message: 'Configuração Geral salva com sucesso!',
     });
   } catch (error) {

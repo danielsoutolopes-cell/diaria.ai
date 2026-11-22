@@ -20,9 +20,37 @@ import {
   HardHat,
   Receipt,
   CheckCircle2,
+  Clock,
+  FileText,
+  ExternalLink,
 } from 'lucide-react';
-import { exportarParaExcel, LinhaBorderoExport, LinhaCustoObraExport, LinhaExtratoAnaliticoExport } from '@/lib/exportExcel';
+import {
+  exportarParaExcel,
+  exportarExtratoAnalitico5AbasV6,
+  type ExtratoAnaliticoV6Payload,
+  type LinhaBorderoExport,
+  type LinhaCustoObraExport,
+  type LinhaExtratoAnaliticoExport,
+} from '@/lib/exportExcel';
 import CalendarioValesCaixa from '@/components/CalendarioValesCaixa';
+
+interface ObraResumoRel {
+  nome?: string | null;
+  tipo_obra?: string | null;
+}
+
+interface LancamentoDetalhadoItem {
+  id: string;
+  nome_trabalhador: string;
+  tipo_lancamento: string;
+  fracao_dia?: number | string | null;
+  valor_monetario?: number | string | null;
+  status: string;
+  data_referencia: string;
+  observacao?: string | null;
+  comprovante_url?: string | null;
+  obras_config?: ObraResumoRel | ObraResumoRel[] | null;
+}
 
 interface BorderoItem {
   nome: string;
@@ -33,7 +61,7 @@ interface BorderoItem {
   totalDiariasValor: number;
   totalValesValor: number;
   liquidoPagar: number;
-  itens: any[];
+  itens: LancamentoDetalhadoItem[];
 }
 
 interface CustoObraItem {
@@ -45,15 +73,51 @@ interface CustoObraItem {
   qtdTrabalhadores: number;
 }
 
+interface CronQuinzenalStatus {
+  regraAgendamento: string;
+  proximaJanela: string;
+  destinatarios: Array<{ nome: string; telefone: string }>;
+  ultimoDisparo: {
+    dataIso: string;
+    disparadoEm: string;
+    arquivoNome: string;
+    reciboR2Url: string | null;
+    totalLiquidoAberto: number;
+    destinatarios: Array<{
+      nome: string;
+      telefone: string;
+      enviado: boolean;
+      modo: string;
+      erro?: string;
+    }>;
+  } | null;
+}
+
+function extrairNomeObraRel(
+  obrasConfig: ObraResumoRel | ObraResumoRel[] | null | undefined
+): string {
+  if (!obrasConfig) return 'Geral';
+  if (Array.isArray(obrasConfig)) return obrasConfig[0]?.nome || 'Geral';
+  return obrasConfig.nome || 'Geral';
+}
+
 export default function RelatoriosPage() {
   const [periodo, setPeriodo] = useState<'semanal' | 'quinzenal' | 'mensal'>('semanal');
   const [loading, setLoading] = useState(true);
   const [dadosBordero, setDadosBordero] = useState<BorderoItem[]>([]);
   const [dadosObras, setDadosObras] = useState<CustoObraItem[]>([]);
-  const [lancamentosDetalhados, setLancamentosDetalhados] = useState<any[]>([]);
+  const [lancamentosDetalhados, setLancamentosDetalhados] = useState<LancamentoDetalhadoItem[]>([]);
   const [modalExtrato, setModalExtrato] = useState<BorderoItem | null>(null);
   const [excluindoItemId, setExcluindoItemId] = useState<string | null>(null);
   const [buscaBordero, setBuscaBordero] = useState<string>('');
+  const [exportandoExcelV6, setExportandoExcelV6] = useState<boolean>(false);
+  const [cronStatus, setCronStatus] = useState<CronQuinzenalStatus | null>(null);
+  const [disparandoQuinzenal, setDisparandoQuinzenal] = useState<boolean>(false);
+  const [feedbackAcao, setFeedbackAcao] = useState<{
+    tipo: 'sucesso' | 'erro';
+    mensagem: string;
+    linkR2?: string | null;
+  } | null>(null);
   const [totais, setTotais] = useState({
     totalGeralDiarias: 0,
     totalGeralVales: 0,
@@ -61,6 +125,18 @@ export default function RelatoriosPage() {
     totalTrabalhadores: 0,
     totalObras: 0,
   });
+
+  async function carregarStatusCron() {
+    try {
+      const res = await fetch('/api/cron/relatorio-quinzenal');
+      const data = (await res.json()) as CronQuinzenalStatus & { error?: string };
+      if (res.ok && !data.error) {
+        setCronStatus(data);
+      }
+    } catch {
+      // Silencioso
+    }
+  }
 
   async function carregarRelatorios() {
     setLoading(true);
@@ -87,8 +163,119 @@ export default function RelatoriosPage() {
   }
 
   useEffect(() => {
-    carregarRelatorios();
+    void carregarRelatorios();
   }, [periodo]);
+
+  useEffect(() => {
+    void carregarStatusCron();
+  }, []);
+
+  // Prompt 6: Exportar Extrato Analítico Excel em 5 Abas Inteligentes (V6) com Fórmulas =SUM(...)
+  async function handleExportarExcel5AbasV6() {
+    setExportandoExcelV6(true);
+    setFeedbackAcao(null);
+    try {
+      const res = await fetch(`/api/relatorios/excel-v6?periodo=${periodo}`);
+      const data = (await res.json()) as {
+        success?: boolean;
+        payload?: ExtratoAnaliticoV6Payload;
+        error?: string;
+      };
+      if (!res.ok || !data.payload) {
+        setFeedbackAcao({
+          tipo: 'erro',
+          mensagem: data.error || 'Falha ao montar planilha Excel V6.',
+        });
+        return;
+      }
+      const hoje = new Date().toISOString().split('T')[0];
+      exportarExtratoAnalitico5AbasV6(
+        data.payload,
+        `extrato-analitico-5-abas-v6-${periodo}-${hoje}`
+      );
+      setFeedbackAcao({
+        tipo: 'sucesso',
+        mensagem:
+          'Planilha Excel V6 (5 abas com fórmulas =SUM) gerada e baixada com sucesso!',
+      });
+    } catch (err: unknown) {
+      setFeedbackAcao({
+        tipo: 'erro',
+        mensagem:
+          err instanceof Error
+            ? err.message
+            : 'Erro ao exportar Excel V6 (5 abas).',
+      });
+    } finally {
+      setExportandoExcelV6(false);
+    }
+  }
+
+  // Prompt 5: Disparo manual/imediato do Relatório Financeiro Quinzenal em PDF Paisagem (Base64)
+  async function handleDispararPdfQuinzenalAgora() {
+    setDisparandoQuinzenal(true);
+    setFeedbackAcao(null);
+    try {
+      const res = await fetch('/api/cron/relatorio-quinzenal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: true }),
+      });
+      const data = (await res.json()) as {
+        success?: boolean;
+        fileName?: string;
+        pdfBase64?: string;
+        reciboR2Url?: string | null;
+        resumo?: string;
+        destinatarios?: Array<{ nome: string; enviado: boolean; modo: string }>;
+        error?: string;
+      };
+
+      if (!res.ok || !data.success) {
+        setFeedbackAcao({
+          tipo: 'erro',
+          mensagem: data.error || 'Falha ao gerar PDF quinzenal.',
+        });
+        return;
+      }
+
+      // Garante download local imediato do PDF Paisagem em Base64
+      if (data.pdfBase64) {
+        const bytes = Uint8Array.from(atob(data.pdfBase64), (c) =>
+          c.charCodeAt(0)
+        );
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.fileName || 'relatorio-financeiro-quinzenal.pdf';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }
+
+      const enviados = (data.destinatarios || []).filter((d) => d.enviado).length;
+      const totalDest = (data.destinatarios || []).length;
+      setFeedbackAcao({
+        tipo: 'sucesso',
+        mensagem:
+          enviados > 0
+            ? `PDF Paisagem gerado (${data.resumo}) e enviado via WhatsApp para ${enviados}/${totalDest} destinatários oficiais.`
+            : `PDF Paisagem gerado e baixado (${data.resumo}). WhatsApp offline no momento — cópia salva no R2.`,
+        linkR2: data.reciboR2Url,
+      });
+      await carregarStatusCron();
+    } catch (err: unknown) {
+      setFeedbackAcao({
+        tipo: 'erro',
+        mensagem:
+          err instanceof Error
+            ? err.message
+            : 'Erro ao disparar relatório quinzenal.',
+      });
+    } finally {
+      setDisparandoQuinzenal(false);
+    }
+  }
 
   // Exportar Borderô Consolidado para XLS
   function handleExportarBorderoXls() {
@@ -125,7 +312,7 @@ export default function RelatoriosPage() {
     const linhas: LinhaExtratoAnaliticoExport[] = lancamentosDetalhados.map((l) => ({
       Data: l.data_referencia,
       Colaborador: l.nome_trabalhador,
-      Obra: l.obras_config?.nome || 'Geral',
+      Obra: extrairNomeObraRel(l.obras_config),
       Tipo: l.tipo_lancamento === 'PONTO' ? 'Diária' : 'Vale',
       'Fração / Qtd': l.tipo_lancamento === 'PONTO' ? `${l.fracao_dia || 1}x` : '—',
       'Valor (R$)': Number(l.valor_monetario || 0),
@@ -241,6 +428,20 @@ export default function RelatoriosPage() {
             </button>
           </div>
 
+          {/* Excel V6 — 5 Abas Inteligentes com Fórmulas =SUM(...) */}
+          <button
+            type="button"
+            onClick={() => void handleExportarExcel5AbasV6()}
+            disabled={exportandoExcelV6}
+            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+            title="Baixar planilha Excel V6 em 5 abas inteligentes com fórmulas =SUM nativas"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            <span>
+              {exportandoExcelV6 ? 'Gerando Excel V6...' : 'Excel V6 (5 Abas)'}
+            </span>
+          </button>
+
           {/* Enviar Resumo WhatsApp para Diretoria */}
           <button
             onClick={handleEnviarWhatsappDiretoria}
@@ -252,6 +453,116 @@ export default function RelatoriosPage() {
             <span>Enviar no WhatsApp</span>
           </button>
         </div>
+      </div>
+
+      {/* Feedback de Exportação / Disparo */}
+      {feedbackAcao && (
+        <div
+          className={`p-4 rounded-2xl border text-xs font-bold flex flex-wrap items-center justify-between gap-3 ${
+            feedbackAcao.tipo === 'sucesso'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-rose-50 border-rose-200 text-rose-900'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{feedbackAcao.mensagem}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {feedbackAcao.linkR2 && (
+              <a
+                href={feedbackAcao.linkR2}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 underline font-black text-emerald-700 hover:text-emerald-900"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Abrir PDF no R2</span>
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => setFeedbackAcao(null)}
+              className="text-[11px] opacity-70 hover:opacity-100"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Faixa de Automação Quinzenal (Prompt 5: PDF Paisagem Base64 — 2ª e última sexta 18:00 BRT) */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-black">
+              <Clock className="w-3.5 h-3.5" />
+              <span>Agendamento Quinzenal Automático</span>
+            </span>
+            <span className="text-xs font-bold text-slate-600">
+              {cronStatus?.regraAgendamento ||
+                '2ª e última sexta-feira do mês às 18:00 (America/Sao_Paulo)'}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500">
+            Próximo disparo automático:{' '}
+            <strong className="text-slate-900">
+              {cronStatus?.proximaJanela || 'Calculando...'}
+            </strong>{' '}
+            • Destinatários sigilosos:{' '}
+            <strong className="text-slate-800">
+              {(cronStatus?.destinatarios || [
+                { nome: 'Daniel Lopes' },
+                { nome: 'Patrícia Grubel' },
+              ])
+                .map((d) => d.nome)
+                .join(' e ')}
+            </strong>{' '}
+            (PDF Paisagem em Base64 somente com saldos em aberto + Caixinha em coluna informativa).
+          </p>
+          {cronStatus?.ultimoDisparo && (
+            <p className="text-[11px] text-slate-500">
+              Último envio registrado em{' '}
+              <strong className="text-slate-800">
+                {new Date(cronStatus.ultimoDisparo.disparadoEm).toLocaleString(
+                  'pt-BR'
+                )}
+              </strong>{' '}
+              • Líquido em aberto:{' '}
+              <strong className="text-emerald-700 tabular-nums">
+                R$ {Number(cronStatus.ultimoDisparo.totalLiquidoAberto || 0).toFixed(2)}
+              </strong>
+              {cronStatus.ultimoDisparo.reciboR2Url && (
+                <>
+                  {' '}
+                  •{' '}
+                  <a
+                    href={cronStatus.ultimoDisparo.reciboR2Url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline font-bold text-indigo-700"
+                  >
+                    PDF arquivado no R2
+                  </a>
+                </>
+              )}
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => void handleDispararPdfQuinzenalAgora()}
+          disabled={disparandoQuinzenal}
+          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50 shrink-0"
+        >
+          <FileText className="w-4 h-4" />
+          <span>
+            {disparandoQuinzenal
+              ? 'Gerando e Enviando PDF...'
+              : 'Disparar PDF Quinzenal Agora'}
+          </span>
+        </button>
       </div>
 
       {/* Cards de Métricas do Período */}
@@ -601,7 +912,7 @@ export default function RelatoriosPage() {
                       <div className="flex items-center gap-2">
                         <span className="font-black text-slate-900">{l.data_referencia}</span>
                         <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
-                          {(l.obras_config as any)?.nome || 'Geral'}
+                          {extrairNomeObraRel(l.obras_config)}
                         </span>
                         <span
                           className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${

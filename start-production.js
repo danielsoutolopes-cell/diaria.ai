@@ -35,9 +35,29 @@ next.on('error', (err) => {
   console.error('[PROD-RUNNER] Erro ao iniciar Next.js:', err);
 });
 
+// 3. Agendador Quinzenal (2ª e última sexta-feira do mês às 18:00 America/Sao_Paulo)
+const cronInterval = setInterval(async () => {
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/cron/relatorio-quinzenal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force: false }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.disparado) {
+        console.log('[PROD-RUNNER][CRON-QUINZENAL] Relatório quinzenal disparado:', data.resumo || 'OK');
+      }
+    }
+  } catch {
+    // Servidor Next.js ainda inicializando ou em restart — ignora silenciosamente
+  }
+}, 60 * 1000);
+
 // Encerramento limpo
 function shutdown() {
   console.log('[PROD-RUNNER] Encerrando processos...');
+  clearInterval(cronInterval);
   try { baileys.kill(); } catch(e){}
   try { next.kill(); } catch(e){}
   process.exit(0);

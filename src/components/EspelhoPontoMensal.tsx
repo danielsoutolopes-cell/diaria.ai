@@ -12,7 +12,16 @@ interface DestinatarioWhatsApp {
 
 interface LinhaEspelho {
   nome: string;
-  dias: Record<number, { fracao: number; tipo: string; obs: string; valor: number }>;
+  dias: Record<
+    number,
+    {
+      fracao: number;
+      tipo: string;
+      obs: string;
+      valor: number;
+      partes?: Array<{ obra: string; fracao: number; valor: number; tipo: string }>;
+    }
+  >;
   totalDias: number;
   totalValor: number;
 }
@@ -105,14 +114,46 @@ export default function EspelhoPontoMensal() {
 
   const diasArray = Array.from({ length: diasNoMes }, (_, i) => i + 1);
 
-  function renderSimbolo(info?: { fracao: number; tipo: string }) {
+  function renderSimbolo(info?: {
+    fracao: number;
+    tipo: string;
+    obs?: string;
+    partes?: Array<{ obra: string; fracao: number; valor: number }>;
+  }) {
     if (!info) return <span className="text-slate-300">—</span>;
-    if (info.tipo === 'CHUVA') return <span title="Dia de Chuva">🌧️</span>;
+    if (info.tipo === 'RATEIO' || (info.partes && info.partes.length >= 2)) {
+      const detalhe =
+        info.obs ||
+        info.partes
+          ?.map((p) => `${p.fracao.toFixed(1).replace('.', ',')}d ${p.obra}`)
+          .join(' + ') ||
+        'Rateio Multi-Obra (½ + ½)';
+      return (
+        <span
+          title={detalhe}
+          className="inline-block px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-black text-[10px] leading-none"
+        >
+          ½+½
+        </span>
+      );
+    }
+    if (info.tipo === 'CHUVA')
+      return <span title="Dia de Chuva (R$ 120,00)">🌧️</span>;
     if (info.tipo === 'VIAGEM') return <span title="Dia de Viagem">🚗</span>;
     if (info.tipo === 'PARADO') return <span title="Dia Parado">⛔</span>;
-    if (info.tipo === 'FALTA') return <span className="text-rose-600 font-black">F</span>;
-    if (info.tipo === 'MEIO' || info.fracao === 0.5) return <span className="text-amber-700 font-black">½</span>;
-    return <span className="text-emerald-700 font-black">1</span>;
+    if (info.tipo === 'FALTA')
+      return <span className="text-rose-600 font-black">F</span>;
+    if (info.tipo === 'MEIO' || info.fracao === 0.5)
+      return (
+        <span title={info.obs || 'Meio Período'} className="text-amber-700 font-black">
+          ½
+        </span>
+      );
+    return (
+      <span title={info.obs || 'Dia Integral'} className="text-emerald-700 font-black">
+        1
+      </span>
+    );
   }
 
   return (
@@ -230,7 +271,7 @@ export default function EspelhoPontoMensal() {
             </p>
           </div>
           <div className="text-[10px] text-slate-600 font-semibold">
-            1 = Integral • ½ = Meio Período • 🌧️ = Chuva • 🚗 = Viagem • ⛔ = Parado • F = Falta
+            1 = Integral • ½ = Meio Período • ½+½ = Rateio Multi-Obra • 🌧️ = Chuva (R$ 120) • 🚗 = Viagem • ⛔ = Parado • F = Falta
           </div>
         </div>
 
@@ -246,7 +287,7 @@ export default function EspelhoPontoMensal() {
               <tr className="bg-slate-100 text-slate-700 border-b border-slate-300">
                 <th className="p-2 text-left font-black sticky left-0 bg-slate-100 min-w-[140px]">Colaborador</th>
                 {diasArray.map((d) => (
-                  <th key={d} className="p-1 text-center font-bold border-l border-slate-200 min-w-[26px]">
+                  <th key={d} className="p-1 text-center font-bold border-l border-slate-200 min-w-[28px] tabular-nums">
                     {String(d).padStart(2, '0')}
                   </th>
                 ))}
@@ -267,10 +308,10 @@ export default function EspelhoPontoMensal() {
                       {renderSimbolo(l.dias[d])}
                     </td>
                   ))}
-                  <td className="p-2 text-center font-black border-l border-slate-300 bg-emerald-50/40 text-emerald-900">
+                  <td className="p-2 text-center font-black border-l border-slate-300 bg-emerald-50/40 text-emerald-900 tabular-nums">
                     {l.totalDias}
                   </td>
-                  <td className="p-2 text-right font-black border-l border-slate-200 bg-emerald-50/40 text-emerald-900">
+                  <td className="p-2 text-right font-black border-l border-slate-200 bg-emerald-50/40 text-emerald-900 tabular-nums">
                     R$ {l.totalValor.toFixed(2)}
                   </td>
                 </tr>
@@ -283,7 +324,8 @@ export default function EspelhoPontoMensal() {
           <span className="font-bold text-slate-700">Legenda:</span>
           <span><strong className="text-emerald-700">1</strong> Integral</span>
           <span><strong className="text-amber-700">½</strong> Meio Período</span>
-          <span>🌧️ Dia de Chuva</span>
+          <span><strong className="text-indigo-700">½+½</strong> Rateio Multi-Obra</span>
+          <span>🌧️ Dia de Chuva (R$ 120,00)</span>
           <span>🚗 Viagem</span>
           <span>⛔ Dia Parado</span>
           <span><strong className="text-rose-600">F</strong> Falta</span>

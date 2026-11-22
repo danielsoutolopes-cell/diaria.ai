@@ -482,7 +482,7 @@ export default function SetupPage() {
             const empresaAtiva =
               cookieTenant && cookieTenant.split('=')[1] === 'intermack'
                 ? 'intermack'
-                : 'jhonton';
+                : 'jhoston';
             const grpObj = gruposZapDisponiveis.find(
               (g) => g.jid === editObraGrupoJid
             );
@@ -493,7 +493,7 @@ export default function SetupPage() {
                   id: string;
                   jid: string;
                   nomeGrupo: string;
-                  empresa: 'jhonton' | 'intermack';
+                  empresa: 'jhoston' | 'intermack';
                   obraNome: string;
                   ambiente: 'INTERNO' | 'EXTERNO';
                   ativo: boolean;
@@ -677,8 +677,11 @@ export default function SetupPage() {
                   <label className="text-xs font-bold text-slate-700">Regime de Pagamento</label>
                   <select
                     value={regimeFunc}
-                    onChange={(e: any) => {
-                      const reg = e.target.value;
+                    onChange={(e) => {
+                      const reg = e.target.value as
+                        | 'DIARISTA'
+                        | 'SEMANALISTA'
+                        | 'QUINZENALISTA';
                       setRegimeFunc(reg);
                       if (reg === 'SEMANALISTA') setCicloFunc('SEMANAL');
                       if (reg === 'QUINZENALISTA') setCicloFunc('QUINZENAL');
@@ -695,7 +698,9 @@ export default function SetupPage() {
                   <label className="text-xs font-bold text-slate-700">Ciclo do Fechamento</label>
                   <select
                     value={cicloFunc}
-                    onChange={(e: any) => setCicloFunc(e.target.value)}
+                    onChange={(e) =>
+                      setCicloFunc(e.target.value as 'SEMANAL' | 'QUINZENAL')
+                    }
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-bold focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
                   >
                     <option value="SEMANAL">Toda Sexta (Semanal)</option>
@@ -1264,7 +1269,15 @@ export default function SetupPage() {
                   <label className="text-xs font-bold text-slate-700">Regime</label>
                   <select
                     value={editFuncRegime}
-                    onChange={(e) => setEditFuncRegime(e.target.value as any)}
+                    onChange={(e) =>
+                      setEditFuncRegime(
+                        e.target.value as
+                          | 'DIARISTA'
+                          | 'SEMANALISTA'
+                          | 'QUINZENALISTA'
+                          | 'MENSALISTA'
+                      )
+                    }
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="DIARISTA">Diarista</option>
@@ -1277,7 +1290,9 @@ export default function SetupPage() {
                   <label className="text-xs font-bold text-slate-700">Ciclo Pgto</label>
                   <select
                     value={editFuncCiclo}
-                    onChange={(e) => setEditFuncCiclo(e.target.value as any)}
+                    onChange={(e) =>
+                      setEditFuncCiclo(e.target.value as 'SEMANAL' | 'QUINZENAL')
+                    }
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="SEMANAL">Sexta (Semanal)</option>

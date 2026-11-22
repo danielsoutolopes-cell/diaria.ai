@@ -1,6 +1,15 @@
 export interface LinhaEspelhoPDF {
   nome: string;
-  dias: Record<number, { fracao: number; tipo: string; obs: string; valor: number }>;
+  dias: Record<
+    number,
+    {
+      fracao: number;
+      tipo: string;
+      obs: string;
+      valor: number;
+      partes?: Array<{ obra: string; fracao: number; valor: number }>;
+    }
+  >;
   totalDias: number;
   totalValor: number;
 }
@@ -15,8 +24,14 @@ function sanitize(text: string): string {
     .replace(/[^\x20-\x7E]/g, ' ');
 }
 
-function simboloDia(cell?: { fracao: number; tipo: string }): string {
+function simboloDia(cell?: {
+  fracao: number;
+  tipo: string;
+  partes?: Array<{ obra: string; fracao: number }>;
+}): string {
   if (!cell) return '.';
+  if (cell.tipo === 'RATEIO' || (cell.partes && cell.partes.length >= 2))
+    return 'R';
   if (cell.tipo === 'CHUVA') return 'C';
   if (cell.tipo === 'VIAGEM') return 'V';
   if (cell.tipo === 'PARADO') return 'P';
@@ -51,7 +66,7 @@ export function gerarPdfEspelhoBase64(params: {
 
   ops.push('/F1 8 Tf');
   ops.push('1 0 0 1 30 544 Tm');
-  ops.push('(Legenda: 1=Integral | 1/2=Meio Dia | C=Chuva | V=Viagem | P=Parado | .=Sem registro) Tj');
+  ops.push('(Legenda: 1=Integral | 1/2=Meio Dia | R=Rateio 1/2+1/2 | C=Chuva R$120 | V=Viagem | P=Parado | .=Sem registro) Tj');
 
   // Cabeçalho da grade
   let headerLine = 'COLABORADOR'.padEnd(18, ' ');

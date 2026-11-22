@@ -47,7 +47,7 @@ interface DiarioObraRegistro {
 }
 
 export default function DiarioObraPage() {
-  const [activeTenant, setActiveTenant] = useState<TenantConfig>(TENANTS.jhonton);
+  const [activeTenant, setActiveTenant] = useState<TenantConfig>(TENANTS.jhoston);
   const [usuarioAtual, setUsuarioAtual] = useState<string>('Patrícia Grubel');
   const [diarios, setDiarios] = useState<DiarioObraRegistro[]>([]);
   const [obras, setObras] = useState<{ id: string; nome: string }[]>([]);

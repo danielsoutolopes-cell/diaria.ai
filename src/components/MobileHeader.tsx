@@ -19,6 +19,8 @@ import {
   Camera,
   Receipt,
   Building2,
+  ShoppingCart,
+  ShieldAlert,
 } from 'lucide-react';
 import { useDevice } from '@/contexts/DeviceContext';
 import {
@@ -34,7 +36,7 @@ export default function MobileHeader() {
   const { isMobile, viewportWidth } = useDevice();
   const [menuOpen, setMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<string>('Patrícia Grubel');
-  const [activeTenant, setActiveTenant] = useState<TenantConfig>(TENANTS.jhonton);
+  const [activeTenant, setActiveTenant] = useState<TenantConfig>(TENANTS.jhoston);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -65,12 +67,30 @@ export default function MobileHeader() {
   const allNavItems = [
     { name: 'Visão Geral & Caixa', href: '/', icon: LayoutDashboard },
     {
-      name: isIntermack ? 'Validações de Efetivo' : 'Validações Pendentes',
-      href: '/validacoes',
+      name: isIntermack ? 'Validações de Efetivo' : 'Validações (Diárias)',
+      href: '/validacao/diarias',
       icon: CalendarCheck2,
+    },
+    {
+      name: 'Vales em 2 Etapas (PIX)',
+      href: '/validacao/vales',
+      icon: Receipt,
+      onlyDiarista: true,
     },
     { name: 'Diário de Obra (2-3 Fotos)', href: '/diario-obra', icon: Camera },
     { name: 'Propostas & Medição IA', href: '/medicoes', icon: Sparkles },
+    {
+      name: 'Pedidos de Compras (IA)',
+      href: '/compras',
+      icon: ShoppingCart,
+      onlyComprasAtivo: true,
+    },
+    {
+      name: 'Caixinha de Campo (Unificado)',
+      href: '/caixinha',
+      icon: Receipt,
+      onlyDiarista: true,
+    },
     {
       name: 'Caixa de Campo & Reembolsos',
       href: '/reembolsos',
@@ -94,6 +114,12 @@ export default function MobileHeader() {
       icon: BarChart3,
     },
     {
+      name: 'Auditoria Interna (IA)',
+      href: '/auditoria',
+      icon: ShieldAlert,
+      adminOnly: true,
+    },
+    {
       name: 'Mensageria & Pedidos IA',
       href: '/mensageria',
       icon: MessageSquare,
@@ -111,6 +137,9 @@ export default function MobileHeader() {
 
   const mobileNavItems = allNavItems.filter((item) => {
     if (item.adminOnly && !isAdmin) return false;
+    if ('onlyComprasAtivo' in item && item.onlyComprasAtivo && !activeTenant.moduloComprasAtivo) {
+      return false;
+    }
     if (isIntermack && item.onlyDiarista) return false;
     return true;
   });
@@ -177,7 +206,7 @@ export default function MobileHeader() {
             <div className="p-1 bg-slate-900 rounded-xl border border-slate-800 grid grid-cols-2 gap-1">
               <button
                 type="button"
-                onClick={() => handleTrocarEmpresa('jhonton')}
+                onClick={() => handleTrocarEmpresa('jhoston')}
                 className={`py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
                   !isIntermack
                     ? 'bg-emerald-600 text-white'
@@ -185,7 +214,7 @@ export default function MobileHeader() {
                 }`}
               >
                 <Building2 className="w-3.5 h-3.5" />
-                <span>Jhonton</span>
+                <span>Jhoston</span>
               </button>
               <button
                 type="button"

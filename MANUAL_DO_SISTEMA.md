@@ -239,3 +239,76 @@ Na aba **Mensageria & Pedidos IA** (`/mensageria`):
 - **O que acontece se eu desmarcar um vale no Borderô?**
   - O sistema abate apenas os itens marcados. O item desmarcado continua ativo no banco de dados e aparecerá automaticamente na folha da próxima semana.
 
+---
+
+## 💼 12. Caixinha de Campo Unificado (`/caixinha`) & Reinício Pós-Quitação
+
+### 12.1 Caixinha de Campo Unificado (`/caixinha`)
+- **Unificação de Apelidos**: Caso um mesmo encarregado envie comprovantes usando apelidos diferentes no WhatsApp, o sistema consolida automaticamente todas as movimentações em um único card canônico.
+- **Preservação de Pré-Implantação**: Saldos anteriores à entrada do sistema permanecem identificados com selo de *Pré-implantação*, sem perda de histórico.
+- **Separação da Folha de Pagamento**: O saldo de troco em mãos fica em coluna própria e **nunca é descontado automaticamente** das diárias. A administração decide manualmente quando registrar devolução ou transferir para o fechamento.
+- **Exemplo Prático**: A empresa envia R$ 700,00 em suprimentos PIX para compras de canteiro e o encarregado presta contas de R$ 546,94 em notas fiscais. O card unificado exibe automaticamente **Troco em Mãos: R$ 153,06**.
+
+### 12.2 Reinício de Contagem Pós-Quitação & Separação de Obras no Mesmo Dia
+- **Isolamento de Ciclos**: Ao liquidar um fechamento via PIX, apenas os lançamentos selecionados até aquele corte são marcados como `LIQUIDADO`.
+- **Novo Ciclo no Mesmo Dia**: Qualquer novo apontamento enviado após a quitação (inclusive no mesmo dia, em obra civil ou em obra de piscina) abre automaticamente um **novo ciclo em aberto**, sem colidir com o saldo já quitado e sem ser zerado retroativamente.
+- **Exemplo Prático**: Um colaborador teve seu ciclo anterior quitado pela manhã via PIX. À tarde, o encarregado envia uma nova diária integral em outro canteiro. O painel e os relatórios exibem o ciclo anterior como quitado e a nova diária separadamente no saldo em aberto atual.
+
+---
+
+## ⚡ 13. Vales em 2 Etapas, Rateio Multi-Obra (`½ + ½`) & Quitação PIX por Foto
+
+### 13.1 Vales em 2 Etapas (`/validacao/vales`)
+- **Etapa 1 (Solicitação)**: Pedidos enviados no WhatsApp em linguagem natural (inclusive mensagens complementares em sequência) ou cadastrados com os dropdowns de Trabalhador e Obra entram com padrão **R$ 100,00** quando o valor é omitido.
+- **Etapa 2 (Confirmação PIX + OCR)**: Ao anexar o comprovante PIX (manualmente ou pelo WhatsApp), a IA lê favorecido, valor e data, salva o arquivo na nuvem e pareia automaticamente com a solicitação pendente, liberando o vale no Borderô e no extrato.
+- **Exemplo Prático**: O encarregado escreve *"Um vale para o João"* e logo depois *"Para o Pedro também, por favor"*. Ambos entram na Etapa 1 com R$ 100,00. Assim que a administração envia os comprovantes PIX, o status muda para **Etapa 2: PIX Confirmado**.
+
+### 13.2 Rateio Multi-Obra (`0,5 + 0,5`) & Regra de Chuva (`R$ 120,00`)
+- Um colaborador pode atuar meio período em um canteiro e meio período em outro no mesmo dia (soma $\le 1,0$).
+- No **Espelho do Ponto** (tela e PDF), o dia aparece com o selo **`½+½`** detalhando cada obra no tooltip e no descritivo do código PIX Copia e Cola.
+- Dias paralisados por chuva aplicam automaticamente o valor fixo de **R$ 120,00**.
+
+### 13.3 Liquidação PIX por Comprovante (OCR) & Regimes Especiais
+- No **Borderô** (`/bordero`), clique em **Liquidar PIX (Foto OCR)** para subir o comprovante de pagamento de um colaborador. O sistema identifica o favorecido e exibe a prévia *Antes × Depois* dos lançamentos que serão quitados após sua aprovação.
+- Suporte nativo a **Mensalista diluído semanalmente** e à regra de **Dias Úteis Segunda a Sábado = 1 diária**.
+
+---
+
+## 📑 14. Excel Analítico em 5 Abas, Recibo PIX Individual & Envio Quinzenal em PDF Paisagem
+
+### 14.1 Planilha Excel Analítica em 5 Abas com Fórmulas (`=SUM`)
+Na tela **Relatórios & Exportações** (`/relatorios`), clique em **Excel V6 (5 Abas)** para baixar uma pasta de trabalho estruturada pronta para contabilidade e controladoria:
+1. **Resumo por Trabalhador**: Nomes unificados, obras, chave PIX, quantidade de diárias, valor aberto, vales, líquido a pagar, histórico já quitado e Caixinha em Mãos em coluna separada (sem desconto automático).
+2. **Detalhamento de Diárias**: Registro dia a dia distinguindo Obra Civil, Piscina, Dia de Chuva (`R$ 120,00`) e Rateio Multi-Obra (`½+½`).
+3. **Controle de Vales**: Rastreabilidade completa de solicitação, etapa (Solicitado vs Confirmado com PIX), responsáveis e link do comprovante em nuvem.
+4. **Caixinha de Campo**: Entradas PIX, notas fiscais comprovadas, devoluções de troco e saldo líquido calculado por fórmula nativa.
+5. **Custo por Obra**: Comparativo de diárias em aberto, diárias quitadas, total geral e vales por canteiro.
+- **Exemplo Prático**: Ao selecionar o período **Quinzenal** e clicar em **Excel V6 (5 Abas)**, todas as abas já chegam com a linha `TOTAL GERAL` preenchida com fórmulas nativas `=SUM(...)` prontas para edição no Microsoft Excel ou Google Planilhas.
+
+### 14.2 Comprovante Detalhado Individual de Liquidação PIX (PDF + Nuvem + Envio Opcional)
+Na tela **Fechamento & Pagamentos** (`/bordero`):
+- Clique em **Recibo PIX** no card de qualquer colaborador para gerar o **Comprovante Detalhado Individual de Liquidação PIX** em PDF A4 com lista de diárias, vales abatidos, valor líquido e **hash criptográfico SHA-256**.
+- Uma cópia pericial é arquivada automaticamente em nuvem para consulta futura.
+- Você pode **Baixar PDF**, **Abrir / Imprimir** e — **apenas se desejar** — informar/confirmar o telefone do trabalhador e clicar em **Enviar no Zap** (o envio para o colaborador é sempre opcional e nunca disparado automaticamente).
+- **Exemplo Prático**: Após conferir o pagamento de um colaborador, clique em **Recibo PIX**, salve a cópia para arquivo ou clique em **Abrir / Imprimir** para assinatura presencial na obra.
+
+### 14.3 Envio Quinzenal Automático em PDF Paisagem (2ª e Última Sexta às 18:00)
+- O agendador nativo do sistema dispara automaticamente na **2ª sexta-feira** e na **última sexta-feira** de cada mês, às **18:00 (Horário de Brasília)**, o **Relatório Financeiro Quinzenal em PDF Paisagem** diretamente no WhatsApp da diretoria cadastrada.
+- O relatório exibe **exclusivamente os saldos em aberto** (respeitando liquidações parciais seletivas já encerradas) e mantém a Caixinha de Campo em coluna informativa própria.
+- Caso precise antecipar o fechamento, clique em **Disparar PDF Quinzenal Agora** na faixa de agendamento em `/relatorios` para gerar, baixar imediatamente e enviar o PDF sob demanda.
+
+---
+
+## 🛒 15. Pedidos de Compras por Grupo de Obra (`/compras`) & Auditoria Interna IA (`/auditoria`)
+
+### 15.1 Gerador Inteligente de Pedido de Compras (`/compras`)
+- **Controle por Empresa (`modulo_compras_ativo`)**: Ativado especificamente nas empresas com rotina de suprimentos por grupo de obra (Modo Empreita), permanecendo em *standby* nas empresas focadas apenas em folha de diárias.
+- **Captura Automática & Manual**: Mensagens solicitando materiais em grupos monitorados ou coladas na tela `/compras` são agrupadas pela IA por categoria (**Alvenaria**, **Hidráulica**, **Elétrica**, **Acabamento**, **Pintura**, **Ferramentas & EPI**, **Fixação**).
+- **Pronto para Fornecedores**: Gera uma mensagem limpa pronta para **Copiar e Colar** no WhatsApp e dispara cópia automática para a coordenação de compras, com controle de status (`Novo` → `Em Cotação` → `Comprado` → `Entregue`).
+- **Exemplo Prático**: O encarregado envia no grupo *"Precisando urgente de 20 sacos de cimento, 3 rolos de fio 2,5mm e 6 tubos PVC 50mm"*. O sistema separa automaticamente em **Alvenaria**, **Elétrica** e **Hidráulica** e entrega a lista pronta para cotação.
+
+### 15.2 Auditoria Interna com Correção Assistida por IA (`/auditoria`)
+- **Cruzamento Banco × WhatsApp**: Compara os lançamentos gravados no banco com as mensagens originais recebidas dos grupos, tabelas de diária, regras de chuva e cadastros de chave PIX.
+- **Diff Visual `Antes × Depois` com Aprovação em 1 Clique**: Cada inconsistência detectada (ex.: apelido solto, duplicidade no mesmo dia, diária fora da regra ou vale sem comprovante) exibe exatamente o que será alterado e só é aplicada mediante clique humano (**Human-in-the-Loop**), com registro em trilha de auditoria.
+- **Simulador Pré-Fechamento**: Exibe lado a lado o **Saldo Aberto Atual**, o **Impacto das Correções (Δ)** e o **Saldo Projetado Pós-Auditoria** antes de liberar os pagamentos PIX no Borderô.
+- **Exemplo Prático**: Antes de fechar a quinzena, abra `/auditoria`, revise uma diária de chuva lançada com valor comum (Diff: `R$ 180,00` → `R$ 120,00`), veja a economia de `-R$ 60,00` no simulador e aprove a correção em 1 clique.

@@ -20,7 +20,7 @@ interface GrupoWhatsAppMapeado {
   id: string;
   jid: string;
   nomeGrupo: string;
-  empresa: 'jhonton' | 'intermack';
+  empresa: 'jhoston' | 'intermack';
   obraNome: string;
   ambiente: 'INTERNO' | 'EXTERNO';
   ativo: boolean;
@@ -29,7 +29,7 @@ interface GrupoWhatsAppMapeado {
 interface ConfigGeralGlobal {
   telefonePatricia: string;
   telefoneDaniel: string;
-  nomeExibicaoJhonton: string;
+  nomeExibicaoJhoston: string;
   nomeExibicaoIntermack: string;
   instanciaWhatsAppUrl: string;
   gruposWhatsApp: GrupoWhatsAppMapeado[];
@@ -45,8 +45,8 @@ export default function ConfigGeralPage() {
   const [config, setConfig] = useState<ConfigGeralGlobal>({
     telefonePatricia: '5511978543369',
     telefoneDaniel: '5511988139833',
-    nomeExibicaoJhonton: 'Jhonton Engenharia & Piscinas',
-    nomeExibicaoIntermack: 'Intermack Reformas & Obras',
+    nomeExibicaoJhoston: 'Jhoston Construções e Revestimentos',
+    nomeExibicaoIntermack: 'Intermack Engenharia e Construção',
     instanciaWhatsAppUrl: 'https://diaria-ai.onrender.com',
     gruposWhatsApp: [],
   });
@@ -54,7 +54,7 @@ export default function ConfigGeralPage() {
   // Novo grupo WhatsApp
   const [novoJid, setNovoJid] = useState('');
   const [novoNomeGrupo, setNovoNomeGrupo] = useState('');
-  const [novaEmpresa, setNovaEmpresa] = useState<'jhonton' | 'intermack'>('intermack');
+  const [novaEmpresa, setNovaEmpresa] = useState<'jhoston' | 'intermack'>('intermack');
   const [novaObra, setNovaObra] = useState('');
   const [novoAmbiente, setNovoAmbiente] = useState<'INTERNO' | 'EXTERNO'>('INTERNO');
   const [gruposBaileys, setGruposBaileys] = useState<
@@ -163,7 +163,7 @@ export default function ConfigGeralPage() {
             <span>Exclusivo Patrícia & Daniel • Hub Multi-Empresa</span>
           </div>
           <h1 className="text-3xl font-black text-slate-950 tracking-tight">
-            Configuração Geral (Jhonton & Intermack)
+            Configuração Geral (Jhoston & Intermack)
           </h1>
           <p className="text-sm text-slate-600 mt-1">
             Gerencie os dados compartilhados e vincule cada grupo do WhatsApp à empresa, obra e ambiente (Interno vs Externo).
@@ -200,13 +200,13 @@ export default function ConfigGeralPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700">
-              Nome Timbrado — Jhonton
+              Nome Timbrado — Jhoston
             </label>
             <input
               type="text"
-              value={config.nomeExibicaoJhonton}
+              value={config.nomeExibicaoJhoston}
               onChange={(e) =>
-                setConfig((p) => ({ ...p, nomeExibicaoJhonton: e.target.value }))
+                setConfig((p) => ({ ...p, nomeExibicaoJhoston: e.target.value }))
               }
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold"
             />
@@ -324,14 +324,14 @@ export default function ConfigGeralPage() {
           <select
             value={novaEmpresa}
             onChange={(e) => {
-              const emp = e.target.value as 'jhonton' | 'intermack';
+              const emp = e.target.value as 'jhoston' | 'intermack';
               setNovaEmpresa(emp);
               setNovoAmbiente(emp === 'intermack' ? 'INTERNO' : 'EXTERNO');
             }}
             className="sm:col-span-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold"
           >
             <option value="intermack">Intermack</option>
-            <option value="jhonton">Jhonton</option>
+            <option value="jhoston">Jhoston</option>
           </select>
           <select
             value={novoAmbiente}

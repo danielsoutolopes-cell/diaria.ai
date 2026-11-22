@@ -7,27 +7,125 @@ import {
   formatarTicketFinanceiroAdministracao,
 } from '@/services/notificacoesAdmin';
 import { calcularValorDiariaCanteiro } from '@/services/calculoDiarias';
+import { normalizeTenantSlug, TENANTS } from '@/lib/tenant';
+import {
+  normalizarNomeObraCanonica,
+  normalizarNomeTrabalhadorCanonico,
+} from '@/lib/normalizarObra';
+import {
+  analisarImagemPixComGemini,
+  extrairPedidosValeNaturais,
+  interpretarLegendaComprovantePix,
+  obterContextoSolicitacaoVale,
+  registrarContextoSolicitacaoVale,
+} from '@/services/valesNlp';
+import {
+  agruparItensCompraComGemini,
+  formatarMensagemPedidoWhatsApp,
+  isMensagemPedidoCompra,
+  type PedidoCompraRecord,
+} from '@/services/pedidosComprasNlp';
 import crypto from 'crypto';
 
 // Mutex em memória para evitar concorrência e mensagens duplicadas do WhatsApp
 const processedMessageIds = new Set<string>();
 const processingLocks = new Map<string, number>();
 
+interface WhatsAppImageMessage {
+  caption?: string;
+  jpegThumbnail?: string;
+}
+
+interface WhatsAppWebhookBody {
+  messageId?: string;
+  id?: string;
+  from?: string;
+  participant?: string;
+  text?: string;
+  message?: string | { imageMessage?: WhatsAppImageMessage };
+  imageMessage?: WhatsAppImageMessage;
+  base64?: string;
+  mediaUrl?: string;
+  url?: string;
+  messageTimestamp?: number | string;
+  data?: {
+    key?: {
+      id?: string;
+      remoteJid?: string;
+      participant?: string;
+    };
+    message?: {
+      conversation?: string;
+      extendedTextMessage?: { text?: string };
+      imageMessage?: WhatsAppImageMessage;
+    };
+    base64?: string;
+    mediaUrl?: string;
+    messageTimestamp?: number | string;
+    pushName?: string;
+  };
+}
+
+interface GrupoMapeadoConfig {
+  jid: string;
+  empresa?: string;
+  obraNome: string;
+  ambiente: 'INTERNO' | 'EXTERNO';
+  ativo: boolean;
+}
+
+interface PontoAbertoDiaRow {
+  nome_trabalhador: string;
+  fracao_dia: number | string | null;
+  obra_id: string | null;
+  status: string;
+}
+
+function getHojeBrasiliaISO(): string {
+  return new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+  });
+}
+
+function inferirTipoObra(
+  nomeObraCanonico: string,
+  empresaSlug: 'jhoston' | 'intermack'
+): 'PISCINA' | 'OBRA_CIVIL' {
+  if (empresaSlug === 'intermack') return 'OBRA_CIVIL';
+  const upper = nomeObraCanonico.toUpperCase();
+  if (upper.includes('PISCINA')) return 'PISCINA';
+  if (
+    upper.includes('QUASE TUDO') ||
+    upper.includes('OBRA') ||
+    upper.includes('IMPERIAL') ||
+    upper.includes('REFORMA')
+  ) {
+    return 'OBRA_CIVIL';
+  }
+  return 'PISCINA';
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = (await req.json()) as WhatsAppWebhookBody;
 
     // Compatível com Baileys / Evolution API v2 / Webhook padrão
-    const messageId = body?.data?.key?.id || body?.messageId || body?.id || `msg-${Date.now()}`;
+    const messageId =
+      body?.data?.key?.id || body?.messageId || body?.id || `msg-${Date.now()}`;
     const remoteJid = body?.data?.key?.remoteJid || body?.from || '';
     // Em grupos, key.participant é o telefone real do encarregado que digitou
-    const participantJid = body?.data?.key?.participant || body?.participant || remoteJid;
+    const participantJid =
+      body?.data?.key?.participant || body?.participant || remoteJid;
     const senderNumber = participantJid.replace(/[^0-9]/g, '');
 
     // Detecção de foto / recibo (imageMessage)
+    const msgObj =
+      typeof body?.message === 'object' && body.message !== null
+        ? body.message
+        : undefined;
     const imageMessage =
       body?.data?.message?.imageMessage ||
-      body?.message?.imageMessage ||
+      msgObj?.imageMessage ||
       body?.imageMessage;
 
     const base64Image =
@@ -35,10 +133,7 @@ export async function POST(req: NextRequest) {
       body?.base64 ||
       body?.data?.message?.imageMessage?.jpegThumbnail;
 
-    const imageMediaUrl =
-      body?.data?.mediaUrl ||
-      body?.mediaUrl ||
-      body?.url;
+    const imageMediaUrl = body?.data?.mediaUrl || body?.mediaUrl || body?.url;
 
     let comprovanteUrl: string | null = null;
 
@@ -77,11 +172,14 @@ export async function POST(req: NextRequest) {
       body?.data?.message?.extendedTextMessage?.text ||
       imageMessage?.caption ||
       body?.text ||
-      body?.message ||
+      (typeof body?.message === 'string' ? body.message : '') ||
       (comprovanteUrl ? 'Comprovante de vale anexado' : '');
 
     if (!messageText && !comprovanteUrl) {
-      return NextResponse.json({ status: 'ignored', reason: 'Mensagem sem texto ou anexo.' });
+      return NextResponse.json({
+        status: 'ignored',
+        reason: 'Mensagem sem texto ou anexo.',
+      });
     }
 
     // Trava de deduplicação (Mutex)
@@ -92,7 +190,10 @@ export async function POST(req: NextRequest) {
     const now = Date.now();
     const lockTime = processingLocks.get(remoteJid);
     if (lockTime && now - lockTime < 3000) {
-      return NextResponse.json({ status: 'locked', reason: 'Aguarde processamento anterior.' }, { status: 429 });
+      return NextResponse.json(
+        { status: 'locked', reason: 'Aguarde processamento anterior.' },
+        { status: 429 }
+      );
     }
 
     processingLocks.set(remoteJid, now);
@@ -109,36 +210,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const MASTER_TENANT_ID = '00000000-0000-0000-0000-000000000001';
-    let tenantId = MASTER_TENANT_ID; // Default tenant (Jhonton)
+    const MASTER_TENANT_ID = TENANTS.jhoston.id;
+    let tenantId = MASTER_TENANT_ID; // Default tenant (Jhoston)
+    let empresaAtivaSlug: 'jhoston' | 'intermack' = 'jhoston';
 
-    // Roteamento Multi-Empresa (1 conta WhatsApp -> N grupos de obras Jhonton / Intermack)
+    // Roteamento Multi-Empresa (1 conta WhatsApp -> N grupos de obras Jhoston / Intermack)
     const { data: paramCorte } = await supabaseAdmin
       .from('parametros_sistema')
       .select('configuracoes')
       .eq('tenant_id', MASTER_TENANT_ID)
       .maybeSingle();
 
-    const configsSistema = (paramCorte?.configuracoes || {}) as Record<string, unknown>;
+    const configsSistema = (paramCorte?.configuracoes || {}) as Record<
+      string,
+      unknown
+    >;
     const configGeral = (configsSistema.config_geral_global || {}) as {
-      gruposWhatsApp?: Array<{
-        jid: string;
-        empresa: 'jhonton' | 'intermack';
-        obraNome: string;
-        ambiente: 'INTERNO' | 'EXTERNO';
-        ativo: boolean;
-      }>;
+      gruposWhatsApp?: GrupoMapeadoConfig[];
     };
 
     const grupoMapeado = (configGeral.gruposWhatsApp || []).find(
-      (g) => g.ativo && g.jid && remoteJid && g.jid.trim() === remoteJid.trim()
+      (g) =>
+        g.ativo && g.jid && remoteJid && g.jid.trim() === remoteJid.trim()
     );
-    if (grupoMapeado?.empresa === 'intermack') {
-      tenantId = '00000000-0000-0000-0000-000000000002';
-      console.log(
-        `[ROTEAMENTO MULTI-EMPRESA] Grupo ${remoteJid} roteado para INTERMACK (${grupoMapeado.obraNome} • ${grupoMapeado.ambiente}).`
-      );
+    if (grupoMapeado) {
+      empresaAtivaSlug = normalizeTenantSlug(grupoMapeado.empresa);
+      if (empresaAtivaSlug === 'intermack') {
+        tenantId = TENANTS.intermack.id;
+        console.log(
+          `[ROTEAMENTO MULTI-EMPRESA] Grupo ${remoteJid} roteado para INTERMACK (${grupoMapeado.obraNome} • ${grupoMapeado.ambiente}).`
+        );
+      }
     }
+
     const dataCorteOperacional =
       typeof configsSistema.data_corte_operacional === 'string'
         ? configsSistema.data_corte_operacional
@@ -168,7 +272,112 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Verificação de Intenção de Reembolso / Despesa de Campo (Combustível, Material, Alimentação, Pedágio)
+    // Prompt 8: Gerador Inteligente de Pedido de Compras por Grupo de Obra (ativo na Intermack; standby na Jhoston)
+    if (
+      TENANTS[empresaAtivaSlug].moduloComprasAtivo &&
+      !comprovanteUrl &&
+      isMensagemPedidoCompra(messageText)
+    ) {
+      const obraNomeCompra =
+        grupoMapeado?.obraNome || 'Obra Intermack (Grupo WhatsApp)';
+      const { itens, motor } = await agruparItensCompraComGemini(
+        messageText,
+        obraNomeCompra
+      );
+
+      if (itens.length > 0) {
+        const agoraCompra = new Date();
+        const dataHoraLabel = agoraCompra.toLocaleString('pt-BR', {
+          timeZone: 'America/Sao_Paulo',
+        });
+        const solicitanteCompra =
+          body?.data?.pushName || senderNumber || 'Grupo de Obra';
+        const mensagemFormatada = formatarMensagemPedidoWhatsApp({
+          empresaNome: TENANTS[empresaAtivaSlug].nome,
+          obraNome: obraNomeCompra,
+          solicitadoPor: solicitanteCompra,
+          dataHoraLabel,
+          itens,
+        });
+
+        let enviadoPatricia = false;
+        try {
+          const resZap = await fetch('http://127.0.0.1:3001/send-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: '5511978543369',
+              message: mensagemFormatada,
+            }),
+          });
+          enviadoPatricia = resZap.ok;
+        } catch {
+          enviadoPatricia = false;
+        }
+
+        const novoPedido: PedidoCompraRecord = {
+          id: `pc-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
+          tenantId,
+          empresaNome: TENANTS[empresaAtivaSlug].nome,
+          obraNome: obraNomeCompra,
+          grupoJid: remoteJid,
+          solicitadoPor: solicitanteCompra,
+          textoOriginal: messageText,
+          itens,
+          mensagemFormatada,
+          status: enviadoPatricia ? 'ENVIADO_PATRICIA' : 'NOVO',
+          enviadoWhatsAppPatricia: enviadoPatricia,
+          criadoEm: agoraCompra.toISOString(),
+          atualizadoEm: agoraCompra.toISOString(),
+        };
+
+        const { data: paramIntermack } = await supabaseAdmin
+          .from('parametros_sistema')
+          .select('id, configuracoes')
+          .eq('tenant_id', tenantId)
+          .maybeSingle();
+
+        const cfgIntermack =
+          (paramIntermack?.configuracoes as Record<string, unknown> | null) || {};
+        const pedidosAtuais = Array.isArray(cfgIntermack.pedidos_compras)
+          ? (cfgIntermack.pedidos_compras as PedidoCompraRecord[])
+          : [];
+
+        const novasCfg = {
+          ...cfgIntermack,
+          pedidos_compras: [novoPedido, ...pedidosAtuais].slice(0, 150),
+        };
+
+        if (paramIntermack?.id) {
+          await supabaseAdmin
+            .from('parametros_sistema')
+            .update({ configuracoes: novasCfg })
+            .eq('id', paramIntermack.id)
+            .eq('tenant_id', tenantId);
+        } else {
+          await supabaseAdmin.from('parametros_sistema').insert({
+            tenant_id: tenantId,
+            configuracoes: novasCfg,
+          });
+        }
+
+        console.log(
+          `[PEDIDO-COMPRAS][${TENANTS[empresaAtivaSlug].nome}] ${itens.length} item(ns) agrupado(s) via ${motor} para ${obraNomeCompra}.`
+        );
+
+        return NextResponse.json({
+          status: 'pedido_compra_processado',
+          empresa: TENANTS[empresaAtivaSlug].nome,
+          obraNome: obraNomeCompra,
+          totalItens: itens.length,
+          motor,
+          enviadoPatricia,
+          pedidoId: novoPedido.id,
+        });
+      }
+    }
+
+    // Verificação de Intenção de Reembolso / Despesa de Campo
     const textLower = (messageText || '').toLowerCase();
     const isPalavraReembolso =
       textLower.includes('reembolso') ||
@@ -182,39 +391,72 @@ export async function POST(req: NextRequest) {
       textLower.includes('despesa') ||
       textLower.includes('gasto na obra');
 
-    const isPedidoReembolso = comprovanteUrl && (isPalavraReembolso || textLower.includes('nf') || textLower.includes('r$'));
+    const isPedidoReembolso =
+      Boolean(comprovanteUrl) &&
+      (isPalavraReembolso ||
+        textLower.includes('nf') ||
+        textLower.includes('r$'));
 
     if (isPedidoReembolso) {
-      console.log(`[WHATSAPP WEBHOOK]: Pedido de Reembolso detectado de ${senderNumber} com comprovante: ${comprovanteUrl}`);
+      console.log(
+        `[WHATSAPP WEBHOOK]: Pedido de Reembolso detectado de ${senderNumber} com comprovante: ${comprovanteUrl}`
+      );
 
-      // Categorização inicial
-      let categoria: 'COMBUSTIVEL' | 'MATERIAL' | 'ALIMENTACAO' | 'PEDAGIO' | 'OUTROS' = 'OUTROS';
-      if (textLower.includes('gasolina') || textLower.includes('combustivel') || textLower.includes('combustível') || textLower.includes('posto')) {
+      let categoria:
+        | 'COMBUSTIVEL'
+        | 'MATERIAL'
+        | 'ALIMENTACAO'
+        | 'PEDAGIO'
+        | 'OUTROS' = 'OUTROS';
+      if (
+        textLower.includes('gasolina') ||
+        textLower.includes('combustivel') ||
+        textLower.includes('combustível') ||
+        textLower.includes('posto')
+      ) {
         categoria = 'COMBUSTIVEL';
-      } else if (textLower.includes('material') || textLower.includes('deposito') || textLower.includes('depósito') || textLower.includes('cimento') || textLower.includes('cano')) {
+      } else if (
+        textLower.includes('material') ||
+        textLower.includes('deposito') ||
+        textLower.includes('depósito') ||
+        textLower.includes('cimento') ||
+        textLower.includes('cano')
+      ) {
         categoria = 'MATERIAL';
-      } else if (textLower.includes('pedagio') || textLower.includes('pedágio') || textLower.includes('sem parar')) {
+      } else if (
+        textLower.includes('pedagio') ||
+        textLower.includes('pedágio') ||
+        textLower.includes('sem parar')
+      ) {
         categoria = 'PEDAGIO';
-      } else if (textLower.includes('almoco') || textLower.includes('almoço') || textLower.includes('refeicao') || textLower.includes('refeição')) {
+      } else if (
+        textLower.includes('almoco') ||
+        textLower.includes('almoço') ||
+        textLower.includes('refeicao') ||
+        textLower.includes('refeição')
+      ) {
         categoria = 'ALIMENTACAO';
       }
 
-      // Extração de valor monetário citado no texto, se houver
       const matchValor = messageText.match(/(?:r\$|reais)?\s*(\d+[.,]?\d*)/i);
       let valorSolicitado = 0.0;
       if (matchValor && matchValor[1]) {
         valorSolicitado = parseFloat(matchValor[1].replace(',', '.'));
       }
 
-      // Identificar obra ou encarregado remetente
       const { data: enc } = await supabaseAdmin
         .from('encarregados_obras')
         .select('nome')
+        .eq('tenant_id', tenantId)
         .eq('telefone_encarregado', senderNumber)
         .limit(1)
         .maybeSingle();
 
-      const nomeSolicitante = enc?.nome || (senderNumber.includes('998424641') ? 'Joabson Nascimento' : 'Encarregado de Campo');
+      const nomeSolicitante =
+        enc?.nome ||
+        (senderNumber.includes('998424641')
+          ? 'Joabson Nascimento'
+          : 'Encarregado de Campo');
 
       const { data: reembolsoCriado } = await supabaseAdmin
         .from('pedidos_reembolso')
@@ -233,8 +475,6 @@ export async function POST(req: NextRequest) {
         .select('id')
         .single();
 
-      // REGRA DE OURO: ZERO mensagens para o Joabson / solicitante!
-      // Envia notificação sigilosa EXCLUSIVAMENTE para Patrícia e Daniel
       const textoAlertaReembolso =
         `🧾 *NOVO PEDIDO DE REEMBOLSO DE CAMPO [SIGILOSO]*\n` +
         `*Ponto Patrícia (Diária.AI)*\n` +
@@ -270,52 +510,229 @@ export async function POST(req: NextRequest) {
         ],
       });
     }
-    const extracao = await extrairDadosMensagem(messageText);
 
-    // Gerar token de aprovação seguro para o link mágico do WhatsApp da Patrícia
-    const tokenAprovacao = crypto.randomBytes(24).toString('hex');
+    const hojeBrasilia = getHojeBrasiliaISO();
+    const horaBrasilia = new Date().toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
-    // Salvar no Supabase
+    // FLUXO VALES ETAPA 2 (Prompt 3 & 11): Comprovante PIX enviado com legenda informal
+    // Ex.: "Daniel vlw bahia", "Ian vale bahia", "Mateus vale bahia" ou comprovante PIX lido por Gemini Vision
+    if (comprovanteUrl && empresaAtivaSlug === 'jhoston') {
+      const legendaPix = interpretarLegendaComprovantePix(messageText);
+      let leituraOcr = null;
+      if (base64Image && (legendaPix.isComprovanteVale || !messageText || messageText.length < 40)) {
+        try {
+          leituraOcr = await analisarImagemPixComGemini({
+            imagemBase64: base64Image,
+            legenda: messageText,
+          });
+        } catch (errOcr) {
+          console.warn('[WEBHOOK VALE OCR] Fallback para legenda:', errOcr);
+        }
+      }
+
+      const isComprovanteVale =
+        legendaPix.isComprovanteVale ||
+        leituraOcr?.tipoDocumento === 'COMPROVANTE_PIX_VALE';
+      const nomeValePix =
+        legendaPix.nomeTrabalhador || leituraOcr?.nomeTrabalhador || null;
+
+      if (isComprovanteVale && nomeValePix) {
+        const nomeCanonico = normalizarNomeTrabalhadorCanonico(nomeValePix);
+        const valorConfirmado =
+          leituraOcr && leituraOcr.valor > 0
+            ? leituraOcr.valor
+            : legendaPix.valorSugerido || 100.0;
+        const dataConfirmacao = leituraOcr?.data || hojeBrasilia;
+
+        // Tenta parear com uma solicitação aberta (Etapa 1: SOLICITADO) do mesmo trabalhador no tenant
+        const { data: pendentesVale } = await supabaseAdmin
+          .from('lancamentos_financeiros')
+          .select('id, nome_trabalhador, valor_monetario')
+          .eq('tenant_id', tenantId)
+          .eq('tipo_lancamento', 'VALE')
+          .eq('status', 'PENDENTE')
+          .order('created_at', { ascending: false });
+
+        const solicitacaoAberta = (
+          (pendentesVale as Array<{
+            id: string;
+            nome_trabalhador: string;
+            valor_monetario: number | string;
+          }> | null) || []
+        ).find(
+          (v) =>
+            normalizarNomeTrabalhadorCanonico(v.nome_trabalhador).toUpperCase() ===
+            nomeCanonico.toUpperCase()
+        );
+
+        if (solicitacaoAberta) {
+          await supabaseAdmin
+            .from('lancamentos_financeiros')
+            .update({
+              valor_monetario: valorConfirmado,
+              status: 'VALIDADO',
+              vale_etapa: 'CONCILIADO',
+              pago_por: leituraOcr?.pagador || 'Patrícia Grubel',
+              comprovante_url: comprovanteUrl,
+              comprovante_pix_url: comprovanteUrl,
+              observacao: `Vale pareado via PIX (${messageText || 'Comprovante OCR'})`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('tenant_id', tenantId)
+            .eq('id', solicitacaoAberta.id);
+        } else {
+          const obraSugerida = normalizarNomeObraCanonica(
+            leituraOcr?.obraSugerida || legendaPix.obraSugerida || 'PISCINA PORTO SEGURO',
+            'PISCINA'
+          );
+          const { data: obraMatch } = await supabaseAdmin
+            .from('obras_config')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .ilike('nome', obraSugerida)
+            .limit(1)
+            .maybeSingle();
+
+          await supabaseAdmin.from('lancamentos_financeiros').insert({
+            tenant_id: tenantId,
+            obra_id: obraMatch?.id || null,
+            nome_trabalhador: nomeCanonico,
+            tipo_lancamento: 'VALE',
+            fracao_dia: 0,
+            valor_monetario: valorConfirmado,
+            status: 'VALIDADO',
+            data_referencia: dataConfirmacao,
+            observacao: `Vale confirmado via PIX WhatsApp (${messageText || 'OCR'})`,
+            comprovante_url: comprovanteUrl,
+            comprovante_pix_url: comprovanteUrl,
+            vale_etapa: 'CONCILIADO',
+            solicitado_por: 'Gilvan - Gil',
+            pago_por: leituraOcr?.pagador || 'Patrícia Grubel',
+            mensagem_origem_id: messageId,
+            horario_origem: horaBrasilia,
+          });
+        }
+
+        return NextResponse.json({
+          status: 'success',
+          tipo: 'VALE_PIX_CONCILIADO',
+          trabalhador: nomeCanonico,
+          valor: valorConfirmado,
+          pareadoComSolicitacao: Boolean(solicitacaoAberta),
+          comprovanteUrl,
+          whatsappNotifications: [],
+        });
+      }
+    }
+
+    // Extração NLP isolada pelo tenantId resolvido
+    const extracao = await extrairDadosMensagem(messageText, tenantId);
+
+    // Enriquecimento determinístico para pedidos naturais e complementares encadeados de vale (Prompt 11)
+    // Ex.: Msg 1: "Uma vale pra o Mateus por favor." | Msg 2: "Pra o Daniel e o Ian também por favor. Vale."
+    const valesNaturais = extrairPedidosValeNaturais(messageText, remoteJid);
+    if (valesNaturais.length > 0 && empresaAtivaSlug === 'jhoston') {
+      const ctxAnterior = obterContextoSolicitacaoVale(remoteJid);
+      if (extracao.obras.length === 0) {
+        extracao.obras.push({
+          nome_obra: ctxAnterior?.obra || 'PISCINA PORTO SEGURO',
+          data_referencia: ctxAnterior?.dataReferencia || hojeBrasilia,
+          apontamentos: [],
+          vales: [],
+          setup: false,
+        });
+      }
+      const alvoObra = extracao.obras[0];
+      const existentesSet = new Set(
+        (alvoObra.vales || []).map((v) =>
+          normalizarNomeTrabalhadorCanonico(v.nome).toUpperCase()
+        )
+      );
+      for (const vn of valesNaturais) {
+        if (!existentesSet.has(vn.nomeTrabalhador.toUpperCase())) {
+          alvoObra.vales = [
+            ...(alvoObra.vales || []),
+            { nome: vn.nomeTrabalhador, valor: vn.valor },
+          ];
+          existentesSet.add(vn.nomeTrabalhador.toUpperCase());
+        }
+      }
+
+      registrarContextoSolicitacaoVale(remoteJid, {
+        solicitadoPor: senderNumber || 'Gilvan - Gil',
+        obra: normalizarNomeObraCanonica(alvoObra.nome_obra || ctxAnterior?.obra),
+        dataReferencia: alvoObra.data_referencia || hojeBrasilia,
+        valorPadrao: valesNaturais[0]?.valor || 100.0,
+      });
+    }
+
     let ultimoLoteId: string | undefined = undefined;
+    const primeiroTokenAprovacao = crypto.randomBytes(24).toString('hex');
 
-    for (const obra of extracao.obras) {
-      // Se o grupo estiver mapeado na Configuração Geral, prioriza o nome oficial da obra do grupo
-      const nomeObraFinal = grupoMapeado?.obraNome || obra.nome_obra;
+    for (let idxObra = 0; idxObra < extracao.obras.length; idxObra++) {
+      const obra = extracao.obras[idxObra];
+      // Token único por bloco de obra (impede colisão UNIQUE em mensagens multi-obra 0,5 + 0,5)
+      const tokenAprovacaoBloco =
+        idxObra === 0
+          ? primeiroTokenAprovacao
+          : crypto.randomBytes(24).toString('hex');
 
-      // 1. Localizar ou registrar obra
+      const nomeObraBruto =
+        empresaAtivaSlug === 'intermack' && grupoMapeado?.obraNome
+          ? grupoMapeado.obraNome
+          : obra.nome_obra || grupoMapeado?.obraNome || 'PORTO SEGURO';
+
+      const tipoObraInferido = inferirTipoObra(nomeObraBruto, empresaAtivaSlug);
+      const nomeObraFinal = normalizarNomeObraCanonica(
+        nomeObraBruto,
+        tipoObraInferido
+      );
+
+      // 1. Localizar ou registrar obra no tenant ativo
       let obraId: string | null = null;
-      const { data: obraExistente } = await supabaseAdmin
+      const { data: obraExata } = await supabaseAdmin
         .from('obras_config')
         .select('id')
         .eq('tenant_id', tenantId)
-        .ilike('nome', `%${nomeObraFinal}%`)
+        .ilike('nome', nomeObraFinal)
         .limit(1)
         .maybeSingle();
 
-      if (obraExistente?.id) {
-        obraId = obraExistente.id;
+      if (obraExata?.id) {
+        obraId = obraExata.id;
       } else {
         const { data: novaObra } = await supabaseAdmin
           .from('obras_config')
           .insert({
             tenant_id: tenantId,
-            nome: nomeObraFinal.toUpperCase(),
-            local: grupoMapeado?.ambiente === 'INTERNO' ? 'Reforma Interna (Apto)' : 'Canteiro Volante',
-            tipo_obra: grupoMapeado?.empresa === 'intermack' ? 'OBRA_CIVIL' : 'PISCINA',
+            nome: nomeObraFinal,
+            local:
+              grupoMapeado?.ambiente === 'INTERNO'
+                ? 'Reforma Interna (Apto)'
+                : 'Canteiro de Obras',
+            tipo_obra: tipoObraInferido,
           })
           .select('id')
           .single();
         obraId = novaObra?.id || null;
       }
 
-      // 2. Criar lote de ponto com Carimbo Temporal & Metadados Periciais (Telefone, Grupo, Data/Hora e Hash)
-      const agoraBrasilia = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      // 2. Criar lote de ponto com Carimbo Temporal & Metadados Periciais
+      const agoraBrasilia = new Date().toLocaleString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+      });
+      const dataRefLote = obra.data_referencia || hojeBrasilia;
       const sha256Pericial = crypto
         .createHash('sha256')
         .update(`${senderNumber}|${remoteJid}|${messageText}|${agoraBrasilia}`)
         .digest('hex');
 
-      const cabecalhoPericial = `[ORIGEM_WHATSAPP]\n` +
+      const cabecalhoPericial =
+        `[ORIGEM_WHATSAPP]\n` +
         `Remetente: ${senderNumber}\n` +
         `Grupo/JID: ${remoteJid}\n` +
         `Timestamp: ${agoraBrasilia}\n` +
@@ -327,10 +744,10 @@ export async function POST(req: NextRequest) {
         .insert({
           tenant_id: tenantId,
           obra_id: obraId,
-          data_referencia: obra.data_referencia || new Date().toISOString().split('T')[0],
+          data_referencia: dataRefLote,
           texto_original: cabecalhoPericial,
           status_validacao: 'PENDENTE',
-          token_aprovacao: tokenAprovacao,
+          token_aprovacao: tokenAprovacaoBloco,
         })
         .select('id')
         .single();
@@ -338,87 +755,125 @@ export async function POST(req: NextRequest) {
       const loteId = lote?.id;
       if (loteId) ultimoLoteId = loteId;
 
-      // 3. Registrar detalhes de ponto com cálculo inteligente da diária por canteiro
+      // 3. Registrar detalhes de ponto com cálculo hierárquico e isolamento de ciclos pós-quitação
       if (loteId && obra.apontamentos?.length) {
-        // Verificar se o próprio encarregado remetente se incluiu na lista ou se é semanalista
-        const { data: encDados } = await supabaseAdmin
-          .from('encarregados_obras')
-          .select('nome, regime_remuneracao, valor_salario_fixo, chave_pix')
-          .eq('telefone_encarregado', senderNumber)
-          .limit(1)
-          .maybeSingle();
+        const { data: pontosAbertosDia } = await supabaseAdmin
+          .from('lancamentos_financeiros')
+          .select('nome_trabalhador, fracao_dia, obra_id, status')
+          .eq('tenant_id', tenantId)
+          .eq('tipo_lancamento', 'PONTO')
+          .eq('data_referencia', dataRefLote)
+          .in('status', ['PENDENTE', 'VALIDADO']);
+
+        const listaAbertos = (pontosAbertosDia as PontoAbertoDiaRow[] | null) || [];
 
         for (const ap of obra.apontamentos) {
-          const calculo = await calcularValorDiariaCanteiro({
-            tenantId,
-            nomeTrabalhador: ap.nome,
-            obraId,
-            nomeObra: obra.nome_obra,
-            fracao: ap.fracao,
-            motivo: ap.motivo,
-          });
+          const nomeCanonico = normalizarNomeTrabalhadorCanonico(ap.nome);
+          const nomeChave = nomeCanonico.toUpperCase();
+          const fracaoAp = Number(ap.fracao ?? 1.0);
 
-          // Barreira de Duplicidade: o mesmo trabalhador não pode ter > 1.0 diária no mesmo dia (ignora registros DESCARTADOS)
-          const dataRefPonto = obra.data_referencia || new Date().toISOString().split('T')[0];
-          const { data: pontosMesmoDia } = await supabaseAdmin
-            .from('lancamentos_financeiros')
-            .select('fracao_dia')
-            .eq('tipo_lancamento', 'PONTO')
-            .eq('data_referencia', dataRefPonto)
-            .neq('status', 'DESCARTADO')
-            .ilike('nome_trabalhador', ap.nome);
+          const somaFracoesAbertas = listaAbertos
+            .filter(
+              (p) =>
+                normalizarNomeTrabalhadorCanonico(p.nome_trabalhador).toUpperCase() ===
+                nomeChave
+            )
+            .reduce((acc, p) => acc + (Number(p.fracao_dia) || 0), 0);
 
-          const somaFracoesDia = (pontosMesmoDia || []).reduce((acc, p) => acc + (Number(p.fracao_dia) || 0), 0);
-          if (somaFracoesDia + (Number(ap.fracao) || 1.0) > 1.0) {
-            console.warn(`[DUPLICIDADE BLOQUEADA] ${ap.nome} já possui ${somaFracoesDia} diária(s) em ${dataRefPonto}.`);
+          if (somaFracoesAbertas + fracaoAp > 1.0 + 1e-6) {
+            console.warn(
+              `[DUPLICIDADE BLOQUEADA - CICLO ABERTO] ${nomeCanonico} já possui ${somaFracoesAbertas} diária(s) em aberto em ${dataRefLote}.`
+            );
             continue;
           }
+
+          const calculo = await calcularValorDiariaCanteiro({
+            tenantId,
+            nomeTrabalhador: nomeCanonico,
+            obraId,
+            nomeObra: nomeObraFinal,
+            tipoObra: tipoObraInferido,
+            fracao: fracaoAp,
+            motivo: ap.motivo,
+          });
 
           await supabaseAdmin.from('ponto_detalhe').insert({
             tenant_id: tenantId,
             ponto_lote_id: loteId,
-            nome_trabalhador: ap.nome,
-            fracao_dia: ap.fracao,
+            nome_trabalhador: nomeCanonico,
+            fracao_dia: fracaoAp,
             motivo_excecao: ap.motivo || null,
           });
 
           await supabaseAdmin.from('lancamentos_financeiros').insert({
             tenant_id: tenantId,
             obra_id: obraId,
-            nome_trabalhador: ap.nome,
+            nome_trabalhador: nomeCanonico,
             tipo_lancamento: 'PONTO',
-            fracao_dia: ap.fracao,
-            valor_monetario: calculo.valorFinal, // Valor calculado com base no canteiro e fração (0 para semanalista)
+            fracao_dia: fracaoAp,
+            valor_monetario:
+              empresaAtivaSlug === 'intermack' ? 0 : calculo.valorFinal,
             status: 'PENDENTE',
-            data_referencia: dataRefPonto,
-            observacao: ap.motivo ? `${ap.motivo} | ${calculo.descricaoRegra}` : calculo.descricaoRegra,
+            data_referencia: dataRefLote,
+            observacao: ap.motivo
+              ? `${ap.motivo} | ${calculo.descricaoRegra}`
+              : calculo.descricaoRegra,
             ponto_lote_id: loteId,
             comprovante_url: null,
+            mensagem_origem_id: messageId,
+            horario_origem: horaBrasilia,
+          });
+
+          listaAbertos.push({
+            nome_trabalhador: nomeCanonico,
+            fracao_dia: fracaoAp,
+            obra_id: obraId,
+            status: 'PENDENTE',
           });
         }
       }
 
-      // 4. Registrar vales com o comprovante_url do Cloudflare R2
+      // 4. Registrar vales em 2 etapas com rastreabilidade completa (solicitado_por / vale_etapa / horário)
       if (obra.vales?.length) {
+        const { data: encSolicitante } = await supabaseAdmin
+          .from('encarregados_obras')
+          .select('nome')
+          .eq('tenant_id', tenantId)
+          .eq('telefone_encarregado', senderNumber)
+          .limit(1)
+          .maybeSingle();
+
+        const nomeSolicitanteVale =
+          encSolicitante?.nome || senderNumber || 'Gilvan - Gil';
+
         for (const vale of obra.vales) {
+          const nomeValeCanonico = normalizarNomeTrabalhadorCanonico(vale.nome);
+          const valorVale = Number(vale.valor) > 0 ? Number(vale.valor) : 100.0;
           await supabaseAdmin.from('lancamentos_financeiros').insert({
             tenant_id: tenantId,
             obra_id: obraId,
-            nome_trabalhador: vale.nome,
+            nome_trabalhador: nomeValeCanonico,
             tipo_lancamento: 'VALE',
             fracao_dia: 0,
-            valor_monetario: vale.valor,
-            status: 'PENDENTE',
-            data_referencia: new Date().toISOString().split('T')[0],
-            observacao: Number(vale.valor) > 0
-              ? 'Adiantamento de Vale via WhatsApp Bot'
-              : 'Pedido de Vale via WhatsApp (Aguardando definição de valor pela Adm)',
+            valor_monetario: valorVale,
+            status: comprovanteUrl ? 'VALIDADO' : 'PENDENTE',
+            data_referencia: dataRefLote,
+            observacao: comprovanteUrl
+              ? 'Vale confirmado com comprovante PIX via WhatsApp'
+              : Number(vale.valor) > 0
+                ? 'Solicitação de Vale via WhatsApp (aguardando envio PIX)'
+                : 'Solicitação de Vale via WhatsApp (Padrão R$ 100,00 — aguardando envio PIX)',
             ponto_lote_id: loteId,
             comprovante_url: comprovanteUrl,
+            comprovante_pix_url: comprovanteUrl,
+            vale_etapa: comprovanteUrl ? 'CONCILIADO' : 'SOLICITADO',
+            solicitado_por: nomeSolicitanteVale,
+            pago_por: comprovanteUrl ? 'Patrícia Grubel' : null,
+            mensagem_origem_id: messageId,
+            horario_origem: horaBrasilia,
           });
         }
       } else if (comprovanteUrl) {
-        // Se enviou foto de recibo sem o NLP extrair valor explícito, registra lançamento pendente com o comprovante
         await supabaseAdmin.from('lancamentos_financeiros').insert({
           tenant_id: tenantId,
           obra_id: obraId,
@@ -427,45 +882,64 @@ export async function POST(req: NextRequest) {
           fracao_dia: 0,
           valor_monetario: 0.0,
           status: 'PENDENTE',
-          data_referencia: new Date().toISOString().split('T')[0],
+          data_referencia: dataRefLote,
           observacao: 'Comprovante/Recibo enviado via WhatsApp',
           ponto_lote_id: loteId,
           comprovante_url: comprovanteUrl,
+          comprovante_pix_url: comprovanteUrl,
+          vale_etapa: 'PIX_ENVIADO',
+          mensagem_origem_id: messageId,
+          horario_origem: horaBrasilia,
         });
       }
     }
 
-    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://diaria-ai.fly.dev';
-    const validationUrl = `${appUrl}/validacoes?token=${tokenAprovacao}`;
+    const appUrl =
+      process.env.APP_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      'https://diaria-ai.fly.dev';
+    const validationUrl = `${appUrl}/validacoes?token=${primeiroTokenAprovacao}`;
 
-    // Determina o tipo de evento predominante para enriquecer a mensagem
     const primeiraObra = extracao.obras?.[0];
-    const todosMotivos = (primeiraObra?.apontamentos || []).map((a) => (a.motivo || '').toUpperCase());
+    const todosMotivos = (primeiraObra?.apontamentos || []).map((a) =>
+      (a.motivo || '').toUpperCase()
+    );
     let tipoEvento: 'VIAGEM' | 'CHUVA' | 'MEIO_PERIODO' | 'NORMAL' = 'NORMAL';
-    let possuiViagemSemMotorista = false;
 
     if (todosMotivos.some((m) => m.includes('VIAGEM'))) {
       tipoEvento = 'VIAGEM';
-      possuiViagemSemMotorista = !todosMotivos.some((m) => m.includes('VIAGEM_MOTORISTA'));
     } else if (todosMotivos.some((m) => m.includes('CHUVA'))) {
       tipoEvento = 'CHUVA';
-    } else if (todosMotivos.some((m) => m.includes('MEIO_PERIODO') || m.includes('MEIO DIA'))) {
+    } else if (
+      todosMotivos.some(
+        (m) => m.includes('MEIO_PERIODO') || m.includes('MEIO DIA')
+      )
+    ) {
       tipoEvento = 'MEIO_PERIODO';
     }
 
-    const colaboradoresNomes = (primeiraObra?.apontamentos || []).map((a) => a.nome);
+    const colaboradoresNomes = (primeiraObra?.apontamentos || []).map((a) =>
+      normalizarNomeTrabalhadorCanonico(a.nome)
+    );
     const colaboradoresComStatus = (primeiraObra?.apontamentos || []).map((a) => ({
-      nome: a.nome,
-      status: a.motivo ? a.motivo : a.fracao === 0.5 ? 'Meio Período' : 'Integral',
+      nome: normalizarNomeTrabalhadorCanonico(a.nome),
+      status: a.motivo
+        ? a.motivo
+        : a.fracao === 0.5
+          ? 'Meio Período'
+          : 'Integral',
     }));
-    const obraNome = primeiraObra?.nome_obra || 'CANTEIRO DE OBRAS';
-    const dataRef = (primeiraObra as any)?.data_referencia || new Date().toISOString().split('T')[0];
+    const obraNome = normalizarNomeObraCanonica(
+      primeiraObra?.nome_obra || 'CANTEIRO DE OBRAS'
+    );
+    const dataRef = primeiraObra?.data_referencia || hojeBrasilia;
 
-    // Totalização financeira (SIGILOSA: apenas para Daniel e Patrícia)
     const valesList = primeiraObra?.vales || [];
-    const totalValesMonetario = valesList.reduce((acc, v) => acc + (v.valor || 0), 0);
+    const totalValesMonetario = valesList.reduce(
+      (acc, v) => acc + (Number(v.valor) || 0),
+      0
+    );
 
-    // 1. TICKET OPERACIONAL PARA O ENCARREGADO (ZERO VALORES MONETÁRIOS)
     const ticketEncarregadoTexto = formatarTicketEncarregado({
       obra: obraNome,
       dataReferencia: dataRef,
@@ -474,25 +948,22 @@ export async function POST(req: NextRequest) {
       loteId: ultimoLoteId,
     });
 
-    // 2. TICKET EXECUTIVO & FINANCEIRO (EXCLUSIVO PARA DANIEL LOPES E PATRÍCIA GRUBEL)
     const ticketAdmin = formatarTicketFinanceiroAdministracao({
       obra: obraNome,
       dataReferencia: dataRef,
       encarregadoTelefone: senderNumber,
       totalColaboradores: colaboradoresNomes.length,
-      colaboradoresNomes: colaboradoresNomes,
+      colaboradoresNomes,
       totalValesMonetario,
-      valesDetalhados: valesList.map(v => ({ nome: v.nome, valor: v.valor })),
+      valesDetalhados: valesList.map((v) => ({
+        nome: normalizarNomeTrabalhadorCanonico(v.nome),
+        valor: Number(v.valor) || 100,
+      })),
       tipoEvento,
       linkAcao: validationUrl,
     });
 
-    console.log(`[WHATSAPP WEBHOOK]: Ticket Operacional sem valores gerado para o remetente ${senderNumber}.`);
-    console.log(`[WHATSAPP WEBHOOK]: Resumo com valores monetários gerado EXCLUSIVAMENTE para Daniel Lopes e Patrícia Grubel.`);
-
-    // Estrutura de notificações separadas: privada do encarregado vs sigilosa dos administradores
     const notificacoesFinais = [
-      // Encarregado recebe no PRIVADO dele (nunca no grupo), sem valores
       {
         destinatario: 'Encarregado da Obra',
         telefone: senderNumber,
@@ -500,7 +971,6 @@ export async function POST(req: NextRequest) {
         contemValores: false,
         mensagem: ticketEncarregadoTexto,
       },
-      // Patrícia e Daniel recebem com todos os valores, detalhes e link de aprovação
       ...ticketAdmin.destinatarios.map((dest) => ({
         destinatario: dest.nome,
         telefone: dest.telefone,
@@ -520,6 +990,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Erro no processamento do webhook WhatsApp:', error);
-    return NextResponse.json({ error: 'Erro interno no webhook.' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Erro interno no webhook.' },
+      { status: 500 }
+    );
   }
 }

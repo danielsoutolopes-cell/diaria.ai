@@ -27,7 +27,7 @@ import HelpCenter from '@/components/HelpCenter';
 interface SecaoAjuda {
   id: string;
   titulo: string;
-  icone: any;
+  icone: React.ComponentType<{ className?: string }>;
   descricao: string;
   conteudo: React.ReactNode;
 }
@@ -57,7 +57,7 @@ export default function AjudaPage() {
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
               <span className="font-bold text-slate-900 block text-xs">Human-in-the-Loop</span>
               <p className="text-[11px] text-slate-500">
-                A IA nunca liquida dinheiro sozinha. Todos os lançamentos dependem de aprovação expressa da Patrícia.
+                A IA nunca liquida dinheiro sozinha. Todos os lançamentos dependem de aprovação expressa da Administração.
               </p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
@@ -74,7 +74,7 @@ export default function AjudaPage() {
       id: 'exemplos-praticos',
       titulo: '1B. Exemplos Práticos do Dia a Dia (Guia Rápido)',
       icone: CheckCircle2,
-      descricao: 'Passo a passo com exemplos reais de uso: Assistente IA, Caixa de Campo, Diário de Obra, Medição IA e PDF no WhatsApp',
+      descricao: 'Passo a passo com exemplos reais de uso: Assistente IA, Caixinha Unificado, Reinício Pós-Quitação, Diário de Obra e PDF no WhatsApp',
       conteudo: (
         <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -85,21 +85,27 @@ export default function AjudaPage() {
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 space-y-1">
-              <span className="font-black text-indigo-950 block">2. Caixa de Campo &amp; Reembolsos</span>
+              <span className="font-black text-indigo-950 block">2. Caixinha de Campo Unificado (/caixinha)</span>
               <p className="text-[11px] text-indigo-900">
-                <strong>Exemplo:</strong> A empresa envia R$ 400 de PIX para materiais; o encarregado lança R$ 289,18 em notinhas (lidas por foto com IA). Fica <strong>Troco em Mãos: R$ 110,82</strong> — separado do salário, com botão para <em>Devolver Troco</em> ou <em>Levar p/ Fechamento</em>.
+                <strong>Exemplo:</strong> A empresa envia R$ 700,00 em PIX para materiais; o encarregado lança R$ 546,94 em notinhas (mesmo com apelidos diferentes, tudo unifica no mesmo card). Fica <strong>Troco em Mãos: R$ 153,06</strong> — sem desconto automático da folha.
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200/80 space-y-1">
-              <span className="font-black text-sky-950 block">3. Diário de Obra &amp; Medição IA</span>
+              <span className="font-black text-sky-950 block">3. Reinício de Contagem Pós-Quitação</span>
               <p className="text-[11px] text-sky-900">
-                <strong>Exemplo:</strong> Suba o PDF da proposta em <strong>Propostas &amp; Medição IA</strong>. No fim do dia, salve o Diário de Obra com 2 a 3 fotos e clique em <strong>Estimar Avanço com IA</strong> para ver o % concluído em linguagem simples.
+                <strong>Exemplo:</strong> Quando você liquida o ciclo de um colaborador via PIX pela manhã, qualquer nova diária apontada à tarde (na mesma obra ou em outra) abre automaticamente um <strong>novo ciclo em aberto</strong> sem colisão e sem ser zerada retroativamente.
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-1">
-              <span className="font-black text-amber-950 block">4. Relatórios 4, 5 e 6 + PDF no WhatsApp</span>
+              <span className="font-black text-amber-950 block">4. Vales em 2 Etapas (/validacao/vales) &amp; Quitação PIX OCR</span>
               <p className="text-[11px] text-amber-900">
-                <strong>Exemplo:</strong> No Espelho do Ponto (Relatório 4) ou Calendário Visual (Relatório 5), escolha o destinatário no seletor e clique em <strong>PDF Zap</strong>. Administradores recebem com valores; equipe recebe versão operacional sem R$.
+                <strong>Exemplo:</strong> Pedidos naturais no grupo entram na Etapa 1 (padrão R$ 100,00). Ao subir o comprovante PIX com IA, o vale é pareado para a Etapa 2. No Borderô, o botão <strong>Liquidar PIX (Foto OCR)</strong> lê o comprovante e mostra a prévia exata antes de baixar o ciclo.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200/80 space-y-1 md:col-span-2">
+              <span className="font-black text-purple-950 block">5. Rateio Multi-Obra (½ + ½) &amp; Relatórios PDF Zap</span>
+              <p className="text-[11px] text-purple-900">
+                <strong>Exemplo:</strong> Quando um colaborador trabalha 0,5d na Obra A e 0,5d na Obra B no mesmo dia, o Espelho do Ponto exibe o selo <strong>½+½</strong> e o código PIX detalha ambas as obras. No envio por <strong>PDF Zap</strong>, administradores recebem com valores e a equipe recebe versão operacional sem R$.
               </p>
             </div>
           </div>
@@ -358,6 +364,62 @@ export default function AjudaPage() {
             <li><strong>Aviso no WhatsApp do Daniel Lopes</strong>: Um alerta com o link direto da solicitação é enviado para o Daniel Lopes (5511988139833) para execução na IDE.</li>
             <li><strong>Fechamento do Pedido</strong>: Daniel acessa a tela, copia o prompt para o ambiente de desenvolvimento e clica em <strong>&quot;Fechar Pedido&quot;</strong> assim que a entrega for concluída.</li>
           </ul>
+        </div>
+      ),
+    },
+    {
+      id: 'relatorios-avancados-recibos',
+      titulo: '10. Excel em 5 Abas (=SUM), Recibo PIX Individual & Envio Quinzenal em PDF',
+      icone: FileSpreadsheet,
+      descricao: 'Exportação analítica com fórmulas, comprovante individual salvo em nuvem e fechamento quinzenal automático',
+      conteudo: (
+        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
+            <li>
+              <strong>Planilha Excel V6 em 5 Abas</strong>: Em{' '}
+              <Link href="/relatorios" className="text-emerald-600 font-bold underline">
+                Relatórios &amp; Exportações
+              </Link>
+              , clique em <strong>&quot;Excel V6 (5 Abas)&quot;</strong> para gerar automaticamente as abas <em>Resumo por Trabalhador</em>, <em>Detalhamento de Diárias</em> (com Chuva, Piscina e Rateio ½+½), <em>Controle de Vales</em>, <em>Caixinha de Campo</em> e <em>Custo por Obra</em> com fórmulas nativas <code>=SUM(...)</code>.
+            </li>
+            <li>
+              <strong>Comprovante Individual de Liquidação PIX</strong>: Em{' '}
+              <Link href="/bordero" className="text-emerald-600 font-bold underline">
+                Fechamento (Borderô)
+              </Link>
+              , clique em <strong>&quot;Recibo PIX&quot;</strong> no card do colaborador para gerar o PDF detalhado com hash SHA-256, arquivamento automático em nuvem, download/impressão e botão <strong>opcional</strong> para enviar no WhatsApp do trabalhador.
+            </li>
+            <li>
+              <strong>Automação Quinzenal (2ª e Última Sexta às 18:00 BRT)</strong>: O sistema envia automaticamente à diretoria o Relatório Financeiro Quinzenal em PDF Paisagem contendo apenas saldos em aberto e Caixinha em coluna informativa própria — também disponível sob demanda no botão <strong>&quot;Disparar PDF Quinzenal Agora&quot;</strong>.
+            </li>
+          </ul>
+          <div className="p-3 bg-slate-100 rounded-2xl text-[11px] text-slate-700 border border-slate-200">
+            <strong>Exemplo Prático:</strong> Na sexta-feira de fechamento, gere o <strong>Excel V6 (5 Abas)</strong> para conferência contábil, emita o <strong>Recibo PIX</strong> para o colaborador que solicitar comprovante impresso ou por WhatsApp e acompanhe na faixa superior o horário do próximo disparo quinzenal automático.
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'compras-e-auditoria',
+      titulo: '11. Pedidos de Compras por Obra (IA) & Auditoria Interna Pré-Fechamento',
+      icone: ShieldCheck,
+      descricao: 'Agrupamento inteligente de materiais por categoria e auditoria com Diff Antes × Depois em 1 clique',
+      conteudo: (
+        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
+            <li>
+              <strong>Gerador de Pedido de Compras (<code>/compras</code>)</strong>: Nas empresas com módulo de compras habilitado, listas informais de materiais enviadas nos grupos de obra ou coladas na tela são agrupadas automaticamente pela IA por categoria (Alvenaria, Hidráulica, Elétrica, Acabamento, Pintura e EPI) em mensagem pronta para copiar e encaminhar a fornecedores.
+            </li>
+            <li>
+              <strong>Auditoria Interna (<code>/auditoria</code>)</strong>: Cruza os lançamentos do banco com os logs originais do WhatsApp para identificar duplicidades, soma diária acima de 1,0, valores divergentes da tabela/chuva, apelidos não normalizados e vales pendentes de comprovante.
+            </li>
+            <li>
+              <strong>Diff Antes × Depois + Simulador Pré-Fechamento</strong>: Mostra o impacto financeiro em R$ antes da aprovação e aplica correções em 1 clique somente com confirmação humana (<em>Human-in-the-Loop</em>).
+            </li>
+          </ul>
+          <div className="p-3 bg-slate-100 rounded-2xl text-[11px] text-slate-700 border border-slate-200">
+            <strong>Exemplo Prático:</strong> Antes de liquidar a folha, acesse <strong>Auditoria Interna</strong>, verifique se há alertas críticos no simulador e clique em <strong>&quot;Aprovar Correção (1 Clique)&quot;</strong> para ajustar o saldo projetado com rastreabilidade completa.
+          </div>
         </div>
       ),
     },

@@ -58,7 +58,7 @@ export default function WhatsAppConfigPage() {
   const [modalVinculo, setModalVinculo] = useState<{
     jid: string;
     nomeGrupo: string;
-    empresa: 'jhonton' | 'intermack';
+    empresa: 'jhoston' | 'intermack';
     obraNome: string;
     ambiente: 'INTERNO' | 'EXTERNO';
   } | null>(null);
@@ -216,7 +216,7 @@ export default function WhatsAppConfigPage() {
             id: string;
             jid: string;
             nomeGrupo: string;
-            empresa: 'jhonton' | 'intermack';
+            empresa: 'jhoston' | 'intermack';
             obraNome: string;
             ambiente: 'INTERNO' | 'EXTERNO';
             ativo: boolean;
@@ -771,7 +771,7 @@ export default function WhatsAppConfigPage() {
                 <select
                   value={modalVinculo.empresa}
                   onChange={(e) => {
-                    const emp = e.target.value as 'jhonton' | 'intermack';
+                    const emp = e.target.value as 'jhoston' | 'intermack';
                     setModalVinculo((p) =>
                       p
                         ? {
@@ -785,7 +785,7 @@ export default function WhatsAppConfigPage() {
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900"
                 >
                   <option value="intermack">Intermack (Modo Empreita)</option>
-                  <option value="jhonton">Jhonton (Modo Diarista)</option>
+                  <option value="jhoston">Jhoston (Modo Diarista)</option>
                 </select>
               </div>
 

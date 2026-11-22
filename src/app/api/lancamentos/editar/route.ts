@@ -1,10 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getActiveTenantFromRequest } from '@/lib/tenant';
 import { formatarAlertaEdicaoPatricia } from '@/services/notificacoesAdmin';
+import type { StatusLancamento } from '@/types/database';
+
+interface EditarLancamentoBody {
+  lancamentoId?: string;
+  novaFracao?: number;
+  novoValor?: number;
+  novaData?: string;
+  novaObservacao?: string;
+  status?: StatusLancamento;
+  usuarioLogado?: string;
+  confirmarSobrescrita?: boolean;
+}
+
+interface ObraRel {
+  nome: string | null;
+}
+
+interface LancamentoEditRow {
+  id: string;
+  tenant_id: string;
+  nome_trabalhador: string;
+  valor_monetario: number | string | null;
+  data_referencia: string;
+  status: string;
+  ponto_lote_id: string | null;
+  validado_por?: string | null;
+  obras_config: ObraRel | ObraRel[] | null;
+}
+
+interface LancamentoUpdatePayload {
+  updated_at: string;
+  fracao_dia?: number;
+  valor_monetario?: number;
+  data_referencia?: string;
+  observacao?: string;
+  status?: StatusLancamento;
+}
+
+function extrairNomeObra(rel: ObraRel | ObraRel[] | null): string {
+  if (!rel) return 'Canteiro Geral';
+  if (Array.isArray(rel)) return rel[0]?.nome || 'Canteiro Geral';
+  return rel.nome || 'Canteiro Geral';
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const activeTenant = getActiveTenantFromRequest(req);
+    const body = (await req.json()) as EditarLancamentoBody;
     const {
       lancamentoId,
       novaFracao,
@@ -17,42 +62,58 @@ export async function POST(req: NextRequest) {
     } = body;
 
     if (!lancamentoId) {
-      return NextResponse.json({ error: 'ID do lançamento é obrigatório.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'ID do lançamento é obrigatório.' },
+        { status: 400 }
+      );
     }
 
-    // 1. Buscar lançamento atual
-    const { data: lanc, error: errLanc } = await supabaseAdmin
+    // 1. Buscar lançamento atual isolado por tenant_id
+    const { data: lancRaw, error: errLanc } = await supabaseAdmin
       .from('lancamentos_financeiros')
       .select(`
-        *,
+        id,
+        tenant_id,
+        nome_trabalhador,
+        valor_monetario,
+        data_referencia,
+        status,
+        ponto_lote_id,
         obras_config (
           nome
         )
       `)
       .eq('id', lancamentoId)
+      .eq('tenant_id', activeTenant.id)
       .single();
 
+    const lanc = lancRaw as unknown as LancamentoEditRow | null;
     if (errLanc || !lanc) {
-      return NextResponse.json({ error: 'Lançamento não encontrado.' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Lançamento não encontrado para a empresa ativa.' },
+        { status: 404 }
+      );
     }
 
     // 2. Detecção de status e confirmação prévia
     const jaValidado = lanc.status === 'VALIDADO' || lanc.status === 'LIQUIDADO';
-    const autorAnterior = (lanc as any).validado_por || 'Administração';
+    const autorAnterior = lanc.validado_por || 'Administração';
 
-    // Se já está validado/liquidado e o usuário ainda não confirmou o aviso
     if (jaValidado && !confirmarSobrescrita) {
-      return NextResponse.json({
-        conflito: true,
-        statusAtual: lanc.status,
-        autorAnterior: autorAnterior,
-        mensagem: `O registro de ${lanc.nome_trabalhador} já foi confirmado e está com status ${lanc.status}. Quer continuar e editar?`,
-      }, { status: 409 });
+      return NextResponse.json(
+        {
+          conflito: true,
+          statusAtual: lanc.status,
+          autorAnterior,
+          mensagem: `O registro de ${lanc.nome_trabalhador} já foi confirmado e está com status ${lanc.status}. Quer continuar e editar?`,
+        },
+        { status: 409 }
+      );
     }
 
-    // 3. Executar Edição
+    // 3. Executar Edição com trava estrita de tenant_id
     const valorAnterior = Number(lanc.valor_monetario) || 0;
-    const updates: Record<string, any> = {
+    const updates: LancamentoUpdatePayload = {
       updated_at: new Date().toISOString(),
     };
 
@@ -66,6 +127,7 @@ export async function POST(req: NextRequest) {
       .from('lancamentos_financeiros')
       .update(updates)
       .eq('id', lancamentoId)
+      .eq('tenant_id', activeTenant.id)
       .select()
       .single();
 
@@ -74,16 +136,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Se o lançamento foi VALIDADO e pertence a um ponto_lote, também marca o lote como VALIDADO
-    // (evita que mensagens contendo apenas VALE voltem para a fila de validação)
     if (status === 'VALIDADO' && lanc.ponto_lote_id) {
       await supabaseAdmin
         .from('ponto_lote')
         .update({ status_validacao: 'VALIDADO' })
-        .eq('id', lanc.ponto_lote_id);
+        .eq('id', lanc.ponto_lote_id)
+        .eq('tenant_id', activeTenant.id);
     }
 
     // 4. REGRA CRÍTICA INVIOLÁVEL: SEMPRE Notificar a Patrícia Grubel quando qualquer edição for feita
-    const obraNome = (lanc as any).obras_config?.nome || 'Canteiro Geral';
+    const obraNome = extrairNomeObra(lanc.obras_config);
     const alertaPatricia = formatarAlertaEdicaoPatricia({
       trabalhador: lanc.nome_trabalhador,
       obra: obraNome,
@@ -91,11 +153,13 @@ export async function POST(req: NextRequest) {
       autorEdicao: usuarioLogado,
       confirmadoAnteriormentePor: autorAnterior,
       motivoOuAlteracao: `Lançamento ajustado por ${usuarioLogado}. ${novaObservacao || ''}`,
-      valorAnterior: valorAnterior,
+      valorAnterior,
       novoValor: novoValor !== undefined ? Number(novoValor) : valorAnterior,
     });
 
-    console.log(`[ALERTA PATRÍCIA DISPARADO - LANÇAMENTO EDITADO]: Notificação enviada para Patrícia Grubel (5511978543369).`);
+    console.log(
+      '[ALERTA PATRÍCIA DISPARADO - LANÇAMENTO EDITADO]: Notificação enviada para Patrícia Grubel (5511978543369).'
+    );
 
     return NextResponse.json({
       success: true,
@@ -105,6 +169,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Erro ao editar lançamento:', error);
-    return NextResponse.json({ error: 'Falha ao editar lançamento.' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Falha ao editar lançamento.' },
+      { status: 500 }
+    );
   }
 }

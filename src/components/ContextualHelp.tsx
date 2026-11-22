@@ -56,6 +56,73 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
     exemplo:
       'Expanda "Ver Mensagem Original", ajuste frações (Integral / Meio Dia) se necessário e clique em "Aprovar Mensagem".',
   },
+  '/validacao/diarias': {
+    titulo: 'Validação de Diárias & Efetivo',
+    resumo:
+      'Fila Human-in-the-Loop organizada em 1 card por mensagem enviada, com suporte a múltiplas obras no mesmo dia e rateio 0,5 + 0,5.',
+    funcoes: [
+      {
+        nome: 'Aprovação por Mensagem',
+        descricao:
+          'Revise cada apontamento com o texto original do WhatsApp e horário exato antes de enviar para o fechamento.',
+      },
+      {
+        nome: 'Separação de Ciclos & Obras',
+        descricao:
+          'Apontamentos em obras diferentes no mesmo dia ou após quitação anterior entram de forma independente sem colidir.',
+      },
+    ],
+    exemplo:
+      'Expanda "Ver Mensagem Original", confira a obra e as frações (Integral ou Meio Dia) e clique em "Aprovar Mensagem".',
+  },
+  '/validacao/vales': {
+    titulo: 'Vales em 2 Etapas (Solicitação → PIX)',
+    resumo:
+      'Fluxo separado para controlar pedidos de vale em campo (Etapa 1) e a confirmação com comprovante PIX salvo em nuvem (Etapa 2).',
+    funcoes: [
+      {
+        nome: 'Valor Padrão & Dropdowns Oficiais',
+        descricao:
+          'Selecione Trabalhador e Obra nos menus suspensos. Se o valor for omitido na solicitação, o sistema sugere R$ 100,00.',
+      },
+      {
+        nome: 'Leitura OCR com IA (Gemini Vision)',
+        descricao:
+          'Suba o print do pedido ou o comprovante PIX para preencher automaticamente e parear com o pedido pendente.',
+      },
+      {
+        nome: 'KPI de Pendências de Envio',
+        descricao:
+          'Acompanhe em tempo real quantos pedidos ainda aguardam envio do PIX e quantos já foram conciliados.',
+      },
+    ],
+    exemplo:
+      'Quando o encarregado pedir "Um vale para o João" no grupo, o pedido aparece na Etapa 1. Ao subir o comprovante PIX, ele muda para Etapa 2 (Confirmado) e fica disponível no Borderô.',
+  },
+  '/caixinha': {
+    titulo: 'Caixinha de Campo (Unificado)',
+    resumo:
+      'Conta corrente unificada de verbas operacionais em mãos dos encarregados, com consolidação automática de apelidos e preservação de saldos pré-implantação.',
+    funcoes: [
+      {
+        nome: 'Unificação de Perfis & Apelidos',
+        descricao:
+          'Lançamentos enviados por diferentes apelidos ou números do mesmo encarregado são agrupados automaticamente em um único card consolidado.',
+      },
+      {
+        nome: 'Coluna Própria (Sem Desconto Automático)',
+        descricao:
+          'O troco em mãos nunca é abatido automaticamente da folha de diárias. A administração decide manualmente quando devolver troco ou transferir para o fechamento.',
+      },
+      {
+        nome: 'Leitura de Notas & PIX com IA',
+        descricao:
+          'Envie a foto de um cupom fiscal ou comprovante PIX para preencher tipo, valor e descrição automaticamente.',
+      },
+    ],
+    exemplo:
+      'Se o encarregado recebeu R$ 700,00 em suprimentos PIX e comprovou R$ 546,94 em notas de material, o card unificado exibirá Troco em Mãos: R$ 153,06 separado da folha salarial.',
+  },
   '/reembolsos': {
     titulo: 'Caixa de Campo & Reembolsos',
     resumo:
@@ -83,7 +150,7 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
   '/bordero': {
     titulo: 'Fechamento & Pagamentos (PIX)',
     resumo:
-      'Consolidação final por colaborador para pagamento da folha com decisão 100% humana sobre cada vale.',
+      'Consolidação final por colaborador com decisão 100% humana sobre cada vale, leitura OCR de comprovante PIX e emissão de Recibo Individual em PDF salvo em nuvem.',
     funcoes: [
       {
         nome: 'Desconto Opcional de Vales',
@@ -93,30 +160,40 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       {
         nome: 'PIX Copia e Cola & QR Code',
         descricao:
-          'Gera o código PIX com o valor líquido exato calculado apenas sobre os itens marcados.',
+          'Gera o código PIX com o valor líquido exato e discriminação de rateio multi-obra calculado apenas sobre os itens marcados.',
+      },
+      {
+        nome: 'Recibo Individual de Liquidação PIX (PDF + Nuvem)',
+        descricao:
+          'Clique em "Recibo PIX" no card do colaborador para gerar o comprovante detalhado em PDF com hash pericial, salvo automaticamente em nuvem, com opção de baixar, imprimir e envio OPCIONAL no WhatsApp.',
       },
     ],
     exemplo:
-      'Marque as diárias e vales que entram no pagamento de hoje, confira o valor líquido e clique em "Copiar PIX Copia e Cola".',
+      'Marque as diárias e vales que entram no pagamento, copie o PIX, clique em "Recibo PIX" para arquivar/imprimir o comprovante e, somente se desejar, clique em "Enviar no Zap".',
   },
   '/relatorios': {
-    titulo: 'Relatórios & Exportações (1 a 6)',
+    titulo: 'Relatórios, Excel 5 Abas & Envio Quinzenal',
     resumo:
-      'Central analítica com Borderô Consolidado, Custo por Obra, Extrato XLS, Espelho do Ponto (4), Calendário Visual (5) e Calendário de Vales/Caixa (6).',
+      'Central analítica com Planilha Excel em 5 Abas (fórmulas nativas =SUM), Agendamento Quinzenal em PDF Paisagem, Borderô Consolidado, Custo por Obra e Calendários.',
     funcoes: [
       {
-        nome: 'Envio Direto em PDF no WhatsApp (PDF Zap)',
+        nome: 'Planilha Excel em 5 Abas com Fórmulas (=SUM)',
         descricao:
-          'Nos Relatórios 4 e 5, escolha o destinatário no seletor do banco e dispare o PDF direto no WhatsApp.',
+          'Clique em "Excel V6 (5 Abas)" para baixar Resumo por Trabalhador, Detalhamento de Diárias, Controle de Vales, Caixinha de Campo e Custo por Obra já com totais automáticos.',
+      },
+      {
+        nome: 'Agendamento Quinzenal Automático (PDF Paisagem)',
+        descricao:
+          'Dispara automaticamente na 2ª e última sexta-feira do mês às 18:00 (horário de Brasília) apenas os saldos em aberto para a diretoria, ou sob demanda no botão "Disparar PDF Quinzenal Agora".',
       },
       {
         nome: 'Sigilo Automático',
         descricao:
-          'Administradores recebem o PDF com valores em R$; encarregados e equipe recebem versão operacional sem valores.',
+          'Administradores recebem os demonstrativos com valores em R$; encarregados e equipe recebem versão operacional sem valores.',
       },
     ],
     exemplo:
-      'No Relatório 5 (Calendário Visual), selecione o mês, escolha o destinatário no seletor e clique em "PDF Zap".',
+      'Selecione o período desejado (Semanal, Quinzenal ou Mensal) e clique em "Excel V6 (5 Abas)" para auditoria contábil ou em "Disparar PDF Quinzenal Agora" para gerar o fechamento em PDF Paisagem.',
   },
   '/diario-obra': {
     titulo: 'Diário de Obra (2 a 3 Fotos)',
@@ -155,6 +232,54 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
     ],
     exemplo:
       'Suba o PDF da proposta da reforma, aguarde a criação das etapas e, ao longo da semana, clique em "Estimar Avanço com IA".',
+  },
+  '/compras': {
+    titulo: 'Gerador Inteligente de Pedido de Compras (IA)',
+    resumo:
+      'Transforma listas informais de materiais enviadas nos grupos de obra em pedidos organizados por categoria prontos para copiar e encaminhar a fornecedores.',
+    funcoes: [
+      {
+        nome: 'Agrupamento Automático por Categoria (IA)',
+        descricao:
+          'Separa automaticamente Alvenaria, Hidráulica, Elétrica, Acabamento, Pintura, Ferramentas e EPIs com sinalização de itens urgentes.',
+      },
+      {
+        nome: 'Mensagem Pronta p/ Copiar & WhatsApp da Administração',
+        descricao:
+          'Copie o pedido formatado em 1 clique ou envie diretamente para o WhatsApp da equipe de compras.',
+      },
+      {
+        nome: 'Ativação por Empresa (Feature Flag)',
+        descricao:
+          'Disponível para empresas com o módulo de compras ativo; permanece em standby nas empresas focadas apenas em folha de diárias.',
+      },
+    ],
+    exemplo:
+      'Cole "Precisando urgente de 20 sacos de cimento, 3 rolos de fio 2.5mm e 6 tubos pvc 50mm" e clique em "Agrupar por Categoria & Gerar Pedido".',
+  },
+  '/auditoria': {
+    titulo: 'Auditoria Interna com Correção Assistida por IA',
+    resumo:
+      'Cruza lançamentos financeiros, regras de diária e logs do WhatsApp para detectar anomalias, mostrar o Diff Antes × Depois e simular o impacto antes do fechamento.',
+    funcoes: [
+      {
+        nome: 'Monitoramento de Anomalias em Tempo Real',
+        descricao:
+          'Detecta diárias acima de 1,0 no mesmo dia, duplicidades, preços fora da tabela/regra de chuva, apelidos não unificados, vales sem comprovante e falta de chave PIX.',
+      },
+      {
+        nome: 'Diff Antes × Depois com Aprovação em 1 Clique',
+        descricao:
+          'Toda correção exibe exatamente o valor atual e a sugestão da auditoria, exigindo aprovação humana explícita para ser aplicada.',
+      },
+      {
+        nome: 'Simulador Pré-Fechamento & Parecer IA',
+        descricao:
+          'Calcula a diferença financeira projetada antes de gerar os PIX do borderô e gera um diagnóstico executivo sob demanda.',
+      },
+    ],
+    exemplo:
+      'Antes de liquidar a folha da sexta-feira, abra a Auditoria Interna, confira o card "Impacto das Correções (Δ)" e aprove em 1 clique apenas os ajustes validados.',
   },
   '/config-geral': {
     titulo: 'Configuração Geral (Hub Multi-Empresa)',

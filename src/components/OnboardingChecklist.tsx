@@ -22,7 +22,7 @@ interface StepItem {
 }
 
 export default function OnboardingChecklist() {
-  const [tenant, setTenant] = useState<TenantConfig>(TENANTS.jhonton);
+  const [tenant, setTenant] = useState<TenantConfig>(TENANTS.jhoston);
   const [concluidos, setConcluidos] = useState<string[]>([]);
   const [recolhido, setRecolhido] = useState<boolean>(false);
   const [oculto, setOculto] = useState<boolean>(true);

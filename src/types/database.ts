@@ -1,10 +1,76 @@
 export type TipoObra = 'PISCINA' | 'OBRA_CIVIL';
 export type NivelPermissao = 'APONTAMENTO' | 'CONSULTA' | 'MASTER';
 export type TipoLancamento = 'PONTO' | 'VALE' | 'LIQUIDACAO';
-export type StatusLancamento = 'PENDENTE' | 'VALIDADO' | 'LIQUIDADO';
-export type StatusValidacao = 'PENDENTE' | 'VALIDADO';
-export type RegimeRemuneracao = 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA' | 'MENSALISTA';
+export type StatusLancamento = 'PENDENTE' | 'VALIDADO' | 'LIQUIDADO' | 'DESCARTADO';
+export type StatusValidacao = 'PENDENTE' | 'VALIDADO' | 'DESCARTADO';
+export type RegimeRemuneracao =
+  | 'DIARISTA'
+  | 'SEMANALISTA'
+  | 'QUINZENALISTA'
+  | 'MENSALISTA'
+  | 'DIAS_UTEIS_SEG_SAB';
 export type CicloPagamento = 'SEMANAL' | 'QUINZENAL' | 'MENSAL';
+export type ValeEtapa = 'SOLICITADO' | 'PIX_ENVIADO' | 'CONCILIADO';
+
+export interface TenantRecord {
+  id: string;
+  slug: 'jhoston' | 'intermack';
+  nome: string;
+  razao_social?: string | null;
+  modo_operacao: 'DIARISTA' | 'EMPREITA';
+  modulo_compras_ativo: boolean;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrabalhadorAlias {
+  id: string;
+  tenant_id: string;
+  funcionario_id?: string | null;
+  alias_texto: string;
+  nome_canonico: string;
+  ativo: boolean;
+  created_at: string;
+}
+
+export interface CaixinhaMovimentacaoRecord {
+  id: string;
+  tenant_id: string;
+  encarregado_canonico: string;
+  encarregado_origem?: string | null;
+  obra_nome: string;
+  data_movimentacao: string;
+  hora_movimentacao: string;
+  tipo: 'ENTRADA_PIX' | 'NOTA_DESPESA' | 'DEVOLUCAO_TROCO';
+  categoria: string;
+  descricao: string;
+  valor: number;
+  status: 'PENDENTE' | 'APROVADO';
+  is_pre_implantacao: boolean;
+  enviado_por?: string | null;
+  comprovante_url?: string | null;
+  chave_idempotencia?: string | null;
+  created_at: string;
+}
+
+export interface CicloFinanceiro {
+  id: string;
+  tenant_id: string;
+  funcionario_id?: string | null;
+  nome_trabalhador_canonico: string;
+  obra_nome?: string | null;
+  status: 'ABERTO' | 'QUITADO';
+  data_inicio: string;
+  data_corte_quitacao?: string | null;
+  valor_quitado: number;
+  comprovante_pix_url?: string | null;
+  recibo_r2_url?: string | null;
+  quitado_por?: string | null;
+  observacao?: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface ParametrosSistemaConfig {
   dia_viagem_padrao: number;
@@ -37,6 +103,9 @@ export interface FuncionarioObra {
   ciclo_pagamento?: CicloPagamento;
   valor_base_contratual?: number;
   valor_diaria: number; // mantido para compatibilidade
+  valor_diaria_obra?: number | null;
+  valor_diaria_piscina?: number | null;
+  regra_dias_uteis_seg_sab?: boolean;
   chave_pix?: string | null;
   telefone?: string | null;
   ativo: boolean;
@@ -97,7 +166,15 @@ export interface LancamentoFinanceiro {
   data_referencia: string;
   observacao?: string | null;
   ponto_lote_id?: string | null;
+  ciclo_id?: string | null;
   comprovante_url?: string | null;
+  comprovante_pix_url?: string | null;
+  recibo_liquidacao_url?: string | null;
+  vale_etapa?: ValeEtapa | null;
+  solicitado_por?: string | null;
+  pago_por?: string | null;
+  mensagem_origem_id?: string | null;
+  horario_origem?: string | null;
   liquidado_em?: string | null;
   created_at: string;
   updated_at: string;

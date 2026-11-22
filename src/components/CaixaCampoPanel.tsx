@@ -16,6 +16,7 @@ import {
 interface MovimentoCaixaCampo {
   id: string;
   encarregado: string;
+  encarregadoOrigem?: string;
   obra: string;
   data: string;
   hora: string;
@@ -24,11 +25,14 @@ interface MovimentoCaixaCampo {
   descricao: string;
   valor: number;
   status: 'PENDENTE' | 'APROVADO';
+  isPreImplantacao?: boolean;
   enviadoPor: string;
 }
 
 interface ContaEncarregado {
   encarregado: string;
+  aliasesUnificados?: string[];
+  possuiPreImplantacao?: boolean;
   totalRecebido: number;
   totalComprovado: number;
   totalDevolvido: number;
@@ -430,22 +434,32 @@ export default function CaixaCampoPanel() {
               className="rounded-2xl border border-slate-200 overflow-hidden"
             >
               <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Sparkles className="w-4 h-4 text-emerald-600" />
                   <span className="text-sm font-black text-slate-950">
                     {c.encarregado}
                   </span>
+                  {c.aliasesUnificados && c.aliasesUnificados.length > 0 && (
+                    <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                      Unificado: {c.aliasesUnificados.join(' + ')}
+                    </span>
+                  )}
+                  {c.possuiPreImplantacao && (
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                      Pré-implantação preservada
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 tabular-nums">
                     Recebido: R$ {c.totalRecebido.toFixed(2)}
                   </span>
-                  <span className="font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
+                  <span className="font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200 tabular-nums">
                     Notas: R$ {c.totalComprovado.toFixed(2)}
                   </span>
                   <span
-                    className={`font-black px-3 py-1 rounded-lg border ${
+                    className={`font-black px-3 py-1 rounded-lg border tabular-nums ${
                       c.saldoEmMaos > 0
                         ? 'text-amber-900 bg-amber-100 border-amber-300'
                         : c.saldoEmMaos < 0
@@ -507,9 +521,16 @@ export default function CaixaCampoPanel() {
                         <ArrowUpCircle className="w-4 h-4 text-rose-500 shrink-0" />
                       )}
                       <div>
-                        <span className="font-bold text-slate-900">
-                          {m.descricao}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-bold text-slate-900">
+                            {m.descricao}
+                          </span>
+                          {m.isPreImplantacao && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                              Pré-implantação
+                            </span>
+                          )}
+                        </div>
                         <span className="text-slate-400 block text-[11px]">
                           {m.obra} • {m.data} às {m.hora} • {m.categoria}
                         </span>

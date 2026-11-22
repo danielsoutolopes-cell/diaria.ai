@@ -1,7 +1,13 @@
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
-const { default: makeWASocket, useMultiFileAuthState, Browsers, DisconnectReason, fetchLatestWaWebVersion } = require('@whiskeysockets/baileys');
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  Browsers,
+  DisconnectReason,
+  downloadMediaMessage,
+} = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 
 const DATA_DIR = process.env.DATA_DIR || __dirname;
@@ -151,11 +157,16 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
   });
 
   // OUVINTE DE MENSAGENS EM TEMPO REAL:
-  // Captura mensagens enviadas em grupos monitorados, processa via Webhook e dispara os tickets privados
+  // Captura mensagens enviadas em grupos monitorados (incluindo comprovantes PIX com imagem enviados pela Administração),
+  // baixa a mídia em alta resolução para OCR Gemini Vision e encaminha ao Webhook com messageTimestamp.
   sock.ev.on('messages.upsert', async (m) => {
     try {
       const msg = m.messages?.[0];
-      if (!msg || !msg.message || msg.key.fromMe) return;
+      if (!msg || !msg.message) return;
+
+      const hasImage = Boolean(msg.message.imageMessage);
+      // Ignora textos de eco do próprio bot, mas PERMITE comprovantes PIX com imagem enviados pelo número conectado (ex.: Patrícia)
+      if (msg.key.fromMe && !hasImage) return;
 
       const remoteJid = msg.key.remoteJid || '';
       const isGroup = remoteJid.endsWith('@g.us');
@@ -166,20 +177,46 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
       const isMonitored = savedConfig[remoteJid] !== undefined ? savedConfig[remoteJid] : false;
       if (!isMonitored) return;
 
-      // Extrair texto da mensagem
+      // Extrair texto da mensagem ou legenda da imagem
       const text =
         msg.message.conversation ||
         msg.message.extendedTextMessage?.text ||
         msg.message.imageMessage?.caption ||
         '';
 
-      console.log(`[BAILEYS-SERVICE] Mensagem recebida no grupo monitorado [${remoteJid}]:`, text);
+      // Download em alta resolução para OCR Gemini Vision (comprovantes PIX / notas fiscais)
+      let fullBase64 = null;
+      if (hasImage) {
+        try {
+          const mediaBuffer = await downloadMediaMessage(
+            msg,
+            'buffer',
+            {},
+            {
+              reuploadRequest: sock.updateMediaMessage,
+            }
+          );
+          if (mediaBuffer && Buffer.isBuffer(mediaBuffer)) {
+            fullBase64 = mediaBuffer.toString('base64');
+          }
+        } catch (errMedia) {
+          console.warn('[BAILEYS-SERVICE] Falha ao baixar imagem em alta resolução:', errMedia?.message || errMedia);
+        }
+      }
+
+      console.log(
+        `[BAILEYS-SERVICE] Mensagem recebida no grupo monitorado [${remoteJid}] (img=${hasImage}, fromMe=${Boolean(msg.key.fromMe)}):`,
+        text
+      );
 
       // Enviar para o endpoint do Webhook do Ponto Patrícia para análise de IA e gravação no banco
       const webhookPayload = {
         data: {
           key: msg.key,
           message: msg.message,
+          messageTimestamp: msg.messageTimestamp || Math.floor(Date.now() / 1000),
+          fromMe: Boolean(msg.key.fromMe),
+          base64: fullBase64,
         },
       };
 
@@ -288,6 +325,36 @@ const server = http.createServer((req, res) => {
         await sock.sendMessage(`${rawTel}@s.whatsapp.net`, { text });
         res.writeHead(200);
         res.end(JSON.stringify({ success: true }));
+      } catch (err) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    } else if (req.url === '/send-document' && req.method === 'POST') {
+      if (!sock || state.status !== 'CONNECTED') {
+        res.writeHead(503);
+        res.end(JSON.stringify({ error: 'WhatsApp não conectado' }));
+        return;
+      }
+      const rawTel = String(parsed.phone || '').replace(/\D/g, '');
+      const base64 = String(parsed.base64 || '').replace(/^data:[^;]+;base64,/, '');
+      const fileName = String(parsed.fileName || 'relatorio.pdf');
+      const mimetype = String(parsed.mimetype || 'application/pdf');
+      const caption = parsed.caption ? String(parsed.caption) : undefined;
+      if (!rawTel || !base64) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'phone e base64 obrigatórios' }));
+        return;
+      }
+      try {
+        const buffer = Buffer.from(base64, 'base64');
+        await sock.sendMessage(`${rawTel}@s.whatsapp.net`, {
+          document: buffer,
+          mimetype,
+          fileName,
+          caption,
+        });
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true, fileName, bytes: buffer.length }));
       } catch (err) {
         res.writeHead(500);
         res.end(JSON.stringify({ error: err.message }));

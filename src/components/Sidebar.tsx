@@ -21,6 +21,8 @@ import {
   Receipt,
   Camera,
   Building2,
+  ShoppingCart,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   getActiveTenantFromBrowser,
@@ -48,10 +50,18 @@ const navItems = [
   {
     name: 'Validações Pendentes',
     intermackName: 'Validações de Efetivo',
-    href: '/validacoes',
+    href: '/validacao/diarias',
     icon: CalendarCheck2,
     badge: null,
     badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  },
+  {
+    name: 'Vales em 2 Etapas (PIX)',
+    href: '/validacao/vales',
+    icon: Receipt,
+    badge: 'PIX',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    onlyDiarista: true,
   },
   {
     name: 'Diário de Obra (Fotos)',
@@ -66,6 +76,22 @@ const navItems = [
     icon: Sparkles,
     badge: 'IA',
     badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+  },
+  {
+    name: 'Pedidos de Compras (IA)',
+    href: '/compras',
+    icon: ShoppingCart,
+    badge: 'Compras',
+    badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+    onlyComprasAtivo: true,
+  },
+  {
+    name: 'Caixinha de Campo (Unificado)',
+    href: '/caixinha',
+    icon: Receipt,
+    badge: 'Campo',
+    badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+    onlyDiarista: true,
   },
   {
     name: 'Caixa de Campo & Reembolsos',
@@ -97,6 +123,13 @@ const navItems = [
     icon: BarChart3,
     badge: 'XLS',
     badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  },
+  {
+    name: 'Auditoria Interna (IA)',
+    href: '/auditoria',
+    icon: ShieldAlert,
+    badge: 'Diff IA',
+    badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   },
   {
     name: 'Mensageria & Pedidos IA',
@@ -152,7 +185,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [currentUser, setCurrentUser] = React.useState<string>('Patrícia Grubel');
-  const [activeTenant, setActiveTenant] = React.useState<TenantConfig>(TENANTS.jhonton);
+  const [activeTenant, setActiveTenant] = React.useState<TenantConfig>(TENANTS.jhoston);
   const [pendentesBadge, setPendentesBadge] = React.useState<number>(0);
 
   React.useEffect(() => {
@@ -189,8 +222,15 @@ export default function Sidebar() {
   }
 
   const visibleNavItems = navItems.filter((item) => {
-    if (item.href === '/mensageria' || item.href === '/config-geral') {
+    if (
+      item.href === '/mensageria' ||
+      item.href === '/config-geral' ||
+      item.href === '/auditoria'
+    ) {
       return isDanielOrPatricia;
+    }
+    if ('onlyComprasAtivo' in item && item.onlyComprasAtivo) {
+      return activeTenant.moduloComprasAtivo;
     }
     if (isIntermack && 'onlyDiarista' in item && item.onlyDiarista) {
       return false;
@@ -245,7 +285,7 @@ export default function Sidebar() {
           <div className="mt-4 p-1 bg-slate-900 rounded-xl border border-slate-800 grid grid-cols-2 gap-1">
             <button
               type="button"
-              onClick={() => handleTrocarEmpresa('jhonton')}
+              onClick={() => handleTrocarEmpresa('jhoston')}
               className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
                 !isIntermack
                   ? 'bg-emerald-600 text-white shadow-sm'
@@ -253,7 +293,7 @@ export default function Sidebar() {
               }`}
             >
               <Building2 className="w-3 h-3" />
-              <span>Jhonton</span>
+              <span>Jhoston</span>
             </button>
             <button
               type="button"

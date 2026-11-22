@@ -17,6 +17,8 @@ import {
   HelpCircle,
   Building2,
   X,
+  ShoppingCart,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   getActiveTenantFromBrowser,
@@ -68,12 +70,18 @@ export default function CommandPalette() {
     const active = getActiveTenantFromBrowser();
     const list: CommandItem[] = [
       { id: 'dash', label: 'Visão Geral & Caixa', category: 'Navegação', href: '/', icon: LayoutDashboard },
-      { id: 'val', label: 'Validações Pendentes / Efetivo', category: 'Navegação', href: '/validacoes', icon: CalendarCheck2 },
+      { id: 'val', label: 'Validações de Diárias / Efetivo', category: 'Navegação', href: '/validacao/diarias', icon: CalendarCheck2 },
+      { id: 'val-vales', label: 'Vales em 2 Etapas (Solicitação → PIX)', category: 'Navegação', href: '/validacao/vales', icon: Receipt },
       { id: 'diario', label: 'Diário de Obra (2 a 3 Fotos)', category: 'Navegação', href: '/diario-obra', icon: Camera },
       { id: 'med', label: 'Propostas & Medição IA', category: 'Navegação', href: '/medicoes', icon: Sparkles },
+      ...(active.moduloComprasAtivo
+        ? [{ id: 'compras', label: 'Gerador de Pedido de Compras (IA)', category: 'Navegação', href: '/compras', icon: ShoppingCart }]
+        : []),
+      { id: 'caixinha', label: 'Caixinha de Campo (Unificado)', category: 'Navegação', href: '/caixinha', icon: Receipt },
       { id: 'caixa', label: 'Caixa de Campo & Reembolsos', category: 'Navegação', href: '/reembolsos', icon: Receipt },
       { id: 'fech', label: 'Fechamento & Pagamentos (PIX)', category: 'Navegação', href: '/bordero', icon: FileSpreadsheet },
       { id: 'rel', label: 'Relatórios & Exportações (1 a 6)', category: 'Navegação', href: '/relatorios', icon: BarChart3 },
+      { id: 'auditoria', label: 'Auditoria Interna com Correção IA (/auditoria)', category: 'Administração', href: '/auditoria', icon: ShieldAlert, adminOnly: true },
       { id: 'setup', label: 'Obras & Equipes (Setup)', category: 'Navegação', href: '/setup', icon: Layers },
       { id: 'zap', label: 'Conexão do Bot (WhatsApp)', category: 'Navegação', href: '/whatsapp', icon: QrCode },
       { id: 'hub', label: 'Configuração Geral (Hub Multi-Empresa)', category: 'Administração', href: '/config-geral', icon: ShieldCheck, adminOnly: true },
@@ -82,13 +90,13 @@ export default function CommandPalette() {
         id: 'switch-tenant',
         label:
           active.slug === 'intermack'
-            ? 'Trocar empresa para Jhonton (Modo Diarista)'
+            ? 'Trocar empresa para Jhoston (Modo Diarista)'
             : 'Trocar empresa para Intermack (Modo Empreita)',
         category: 'Multi-Empresa',
         icon: Building2,
         adminOnly: true,
         action: () => {
-          setActiveTenantInBrowser(active.slug === 'intermack' ? 'jhonton' : 'intermack');
+          setActiveTenantInBrowser(active.slug === 'intermack' ? 'jhoston' : 'intermack');
           window.location.reload();
         },
       },

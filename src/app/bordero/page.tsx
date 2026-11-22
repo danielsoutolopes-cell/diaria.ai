@@ -14,15 +14,40 @@ import {
   Download,
   Edit2,
   AlertCircle,
+  Camera,
+  Sparkles,
+  FileText,
+  Printer,
+  Send,
+  ExternalLink,
 } from 'lucide-react';
 import { gerarPayloadPix } from '@/lib/pix';
 import { ReceiptLightbox } from '@/components/ReceiptLightbox';
 import { exportarParaExcel, LinhaBorderoExport } from '@/lib/exportExcel';
+import { calcularBrutoPorRegime } from '@/services/regimesRemuneracao';
+
+interface ReciboLiquidacaoModalState {
+  nomeTrabalhador: string;
+  chavePix: string;
+  telefoneTrabalhador: string;
+  reciboUrl: string | null;
+  r2Salvo: boolean;
+  fileName: string;
+  pdfBase64: string;
+  sha256: string;
+  totalBruto: number;
+  totalVales: number;
+  totalLiquido: number;
+  resumoTextoWhatsApp: string;
+  enviandoZap: boolean;
+  zapStatus: { tipo: 'sucesso' | 'erro'; texto: string } | null;
+}
 
 interface LinhaLancamento {
   id: string;
   data: string;
   descricao: string;
+  obra?: string;
   tipo: 'PONTO' | 'VALE';
   fracao: number;
   valor: number;
@@ -36,10 +61,43 @@ interface ExtratoFuncionario {
   obra: string;
   chavePix: string;
   diariaPadrao: number;
-  regimeRemuneracao?: 'DIARISTA' | 'SEMANALISTA' | 'QUINZENALISTA' | 'MENSALISTA';
+  regimeRemuneracao?:
+    | 'DIARISTA'
+    | 'SEMANALISTA'
+    | 'QUINZENALISTA'
+    | 'MENSALISTA'
+    | 'DIAS_UTEIS_SEG_SAB';
   cicloPagamento?: 'SEMANAL' | 'QUINZENAL';
   valorBaseContratual?: number;
+  regraDiasUteisSegSab?: boolean;
   lancamentos: LinhaLancamento[];
+}
+
+interface LiquidacaoOcrPreview {
+  comprovantePixUrl: string | null;
+  trabalhadorMatch: string | null;
+  leitura: {
+    nomeTrabalhador: string | null;
+    valor: number;
+    data: string | null;
+    pagador: string | null;
+  };
+  lancamentosCandidatos: Array<{
+    id: string;
+    data: string;
+    obra: string;
+    tipo: string;
+    fracao: number;
+    valor: number;
+    observacao: string;
+  }>;
+  resumoPreview: {
+    valorComprovantePix: number;
+    totalLiquidoAberto: number;
+    diferenca: number;
+    quantidadeLancamentos: number;
+    zeraSaldoExato: boolean;
+  };
 }
 
 export default function BorderoPage() {
@@ -51,6 +109,11 @@ export default function BorderoPage() {
   const [liquidando, setLiquidando] = useState(false);
   const [liquidadoSucesso, setLiquidadoSucesso] = useState(false);
   const [usuarioAtual, setUsuarioAtual] = useState<string>('Patrícia Grubel');
+  const [lendoComprovantePix, setLendoComprovantePix] = useState<boolean>(false);
+  const [ocrLiquidacao, setOcrLiquidacao] = useState<LiquidacaoOcrPreview | null>(null);
+  const [erroOcr, setErroOcr] = useState<string | null>(null);
+  const [gerandoReciboId, setGerandoReciboId] = useState<string | null>(null);
+  const [reciboModal, setReciboModal] = useState<ReciboLiquidacaoModalState | null>(null);
 
   // Modal para Edição de Lançamento Já Confirmado
   const [edicaoModal, setEdicaoModal] = useState<{
@@ -69,7 +132,6 @@ export default function BorderoPage() {
   } | null>(null);
 
   useEffect(() => {
-    // Detecta usuário logado
     const cookies = document.cookie.split('; ');
     const userCookie = cookies.find((c) => c.startsWith('diaria_user='));
     if (userCookie) {
@@ -116,31 +178,122 @@ export default function BorderoPage() {
     );
   }
 
+  function formatarResumoRateioPix(f: ExtratoFuncionario): string {
+    const pontosMarcados = f.lancamentos.filter(
+      (l) => l.tipo === 'PONTO' && l.selecionado
+    );
+    const porObra = new Map<string, number>();
+    pontosMarcados.forEach((p) => {
+      const ob = p.obra || f.obra;
+      porObra.set(ob, Number(((porObra.get(ob) || 0) + p.fracao).toFixed(2)));
+    });
+    if (porObra.size > 1) {
+      return Array.from(porObra.entries())
+        .map(([ob, fr]) => `${String(fr).replace('.', ',')}d ${ob}`)
+        .join(' + ');
+    }
+    const soma = pontosMarcados.reduce((acc, p) => acc + p.fracao, 0);
+    return `${String(Number(soma.toFixed(2))).replace('.', ',')}d ${f.obra}`;
+  }
+
   function calcularTotais(f: ExtratoFuncionario) {
     const pontosMarcados = f.lancamentos.filter((l) => l.tipo === 'PONTO' && l.selecionado);
     const valesMarcados = f.lancamentos.filter((l) => l.tipo === 'VALE' && l.selecionado);
 
-    // Se for Semanalista fixo ou Mensalista com rateio semanal
-    let totalBruto = pontosMarcados.reduce((acc, curr) => acc + curr.valor, 0);
-    if (f.regimeRemuneracao === 'MENSALISTA' && (f.valorBaseContratual || 0) > 0) {
-      // Diego ou mensalistas com inclusão no fechamento semanal (dividido por 4 semanas = R$ 2.175,00)
-      totalBruto = Math.round((Number(f.valorBaseContratual) / 4) * 100) / 100;
-    } else if (f.regimeRemuneracao === 'SEMANALISTA' && (f.valorBaseContratual || 0) > 0) {
-      totalBruto = Number(f.valorBaseContratual);
-    } else if (f.regimeRemuneracao === 'QUINZENALISTA' && (f.valorBaseContratual || 0) > 0) {
-      totalBruto = Number(f.valorBaseContratual);
-    }
+    const somaPontosBrutos = pontosMarcados.reduce((acc, curr) => acc + curr.valor, 0);
+    const somaFracoesPontos = pontosMarcados.reduce((acc, curr) => acc + curr.fracao, 0);
 
+    const regimeCalc = calcularBrutoPorRegime({
+      nomeTrabalhador: f.nome,
+      regimeRemuneracao: f.regimeRemuneracao,
+      valorBaseContratual: f.valorBaseContratual,
+      diariaPadrao: f.diariaPadrao,
+      regraDiasUteisSegSab: f.regraDiasUteisSegSab,
+      somaPontosBrutos,
+      somaFracoesPontos,
+    });
+
+    const totalBruto = regimeCalc.totalBruto;
     const totalVales = valesMarcados.reduce((acc, curr) => acc + curr.valor, 0);
     const totalLiquido = Math.max(0, totalBruto - totalVales);
-    const totalDiarias = pontosMarcados.reduce((acc, curr) => acc + curr.fracao, 0);
+    const totalDiarias = regimeCalc.totalDiasConsiderados;
 
-    return { totalBruto, totalVales, totalLiquido, totalDiarias };
+    return {
+      totalBruto,
+      totalVales,
+      totalLiquido,
+      totalDiarias,
+      detalheRegime: regimeCalc.detalheCalculo,
+    };
+  }
+
+  async function handleLerComprovantePixLiquidacao(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLendoComprovantePix(true);
+    setErroOcr(null);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Falha ao ler comprovante.'));
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch('/api/liquidar/ocr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imagemBase64: base64,
+          imagemMimeType: file.type || 'image/jpeg',
+        }),
+      });
+      const d = (await res.json()) as LiquidacaoOcrPreview & { error?: string };
+      if (!res.ok || d.error) {
+        setErroOcr(d.error || 'Falha na leitura OCR do comprovante PIX.');
+      } else {
+        setOcrLiquidacao(d);
+      }
+    } catch (err: unknown) {
+      setErroOcr(err instanceof Error ? err.message : 'Erro ao ler imagem PIX.');
+    } finally {
+      setLendoComprovantePix(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleConfirmarLiquidacaoOcr() {
+    if (!ocrLiquidacao || ocrLiquidacao.lancamentosCandidatos.length === 0) return;
+    setLiquidando(true);
+    try {
+      const ids = ocrLiquidacao.lancamentosCandidatos.map((c) => c.id);
+      const res = await fetch('/api/liquidar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lancamentosIds: ids,
+          observacao: `Quitação PIX via Comprovante OCR (${ocrLiquidacao.trabalhadorMatch || 'Colaborador'} — R$ ${ocrLiquidacao.resumoPreview.valorComprovantePix.toFixed(2)})`,
+          quitadoPor: usuarioAtual,
+          comprovantePixUrl: ocrLiquidacao.comprovantePixUrl,
+        }),
+      });
+      if (res.ok) {
+        setOcrLiquidacao(null);
+        setLiquidadoSucesso(true);
+        await carregarBordero();
+        setTimeout(() => setLiquidadoSucesso(false), 3000);
+      }
+    } finally {
+      setLiquidando(false);
+    }
   }
 
   function handleCopiarPix(f: ExtratoFuncionario) {
     const totais = calcularTotais(f);
-    const descritivo = `Pgto: ${totais.totalDiarias}d ${f.obra} - Vales R$${totais.totalVales}`;
+    const resumoObras = formatarResumoRateioPix(f);
+    const descritivo = `Pgto: ${resumoObras} - Vales R$${totais.totalVales.toFixed(0)}`;
 
     const payload = gerarPayloadPix({
       chavePix: f.chavePix,
@@ -156,7 +309,8 @@ export default function BorderoPage() {
 
   function handleAbrirModalPix(f: ExtratoFuncionario) {
     const totais = calcularTotais(f);
-    const descritivo = `Pgto: ${totais.totalDiarias}d ${f.obra} - Vales R$${totais.totalVales}`;
+    const resumoObras = formatarResumoRateioPix(f);
+    const descritivo = `Pgto: ${resumoObras} - Vales R$${totais.totalVales.toFixed(0)}`;
     const payload = gerarPayloadPix({
       chavePix: f.chavePix,
       nomeRecebedor: f.nome,
@@ -172,6 +326,169 @@ export default function BorderoPage() {
     });
   }
 
+  function baixarPdfBase64Local(
+    pdfBase64: string,
+    fileName: string,
+    abrirNovaAba = false
+  ) {
+    const bytes = Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    if (abrirNovaAba) {
+      window.open(url, '_blank');
+    } else {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
+  }
+
+  async function handleGerarReciboIndividual(f: ExtratoFuncionario) {
+    const selecionados = f.lancamentos.filter((l) => l.selecionado);
+    if (selecionados.length === 0) return;
+
+    setGerandoReciboId(f.id);
+    try {
+      const res = await fetch('/api/recibo-liquidacao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'gerar',
+          nomeTrabalhador: f.nome,
+          chavePix: f.chavePix,
+          quitadoPor: usuarioAtual,
+          lancamentosIds: selecionados.map((l) => l.id),
+          itens: selecionados.map((l) => ({
+            data: l.data,
+            obra: l.obra || f.obra,
+            tipo: l.tipo,
+            fracao: l.fracao,
+            valor: l.valor,
+            descricao: l.descricao,
+          })),
+        }),
+      });
+      const data = (await res.json()) as {
+        success?: boolean;
+        nomeTrabalhador?: string;
+        chavePix?: string;
+        telefoneTrabalhador?: string | null;
+        reciboUrl?: string | null;
+        r2Salvo?: boolean;
+        fileName?: string;
+        pdfBase64?: string;
+        sha256?: string;
+        totalBruto?: number;
+        totalVales?: number;
+        totalLiquido?: number;
+        resumoTextoWhatsApp?: string;
+        error?: string;
+      };
+
+      if (!res.ok || !data.success || !data.pdfBase64) {
+        setErroOcr(data.error || 'Falha ao gerar recibo PIX individual.');
+        return;
+      }
+
+      setReciboModal({
+        nomeTrabalhador: data.nomeTrabalhador || f.nome,
+        chavePix: data.chavePix || f.chavePix,
+        telefoneTrabalhador: data.telefoneTrabalhador || '',
+        reciboUrl: data.reciboUrl || null,
+        r2Salvo: Boolean(data.r2Salvo),
+        fileName: data.fileName || `recibo-${f.nome}.pdf`,
+        pdfBase64: data.pdfBase64,
+        sha256: data.sha256 || '',
+        totalBruto: data.totalBruto ?? 0,
+        totalVales: data.totalVales ?? 0,
+        totalLiquido: data.totalLiquido ?? 0,
+        resumoTextoWhatsApp: data.resumoTextoWhatsApp || '',
+        enviandoZap: false,
+        zapStatus: null,
+      });
+    } catch (err: unknown) {
+      setErroOcr(
+        err instanceof Error ? err.message : 'Erro ao gerar recibo PIX.'
+      );
+    } finally {
+      setGerandoReciboId(null);
+    }
+  }
+
+  async function handleEnviarReciboWhatsappOpcional() {
+    if (!reciboModal) return;
+    setReciboModal((prev) =>
+      prev ? { ...prev, enviandoZap: true, zapStatus: null } : null
+    );
+    try {
+      const res = await fetch('/api/recibo-liquidacao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'enviar-whatsapp',
+          telefone: reciboModal.telefoneTrabalhador,
+          pdfBase64: reciboModal.pdfBase64,
+          fileName: reciboModal.fileName,
+          resumoTextoWhatsApp: reciboModal.resumoTextoWhatsApp,
+          reciboUrl: reciboModal.reciboUrl || undefined,
+        }),
+      });
+      const data = (await res.json()) as {
+        success?: boolean;
+        message?: string;
+        error?: string;
+      };
+      if (res.ok && data.success) {
+        setReciboModal((prev) =>
+          prev
+            ? {
+                ...prev,
+                enviandoZap: false,
+                zapStatus: {
+                  tipo: 'sucesso',
+                  texto:
+                    data.message || 'Recibo enviado no WhatsApp do colaborador.',
+                },
+              }
+            : null
+        );
+      } else {
+        setReciboModal((prev) =>
+          prev
+            ? {
+                ...prev,
+                enviandoZap: false,
+                zapStatus: {
+                  tipo: 'erro',
+                  texto:
+                    data.error ||
+                    'Não foi possível enviar via Baileys. Use o botão Baixar/Imprimir ou WhatsApp Web.',
+                },
+              }
+            : null
+        );
+      }
+    } catch (err: unknown) {
+      setReciboModal((prev) =>
+        prev
+          ? {
+              ...prev,
+              enviandoZap: false,
+              zapStatus: {
+                tipo: 'erro',
+                texto:
+                  err instanceof Error
+                    ? err.message
+                    : 'Falha ao enviar no WhatsApp.',
+              },
+            }
+          : null
+      );
+    }
+  }
+
   async function handleLiquidarSemana() {
     setLiquidando(true);
     const idsParaLiquidar: string[] = [];
@@ -185,16 +502,21 @@ export default function BorderoPage() {
       await fetch('/api/liquidar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lancamentosIds: idsParaLiquidar }),
+        body: JSON.stringify({
+          lancamentosIds: idsParaLiquidar,
+          quitadoPor: usuarioAtual,
+        }),
       });
 
       setLiquidadoSucesso(true);
       setTimeout(() => {
         setFuncionarios((prev) =>
-          prev.map((f) => ({
-            ...f,
-            lancamentos: f.lancamentos.filter((l) => !l.selecionado),
-          })).filter((f) => f.lancamentos.length > 0)
+          prev
+            .map((f) => ({
+              ...f,
+              lancamentos: f.lancamentos.filter((l) => !l.selecionado),
+            }))
+            .filter((f) => f.lancamentos.length > 0)
         );
         setLiquidadoSucesso(false);
       }, 2500);
@@ -220,13 +542,13 @@ export default function BorderoPage() {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full w-fit mb-2 border border-amber-200/80 shadow-sm">
             <Calendar className="w-3.5 h-3.5 text-amber-600" />
-            <span>Fechamento Multi-Ciclo • Diaristas, Semanalistas e Quinzenalistas</span>
+            <span>Fechamento Multi-Ciclo • Diaristas, Mensalista, Seg–Sáb e Quitação PIX OCR</span>
           </div>
           <h1 className="text-3xl font-black text-slate-950 tracking-tight">
             Borderô e Pagamento da Folha
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Gestão integrada de mão de obra de campo: semanalistas recebem na sexta-feira e diaristas fecham conforme o ciclo.
+            Gestão integrada de mão de obra de campo com isolamento de ciclos pós-quitação e rateio multi-obra explícito no PIX.
           </p>
         </div>
 
@@ -247,7 +569,7 @@ export default function BorderoPage() {
                 cicloAtivo === 'SEMANAL' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              Toda Sexta / Semanal ({funcionarios.filter(f => f.cicloPagamento === 'SEMANAL' || f.regimeRemuneracao === 'SEMANALISTA').length})
+              Toda Sexta / Semanal ({funcionarios.filter((f) => f.cicloPagamento === 'SEMANAL' || f.regimeRemuneracao === 'SEMANALISTA' || f.regimeRemuneracao === 'MENSALISTA').length})
             </button>
             <button
               onClick={() => setCicloAtivo('QUINZENAL')}
@@ -255,9 +577,25 @@ export default function BorderoPage() {
                 cicloAtivo === 'QUINZENAL' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              Quinzenal ({funcionarios.filter(f => f.cicloPagamento !== 'SEMANAL' && f.regimeRemuneracao !== 'SEMANALISTA').length})
+              Quinzenal ({funcionarios.filter((f) => f.cicloPagamento !== 'SEMANAL' && f.regimeRemuneracao !== 'SEMANALISTA' && f.regimeRemuneracao !== 'MENSALISTA').length})
             </button>
           </div>
+
+          <label className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black transition-all shadow-sm flex items-center gap-2 cursor-pointer active:scale-95">
+            <Camera className="w-4 h-4" />
+            <span>
+              {lendoComprovantePix
+                ? 'Lendo PIX...'
+                : 'Liquidar PIX (Foto OCR)'}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleLerComprovantePixLiquidacao}
+              className="hidden"
+            />
+          </label>
+
           <button
             onClick={() => {
               const linhasExport: LinhaBorderoExport[] = funcionarios.map((f) => {
@@ -294,10 +632,113 @@ export default function BorderoPage() {
 
           <div className="bg-white p-3 px-5 rounded-2xl border border-slate-200 shadow-sm text-right">
             <span className="text-[11px] text-slate-400 font-semibold block">Total em Vales Abatidos</span>
-            <span className="text-base font-bold text-rose-600">- R$ {totalValesGeral.toFixed(2)}</span>
+            <span className="text-base font-bold text-rose-600 tabular-nums">- R$ {totalValesGeral.toFixed(2)}</span>
           </div>
         </div>
       </div>
+
+      {/* Erro OCR */}
+      {erroOcr && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-800 flex items-center justify-between gap-2">
+          <span>{erroOcr}</span>
+          <button
+            type="button"
+            onClick={() => setErroOcr(null)}
+            className="text-rose-600 hover:text-rose-900"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Preview Human-in-the-Loop de Liquidação PIX por Imagem (OCR) */}
+      {ocrLiquidacao && (
+        <div className="p-5 rounded-3xl bg-indigo-50 border border-indigo-200 space-y-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-black text-indigo-950">
+              <Sparkles className="w-4 h-4 text-indigo-600" />
+              <span>
+                Prévia de Liquidação por Comprovante PIX (Human-in-the-Loop)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOcrLiquidacao(null)}
+              className="text-xs font-bold text-slate-500 hover:text-slate-800"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white p-4 rounded-2xl border border-indigo-100 text-xs">
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                Favorecido (Canônico)
+              </span>
+              <strong className="text-slate-950">
+                {ocrLiquidacao.trabalhadorMatch || 'Não identificado'}
+              </strong>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                Valor do Comprovante PIX
+              </span>
+              <strong className="text-emerald-700 tabular-nums">
+                R$ {ocrLiquidacao.resumoPreview.valorComprovantePix.toFixed(2)}
+              </strong>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                Saldo em Aberto ({ocrLiquidacao.resumoPreview.quantidadeLancamentos} itens)
+              </span>
+              <strong className="text-slate-950 tabular-nums">
+                R$ {ocrLiquidacao.resumoPreview.totalLiquidoAberto.toFixed(2)}
+              </strong>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                Status da Quitação
+              </span>
+              <strong
+                className={
+                  ocrLiquidacao.resumoPreview.zeraSaldoExato
+                    ? 'text-emerald-700'
+                    : 'text-amber-700'
+                }
+              >
+                {ocrLiquidacao.resumoPreview.zeraSaldoExato
+                  ? 'Zera o ciclo com exatidão ✓'
+                  : `Diferença: R$ ${ocrLiquidacao.resumoPreview.diferenca.toFixed(2)}`}
+              </strong>
+            </div>
+          </div>
+
+          {ocrLiquidacao.lancamentosCandidatos.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[11px] font-semibold text-indigo-900">
+                Somente os {ocrLiquidacao.lancamentosCandidatos.length} lançamento(s) deste corte serão marcados como <strong>LIQUIDADO</strong>. Apontamentos futuros abrirão novo ciclo automaticamente.
+              </span>
+              <button
+                type="button"
+                disabled={liquidando}
+                onClick={() => void handleConfirmarLiquidacaoOcr()}
+                className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black flex items-center gap-2 shadow-sm"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>
+                  {liquidando
+                    ? 'Liquidando ciclo...'
+                    : `Confirmar Quitação de ${ocrLiquidacao.trabalhadorMatch}`}
+                </span>
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs font-bold text-amber-800">
+              Nenhum lançamento em aberto (VALIDADO) encontrado para {ocrLiquidacao.trabalhadorMatch || 'este favorecido'} no ciclo atual.
+            </p>
+          )}
+        </div>
+      )}
 
       {liquidadoSucesso && (
         <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl flex items-center gap-3.5 text-emerald-900 shadow-md">
@@ -373,6 +814,19 @@ export default function BorderoPage() {
                         R$ {totais.totalLiquido.toFixed(2)}
                       </span>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => void handleGerarReciboIndividual(f)}
+                      disabled={gerandoReciboId === f.id}
+                      className="px-3.5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-2xl transition-all border border-slate-700 shadow-sm text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+                      title="Gerar Comprovante Detalhado Individual de Liquidação PIX (salvo no R2, com impressão/download e envio opcional no WhatsApp)"
+                    >
+                      <FileText className="w-4 h-4 text-emerald-400" />
+                      <span>
+                        {gerandoReciboId === f.id ? 'Gerando...' : 'Recibo PIX'}
+                      </span>
+                    </button>
 
                     <button
                       onClick={() => handleAbrirModalPix(f)}
@@ -811,6 +1265,171 @@ export default function BorderoPage() {
               <Check className="w-4 h-4 stroke-[3]" />
               <span>Copiar Código e Fechar</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Comprovante Detalhado Individual de Liquidação PIX (Prompt 7 — R2 + Impressão + WhatsApp Opcional) */}
+      {reciboModal && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-100 animate-scale-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-600" />
+                <div>
+                  <h3 className="font-black text-base text-slate-950">
+                    Comprovante Individual de Liquidação PIX
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {reciboModal.nomeTrabalhador} • Chave: {reciboModal.chavePix}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReciboModal(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Resumo Financeiro + Status R2 */}
+            <div className="grid grid-cols-3 gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 text-center">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                  Bruto Diárias
+                </span>
+                <strong className="text-sm font-black text-slate-900 tabular-nums">
+                  R$ {reciboModal.totalBruto.toFixed(2)}
+                </strong>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                  Vales Abatidos
+                </span>
+                <strong className="text-sm font-black text-rose-600 tabular-nums">
+                  - R$ {reciboModal.totalVales.toFixed(2)}
+                </strong>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                  Líquido PIX
+                </span>
+                <strong className="text-sm font-black text-emerald-700 tabular-nums">
+                  R$ {reciboModal.totalLiquido.toFixed(2)}
+                </strong>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs">
+              <div className="flex items-center gap-2 text-emerald-900 font-bold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  {reciboModal.r2Salvo
+                    ? 'Cópia pericial arquivada no Cloudflare R2'
+                    : 'PDF gerado localmente (pronto para download/impressão)'}
+                </span>
+              </div>
+              {reciboModal.reciboUrl && (
+                <a
+                  href={reciboModal.reciboUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 underline"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Abrir R2</span>
+                </a>
+              )}
+            </div>
+
+            <div className="text-[10px] font-mono text-slate-400 truncate">
+              SHA-256: {reciboModal.sha256}
+            </div>
+
+            {/* Ações de Download / Impressão (Sempre disponíveis) */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  baixarPdfBase64Local(
+                    reciboModal.pdfBase64,
+                    reciboModal.fileName,
+                    false
+                  )
+                }
+                className="py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all active:scale-95"
+              >
+                <Download className="w-4 h-4 text-emerald-400" />
+                <span>Baixar PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  baixarPdfBase64Local(
+                    reciboModal.pdfBase64,
+                    reciboModal.fileName,
+                    true
+                  )
+                }
+                className="py-2.5 px-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all active:scale-95"
+              >
+                <Printer className="w-4 h-4 text-slate-600" />
+                <span>Abrir / Imprimir</span>
+              </button>
+            </div>
+
+            {/* Envio Opcional no WhatsApp do Trabalhador (Human-in-the-Loop) */}
+            <div className="pt-3 border-t border-slate-100 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-800">
+                  Envio Opcional no WhatsApp do Colaborador
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                  Opcional (não automático)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={reciboModal.telefoneTrabalhador}
+                  onChange={(e) =>
+                    setReciboModal({
+                      ...reciboModal,
+                      telefoneTrabalhador: e.target.value,
+                    })
+                  }
+                  placeholder="DDD + WhatsApp (ex: 11999998888)"
+                  className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+                <button
+                  type="button"
+                  disabled={
+                    reciboModal.enviandoZap ||
+                    !reciboModal.telefoneTrabalhador.trim()
+                  }
+                  onClick={() => void handleEnviarReciboWhatsappOpcional()}
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all disabled:opacity-50 shrink-0"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>
+                    {reciboModal.enviandoZap ? 'Enviando...' : 'Enviar no Zap'}
+                  </span>
+                </button>
+              </div>
+              {reciboModal.zapStatus && (
+                <div
+                  className={`p-2.5 rounded-xl text-[11px] font-bold ${
+                    reciboModal.zapStatus.tipo === 'sucesso'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200'
+                  }`}
+                >
+                  {reciboModal.zapStatus.texto}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
