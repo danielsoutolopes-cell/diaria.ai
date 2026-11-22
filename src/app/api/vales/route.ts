@@ -831,15 +831,33 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 4. Editar trabalhador, obra, valor ou data via dropdowns
+    // 4. Editar trabalhador, obra, valor ou data via dropdowns + Aprendizado Contínuo
     if (body.action === 'editar-vale' && body.valeId) {
+      const { data: valeAntes } = await supabaseAdmin
+        .from('lancamentos_financeiros')
+        .select('nome_trabalhador, observacao, obras_config ( nome )')
+        .eq('tenant_id', tenantId)
+        .eq('id', body.valeId)
+        .maybeSingle();
+
+      const valeAntesTipado = valeAntes as unknown as {
+        nome_trabalhador?: string | null;
+        observacao?: string | null;
+        obras_config?: { nome?: string | null } | Array<{ nome?: string | null }> | null;
+      } | null;
+      const obraAntesRel = valeAntesTipado?.obras_config;
+      const obraAntesNome = Array.isArray(obraAntesRel)
+        ? obraAntesRel[0]?.nome || null
+        : obraAntesRel?.nome || null;
+
       const updates: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       };
-      if (body.trabalhador) {
-        updates.nome_trabalhador = normalizarNomeTrabalhadorCanonico(
-          body.trabalhador
-        );
+      const novoNomeCanon = body.trabalhador
+        ? normalizarNomeTrabalhadorCanonico(body.trabalhador)
+        : null;
+      if (novoNomeCanon) {
+        updates.nome_trabalhador = novoNomeCanon;
       }
       if (body.obraId !== undefined || body.obraNome) {
         updates.obra_id = await resolverObraId(
@@ -867,6 +885,20 @@ export async function POST(req: NextRequest) {
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      const { registrarCorrecaoHumanaAprendizado } = await import(
+        '@/services/aprendizadoCampoService'
+      );
+      await registrarCorrecaoHumanaAprendizado({
+        tenantId,
+        autorCorrecao: body.pagoPor || 'Administração',
+        trabalhadorAnterior: valeAntesTipado?.nome_trabalhador || null,
+        trabalhadorCorrigido: body.trabalhador || null,
+        obraAnterior: obraAntesNome,
+        obraCorrigida: body.obraNome || null,
+        exemploMensagem: valeAntesTipado?.observacao || null,
+      }).catch(() => {});
+
       return NextResponse.json({
         success: true,
         message: 'Vale atualizado com sucesso!',

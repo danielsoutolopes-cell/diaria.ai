@@ -812,8 +812,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Extração NLP isolada pelo tenantId resolvido
-    const extracao = await extrairDadosMensagem(messageText, tenantId);
+    // Extração NLP isolada pelo tenantId resolvido + contexto do remetente para aprendizado contínuo
+    const extracao = await extrairDadosMensagem(messageText, tenantId, {
+      remetenteTelefone: senderNumber || null,
+      remetenteNome: body?.data?.pushName || null,
+    });
 
     // Enriquecimento determinístico para pedidos naturais e complementares encadeados de vale (Prompt 11)
     // Ex.: Msg 1: "Uma vale pra o Mateus por favor." | Msg 2: "Pra o Daniel e o Ian também por favor. Vale."

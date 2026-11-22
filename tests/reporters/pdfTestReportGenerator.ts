@@ -261,7 +261,7 @@ export function gerarRelatorioHomologacaoPdf(input: HomologacaoPdfInput): {
     13
   );
   writeLine(
-    'Novo Ciclo em Aberto (21/11): Quase Tudo 16:39 (R$ 410,00) + Piscina Porto Seguro 18:12 (R$ 2.070,00) = R$ 2.480,00.',
+    'Novo Ciclo em Aberto (21/11): Quase Tudo 16:39 (R$ 410,00) + Piscina Porto Seguro 18:12 (R$ 2.200,00) = R$ 2.610,00.',
     'F1',
     9,
     36,
@@ -358,11 +358,11 @@ export function gerarRelatorioHomologacaoPdf(input: HomologacaoPdfInput): {
     writeLine(`   Detalhe: ${truncate(log.reason, 100)}`, 'F1', 8, 44, 12);
   }
 
-  // SEÇÃO 3B: CONVERGÊNCIA & SELF-HEALING DE DIÁRIAS (54 = R$ 9.780,00)
+  // SEÇÃO 3B: CONVERGÊNCIA & SELF-HEALING DE DIÁRIAS (54 = R$ 10.040,00)
   if (input.diariasSelfHealing) {
     const d = input.diariasSelfHealing;
     writeSectionTitle(
-      '3B. CONVERGENCIA & SELF-HEALING DE DIARIAS (54 LANCAMENTOS = R$ 9.780,00)'
+      '3B. CONVERGENCIA & SELF-HEALING DE DIARIAS (54 LANCAMENTOS = R$ 10.040,00)'
     );
     writeLine(
       `Assertiva Rigida: assert(diariasCount === ${d.expectedCount} && diariasTotal === ${d.expectedTotal.toFixed(2)}) => ${d.converged ? 'BATIMENTO 100% (DISCREPANCIA ZERO)' : 'DIVERGENTE'}`,

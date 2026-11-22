@@ -52,9 +52,14 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
         descricao:
           'Consolida pendências anteriores como validadas e impede que reconexões do WhatsApp reintroduzam mensagens antigas.',
       },
+      {
+        nome: 'Memória de Campo (IA) por Remetente',
+        descricao:
+          'Aprende automaticamente apelidos, padrões de escrita e obra padrão de cada remetente (inclusive a partir de correções humanas na validação). Clique em "Ver / Ajustar" para revisar ou editar regras aprendidas.',
+      },
     ],
     exemplo:
-      'Expanda "Ver Mensagem Original", ajuste frações (Integral / Meio Dia) se necessário e clique em "Aprovar Mensagem".',
+      'Expanda "Ver Mensagem Original", ajuste frações (Integral / Meio Dia) se necessário e clique em "Aprovar Mensagem". Se corrigir um apelido ou obra, a IA memoriza automaticamente para os próximos envios.',
   },
   '/validacao/diarias': {
     titulo: 'Validação de Diárias & Efetivo',

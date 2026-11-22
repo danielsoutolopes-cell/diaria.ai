@@ -9,8 +9,8 @@ import {
   isLancamentoPosQuitacao,
 } from '@/services/reconciliacaoDiariasV16';
 
-describe('11. Reprocessamento Histórico de Diárias & Loop Self-Healing (54 Diárias = R$ 9.780,00)', () => {
-  it('converge exatamente para 54 lançamentos = R$ 9.780,00 (Base R$ 7.710,00 + Piscina 21/11 18:12 R$ 2.070,00) com isolamento tenant_id', () => {
+describe('11. Reprocessamento Histórico de Diárias & Loop Self-Healing (54 Diárias = R$ 10.040,00)', () => {
+  it('converge exatamente para 54 lançamentos = R$ 10.040,00 (Base R$ 7.840,00 + Piscina 21/11 18:12 R$ 2.200,00) com isolamento tenant_id', () => {
     const parser = new SelfHealingDiariaParserV16();
     const res = parser.runReconciliationWithSelfHealing(
       HISTORICO_DIARIAS_AUDITORIA_V16,
@@ -19,12 +19,12 @@ describe('11. Reprocessamento Histórico de Diárias & Loop Self-Healing (54 Di�
       ESPERADO_AUDITORIA_DIARIAS.totalAmount
     );
 
-    // 1. Assertiva obrigatória de batimento exato (54 lançamentos = R$ 9.780,00)
+    // 1. Assertiva obrigatória de batimento exato (54 lançamentos = R$ 10.040,00)
     assert.equal(res.converged, true);
     assert.equal(res.totalCount, 54);
-    assert.equal(res.totalAmount, 9780.0);
+    assert.equal(res.totalAmount, 10040.0);
 
-    // 2. Base até 21/11 16:39 = 47 lançamentos / R$ 7.710,00
+    // 2. Base até 21/11 16:39 = 47 lançamentos / R$ 7.840,00 (Zé Baiano 20/11 = R$ 280,00)
     const baseAte1639 = res.diarias.filter(
       (d) => d.loteTag !== '2026-11-21-1812'
     );
@@ -32,11 +32,11 @@ describe('11. Reprocessamento Histórico de Diárias & Loop Self-Healing (54 Di�
       baseAte1639.reduce((acc, d) => acc + d.valorFinal, 0).toFixed(2)
     );
     assert.equal(baseAte1639.length, 47);
-    assert.equal(totalBase, 7710.0);
+    assert.equal(totalBase, 7840.0);
 
-    // 3. Lote Piscina Porto Seguro (21/11 18:12) = 7 diárias / R$ 2.070,00
+    // 3. Lote Piscina Porto Seguro (21/11 18:12) = 7 diárias / R$ 2.200,00 (Zé Baiano = R$ 280,00)
     assert.equal(res.lotePiscina21Count, 7);
-    assert.equal(res.lotePiscina21Total, 2070.0);
+    assert.equal(res.lotePiscina21Total, 2200.0);
     const piscina21Map = new Map(
       res.diarias
         .filter((d) => d.loteTag === '2026-11-21-1812')
@@ -47,7 +47,7 @@ describe('11. Reprocessamento Histórico de Diárias & Loop Self-Healing (54 Di�
     assert.equal(piscina21Map.get('Lucas J'), 150);
     assert.equal(piscina21Map.get('Peu'), 450);
     assert.equal(piscina21Map.get('Ian'), 300);
-    assert.equal(piscina21Map.get('Zé Baiano'), 150);
+    assert.equal(piscina21Map.get('Zé Baiano'), 280);
     assert.equal(piscina21Map.get('Daniel'), 280);
 
     // 4. Novo ciclo Quase Tudo (21/11 16:39) = Manoel R$ 230 + Wender R$ 180 = R$ 410,00 (sem zerar retroativamente)

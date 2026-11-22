@@ -19,6 +19,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { ReceiptLightbox } from '@/components/ReceiptLightbox';
+import { MemoriaAprendizadoPanel } from '@/components/MemoriaAprendizadoPanel';
 import {
   getActiveTenantFromBrowser,
   TENANTS,
@@ -558,6 +559,9 @@ export default function ValidacoesPage() {
           )}
         </div>
       )}
+
+      {/* Resumo Discreto da Memória de Aprendizado Contínuo por Remetente (IA) */}
+      <MemoriaAprendizadoPanel usuarioAtual={usuarioAtual} />
 
       {loading ? (
         <div className="space-y-4 animate-pulse">

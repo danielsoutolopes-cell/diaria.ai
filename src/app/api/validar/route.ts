@@ -3,6 +3,11 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { getActiveTenantFromRequest } from '@/lib/tenant';
 import { formatarAlertaEdicaoPatricia } from '@/services/notificacoesAdmin';
 import { formatarTicketPontoWhatsApp } from '@/services/ticketPonto';
+import {
+  atualizarPerfilRemetenteValidado,
+  extrairRemetenteDeTextoLote,
+  registrarCorrecaoHumanaAprendizado,
+} from '@/services/aprendizadoCampoService';
 
 interface AjusteValidacaoItem {
   detalheId?: string;
@@ -37,6 +42,7 @@ interface PontoLoteQueryRow {
 }
 
 interface PontoDetalheTicketRow {
+  id?: string;
   nome_trabalhador: string;
   fracao_dia: number | string | null;
   motivo_excecao: string | null;
@@ -97,6 +103,8 @@ export async function POST(req: NextRequest) {
 
     // Tenant autoritativo do lote (garante isolamento absoluto nas atualizações filhas)
     const loteTenantId = lote.tenant_id || activeTenant.id;
+    const obraOriginalLote = extrairNomeObra(lote.obras_config);
+    const remetenteLote = extrairRemetenteDeTextoLote(lote.texto_original);
 
     // 2. Detecção de Conflito de Validação entre Múltiplos Administradores (Patrícia vs Daniel)
     const jaValidado = lote.status_validacao === 'VALIDADO';
@@ -114,14 +122,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Atualizar frações ajustadas com trava de tenant_id
+    // Snapshot anterior de ponto_detalhe para detectar correções humanas (de -> para)
+    const { data: detalhesAntesRaw } = await supabaseAdmin
+      .from('ponto_detalhe')
+      .select('id, nome_trabalhador, fracao_dia, motivo_excecao')
+      .eq('ponto_lote_id', lote.id)
+      .eq('tenant_id', loteTenantId);
+    const detalhesAntesMap = new Map<string, PontoDetalheTicketRow>();
+    ((detalhesAntesRaw as unknown as PontoDetalheTicketRow[] | null) || []).forEach(
+      (d) => {
+        if (d.id) detalhesAntesMap.set(d.id, d);
+      }
+    );
+
+    // 3. Atualizar frações/nomes ajustados com trava de tenant_id + Aprendizado Contínuo
     const alteracoesRealizadas: string[] = [];
+    let obraValidadaFinal = obraOriginalLote;
     if (ajustes && Array.isArray(ajustes)) {
       for (const item of ajustes) {
+        const antesDet = item.detalheId
+          ? detalhesAntesMap.get(item.detalheId)
+          : undefined;
+        const nomeAntes = antesDet?.nome_trabalhador || null;
+        const fracaoAntes =
+          antesDet?.fracao_dia !== undefined && antesDet?.fracao_dia !== null
+            ? Number(antesDet.fracao_dia)
+            : null;
+        if (item.obra && item.obra.trim()) {
+          obraValidadaFinal = item.obra.trim();
+        }
+
         if (item.detalheId) {
           await supabaseAdmin
             .from('ponto_detalhe')
-            .update({ fracao_dia: item.fracao_dia })
+            .update({
+              fracao_dia: item.fracao_dia,
+              ...(item.trabalhador && item.trabalhador.trim()
+                ? { nome_trabalhador: item.trabalhador.trim() }
+                : {}),
+            })
             .eq('id', item.detalheId)
             .eq('tenant_id', loteTenantId);
         }
@@ -133,6 +172,9 @@ export async function POST(req: NextRequest) {
               valor_monetario: (item.valor_diaria || 150) * item.fracao_dia,
               status: 'VALIDADO',
               aprovado_por: usuarioLogado,
+              ...(item.trabalhador && item.trabalhador.trim()
+                ? { nome_trabalhador: item.trabalhador.trim() }
+                : {}),
             })
             .eq('id', item.lancamentoId)
             .eq('tenant_id', loteTenantId);
@@ -144,17 +186,44 @@ export async function POST(req: NextRequest) {
                 fracao_dia: item.fracao_dia,
                 valor_monetario: (item.valor_diaria || 150) * item.fracao_dia,
                 status: 'VALIDADO',
+                ...(item.trabalhador && item.trabalhador.trim()
+                  ? { nome_trabalhador: item.trabalhador.trim() }
+                  : {}),
               })
               .eq('id', item.lancamentoId)
               .eq('tenant_id', loteTenantId);
           }
         }
+
+        // Registra correção humana (de -> para) na memória do tenant se houve alteração
+        await registrarCorrecaoHumanaAprendizado({
+          tenantId: loteTenantId,
+          autorCorrecao: usuarioLogado,
+          remetenteTelefone: remetenteLote,
+          trabalhadorAnterior: nomeAntes,
+          trabalhadorCorrigido: item.trabalhador || null,
+          obraAnterior: obraOriginalLote,
+          obraCorrigida: item.obra || null,
+          fracaoAnterior: fracaoAntes,
+          fracaoCorrigida: item.fracao_dia,
+          exemploMensagem: lote.texto_original?.slice(0, 240) || null,
+        }).catch(() => {});
+
         if (item.trabalhador) {
           alteracoesRealizadas.push(
             `${item.trabalhador}: fração ajustada para ${item.fracao_dia} (R$ ${((item.valor_diaria || 150) * item.fracao_dia).toFixed(2)})`
           );
         }
       }
+    }
+
+    // Atualiza contexto padrão de obra do remetente com base no envio validado
+    if (remetenteLote && obraValidadaFinal && obraValidadaFinal !== 'CANTEIRO DE OBRAS') {
+      await atualizarPerfilRemetenteValidado({
+        tenantId: loteTenantId,
+        remetenteTelefone: remetenteLote,
+        obraValidada: obraValidadaFinal,
+      }).catch(() => {});
     }
 
     // 4. Atualizar status de todos os lançamentos financeiros vinculados ao lote (sem alterar itens LIQUIDADO/DESCARTADO)

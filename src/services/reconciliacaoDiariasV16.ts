@@ -75,11 +75,11 @@ export interface DiariaReconciliationResult {
 
 export const ESPERADO_AUDITORIA_DIARIAS = {
   totalCount: 54,
-  totalAmount: 9780.0,
+  totalAmount: 10040.0,
   baseAte21_1639Count: 47,
-  baseAte21_1639Amount: 7710.0,
+  baseAte21_1639Amount: 7840.0,
   piscinaPortoSeguro21_1812Count: 7,
-  piscinaPortoSeguro21_1812Amount: 2070.0,
+  piscinaPortoSeguro21_1812Amount: 2200.0,
   quaseTudo21_1639Count: 2,
   quaseTudo21_1639Amount: 410.0,
 } as const;
@@ -186,7 +186,7 @@ export const HISTORICO_DIARIAS_AUDITORIA_V16: readonly RawDiariaLogEntry[] = [
   { id: 'd-20-1', tenantId: JHOSTON_ID, dataReferencia: '2026-11-20', timestampEnvio: '2026-11-20T17:20:00-03:00', obraBruta: 'Quase Tudo', tipoObra: 'OBRA_CIVIL', trabalhadorBruto: 'Manoel', fracao: 1.0, valorBruto: 230, loteTag: '2026-11-20-1720', enviadoPor: 'Joabson' },
   { id: 'd-20-2', tenantId: JHOSTON_ID, dataReferencia: '2026-11-20', timestampEnvio: '2026-11-20T17:20:00-03:00', obraBruta: 'Quase Tudo', tipoObra: 'OBRA_CIVIL', trabalhadorBruto: 'Wender', fracao: 1.0, valorBruto: 180, loteTag: '2026-11-20-1720', enviadoPor: 'Joabson' },
   { id: 'd-20-3', tenantId: JHOSTON_ID, dataReferencia: '2026-11-20', timestampEnvio: '2026-11-20T17:30:00-03:00', obraBruta: 'Porto Seguro', tipoObra: 'OBRA_CIVIL', trabalhadorBruto: 'Lucas J.', fracao: 1.0, valorBruto: 150, loteTag: '2026-11-20-1730', enviadoPor: 'Gil' },
-  { id: 'd-20-4', tenantId: JHOSTON_ID, dataReferencia: '2026-11-20', timestampEnvio: '2026-11-20T17:30:00-03:00', obraBruta: 'Porto Seguro', tipoObra: 'OBRA_CIVIL', trabalhadorBruto: 'Zé Baiano', fracao: 1.0, valorBruto: 150, loteTag: '2026-11-20-1730', enviadoPor: 'Gil' },
+  { id: 'd-20-4', tenantId: JHOSTON_ID, dataReferencia: '2026-11-20', timestampEnvio: '2026-11-20T17:30:00-03:00', obraBruta: 'Porto Seguro', tipoObra: 'OBRA_CIVIL', trabalhadorBruto: 'Zé Baiano', fracao: 1.0, valorBruto: 280, loteTag: '2026-11-20-1730', enviadoPor: 'Gil' },
   { id: 'd-20-5', tenantId: JHOSTON_ID, dataReferencia: '2026-11-20', timestampEnvio: '2026-11-20T17:30:00-03:00', obraBruta: 'Porto Seguro', tipoObra: 'OBRA_CIVIL', trabalhadorBruto: 'Mateus', fracao: 0.5, valorBruto: 90, loteTag: '2026-11-20-1730', enviadoPor: 'Gil' },
   { id: 'd-20-6', tenantId: JHOSTON_ID, dataReferencia: '2026-11-20', timestampEnvio: '2026-11-20T17:30:00-03:00', obraBruta: 'Porto Seguro', tipoObra: 'OBRA_CIVIL', trabalhadorBruto: 'Daniel', fracao: 0.5, valorBruto: 90, loteTag: '2026-11-20-1730', enviadoPor: 'Gil' },
   { id: 'd-20-7', tenantId: JHOSTON_ID, dataReferencia: '2026-11-20', timestampEnvio: '2026-11-20T17:30:00-03:00', obraBruta: 'Porto Seguro', tipoObra: 'OBRA_CIVIL', trabalhadorBruto: 'Gil', fracao: 0.5, valorBruto: 100, loteTag: '2026-11-20-1730', enviadoPor: 'Gil' },
@@ -199,13 +199,13 @@ export const HISTORICO_DIARIAS_AUDITORIA_V16: readonly RawDiariaLogEntry[] = [
   // Duplicidade proposital do webhook (mesmo trabalhador/obra/lote — deve ser deduplicado via SHA-256!)
   { id: 'd-21-qt-dup', tenantId: JHOSTON_ID, dataReferencia: '2026-11-21', timestampEnvio: '2026-11-21T16:39:05-03:00', obraBruta: 'Quase Tudo', tipoObra: 'OBRA_CIVIL', trabalhadorBruto: 'Weslen', fracao: 1.0, valorBruto: 180, loteTag: '2026-11-21-1639', enviadoPor: 'Joabson', corteQuitacaoAnteriorIso: '2026-11-21T11:52:00-03:00' },
 
-  // 21/11 (Sáb) 18:12 — Lote Piscina Porto Seguro enviado por Gil (7 lançamentos = R$ 2.070,00)
+  // 21/11 (Sáb) 18:12 — Lote Piscina Porto Seguro enviado por Gil (7 lançamentos = R$ 2.200,00 — Zé Baiano R$ 280,00)
   { id: 'd-21-ps-1', tenantId: JHOSTON_ID, dataReferencia: '2026-11-21', timestampEnvio: '2026-11-21T18:12:00-03:00', obraBruta: 'Piscina Porto Seguro', tipoObra: 'PISCINA', trabalhadorBruto: 'Gilvan - Gil', fracao: 1.0, valorBruto: 400, loteTag: '2026-11-21-1812', enviadoPor: 'Gil' },
   { id: 'd-21-ps-2', tenantId: JHOSTON_ID, dataReferencia: '2026-11-21', timestampEnvio: '2026-11-21T18:12:00-03:00', obraBruta: 'Piscina Porto Seguro', tipoObra: 'PISCINA', trabalhadorBruto: 'Mateus', fracao: 1.0, valorBruto: 340, loteTag: '2026-11-21-1812', enviadoPor: 'Gil' },
   { id: 'd-21-ps-3', tenantId: JHOSTON_ID, dataReferencia: '2026-11-21', timestampEnvio: '2026-11-21T18:12:00-03:00', obraBruta: 'Piscina Porto Seguro', tipoObra: 'PISCINA', trabalhadorBruto: 'Lucas J.', fracao: 1.0, valorBruto: 150, loteTag: '2026-11-21-1812', enviadoPor: 'Gil' },
   { id: 'd-21-ps-4', tenantId: JHOSTON_ID, dataReferencia: '2026-11-21', timestampEnvio: '2026-11-21T18:12:00-03:00', obraBruta: 'Piscina Porto Seguro', tipoObra: 'PISCINA', trabalhadorBruto: 'Edmilson - Peu', fracao: 1.0, valorBruto: 450, loteTag: '2026-11-21-1812', enviadoPor: 'Gil' },
   { id: 'd-21-ps-5', tenantId: JHOSTON_ID, dataReferencia: '2026-11-21', timestampEnvio: '2026-11-21T18:12:00-03:00', obraBruta: 'Piscina Porto Seguro', tipoObra: 'PISCINA', trabalhadorBruto: 'Ian', fracao: 1.0, valorBruto: 300, loteTag: '2026-11-21-1812', enviadoPor: 'Gil' },
-  { id: 'd-21-ps-6', tenantId: JHOSTON_ID, dataReferencia: '2026-11-21', timestampEnvio: '2026-11-21T18:12:00-03:00', obraBruta: 'Piscina Porto Seguro', tipoObra: 'PISCINA', trabalhadorBruto: 'José baiano', fracao: 1.0, valorBruto: 150, loteTag: '2026-11-21-1812', enviadoPor: 'Gil' },
+  { id: 'd-21-ps-6', tenantId: JHOSTON_ID, dataReferencia: '2026-11-21', timestampEnvio: '2026-11-21T18:12:00-03:00', obraBruta: 'Piscina Porto Seguro', tipoObra: 'PISCINA', trabalhadorBruto: 'José baiano', fracao: 1.0, valorBruto: 280, loteTag: '2026-11-21-1812', enviadoPor: 'Gil' },
   { id: 'd-21-ps-7', tenantId: JHOSTON_ID, dataReferencia: '2026-11-21', timestampEnvio: '2026-11-21T18:12:00-03:00', obraBruta: 'Piscina Porto Seguro', tipoObra: 'PISCINA', trabalhadorBruto: 'Daniel', fracao: 1.0, valorBruto: 280, loteTag: '2026-11-21-1812', enviadoPor: 'Gil' },
 
   // Registros do tenant INTERMACK (NÃO podem vazar para Jhoston!)

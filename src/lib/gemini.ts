@@ -4,9 +4,24 @@ import {
   executarPipelineDuasPassagens,
   reconciliarExtracaoComParserDeterministico,
 } from '@/lib/extracaoDiariasParser';
+import {
+  aplicarRegrasAprendidasTexto,
+  atualizarPerfilRemetenteValidado,
+  carregarContextoAprendizado,
+  extrairAssinaturaEstruturalMensagem,
+  gerarBlocoFewShotPrompt,
+  registrarRegraAprendida,
+  sugerirObraPadraoSeOmitida,
+  type ContextoAprendizadoRemetente,
+} from '@/services/aprendizadoCampoService';
 
 const apiKey = (process.env.GEMINI_API_KEY || '').replace(/^"|"$/g, '');
 const genAI = new GoogleGenerativeAI(apiKey);
+
+export interface ContextoRemetenteExtracao {
+  remetenteTelefone?: string | null;
+  remetenteNome?: string | null;
+}
 
 const SYSTEM_INSTRUCTION = `
 Você é o assistente de Inteligência Artificial do sistema Ponto Patrícia (Diária.AI), especializado em extração multi-contexto de mensagens operacionais informais de canteiro de obras e construção de piscinas.
@@ -91,7 +106,8 @@ IMPORTANTE SOBRE FRAÇÕES:
 
 export async function extrairDadosMensagem(
   textoMensagem: string,
-  tenantId?: string
+  tenantId?: string,
+  contextoRemetente?: ContextoRemetenteExtracao
 ): Promise<NLPExtracaoResponse> {
   if (!textoMensagem || !textoMensagem.trim()) {
     return { obras: [] };
@@ -99,26 +115,40 @@ export async function extrairDadosMensagem(
 
   let funcionariosOficiaisTenant: string[] = [];
   let obrasOficiaisTenant: string[] = [];
+  let targetTenantId = tenantId || '00000000-0000-0000-0000-000000000001';
+  let contextoAprendido: ContextoAprendizadoRemetente = {
+    tenantId: targetTenantId,
+    remetenteTelefone: contextoRemetente?.remetenteTelefone || null,
+    perfilRemetente: null,
+    regrasAtivas: [],
+  };
 
-  // 1. Injeção Dinâmica da Tabela de Apelidos de Obras e Colaboradores (isolada por tenant_id)
+  // 1. Injeção Dinâmica da Tabela de Apelidos + Memória de Aprendizado Contínuo (isolada por tenant_id)
   let instrucoesAdicionais = '';
   try {
     const { obterApelidosSistema } = await import('@/services/apelidosStorage');
     const { supabaseAdmin } = await import('@/lib/supabase');
     const { TENANTS } = await import('@/lib/tenant');
-    const targetTenantId = tenantId || TENANTS.jhoston.id;
+    targetTenantId = tenantId || TENANTS.jhoston.id;
 
-    const [mapaApelidos, { data: obrasDB }, { data: funcsDB }] = await Promise.all([
-      obterApelidosSistema(),
-      supabaseAdmin
-        .from('obras_config')
-        .select('id, nome')
-        .eq('tenant_id', targetTenantId),
-      supabaseAdmin
-        .from('funcionarios_obra')
-        .select('id, nome_trabalhador')
-        .eq('tenant_id', targetTenantId),
-    ]);
+    const [mapaApelidos, { data: obrasDB }, { data: funcsDB }, memAprendida] =
+      await Promise.all([
+        obterApelidosSistema(),
+        supabaseAdmin
+          .from('obras_config')
+          .select('id, nome')
+          .eq('tenant_id', targetTenantId),
+        supabaseAdmin
+          .from('funcionarios_obra')
+          .select('id, nome_trabalhador')
+          .eq('tenant_id', targetTenantId),
+        carregarContextoAprendizado(
+          targetTenantId,
+          contextoRemetente?.remetenteTelefone
+        ),
+      ]);
+
+    contextoAprendido = memAprendida;
 
     const listaObrasRows = (obrasDB || []) as Array<{ id: string; nome: string }>;
     const listaFuncsRows = (funcsDB || []) as Array<{
@@ -160,8 +190,14 @@ export async function extrairDadosMensagem(
         `COLABORADORES:\n${listaDeParaFuncs.join('\n')}\n` +
         `Use OBRIGATORIAMENTE o nome oficial do cadastro sempre que encontrar um desses apelidos na mensagem!`;
     }
+
+    // Injeção dinâmica few-shot dos hábitos e aliases aprendidos do remetente/tenant
+    const blocoFewShot = gerarBlocoFewShotPrompt(contextoAprendido);
+    if (blocoFewShot) {
+      instrucoesAdicionais += blocoFewShot;
+    }
   } catch (errAlias) {
-    console.warn('Não foi possível carregar tabela dinâmica de apelidos:', errAlias);
+    console.warn('Não foi possível carregar tabela dinâmica de apelidos/memória:', errAlias);
   }
 
   const opcoesTenant = {
@@ -187,7 +223,12 @@ export async function extrairDadosMensagem(
       opcoes: opcoesTenant,
       executarExtracaoLLM: async (promptTexto: string) => {
         if (!model) return null;
-        const result = await model.generateContent(promptTexto);
+        // Aplica aliases/regras já aprendidas do tenant/remetente antes da chamada LLM
+        const { textoEnriquecido } = aplicarRegrasAprendidasTexto(
+          promptTexto,
+          contextoAprendido
+        );
+        const result = await model.generateContent(textoEnriquecido);
         const responseText = result.response.text().trim();
         const jsonClean = responseText
           .replace(/^```json\s*/i, '')
@@ -198,14 +239,57 @@ export async function extrairDadosMensagem(
       },
     });
 
+    // Sugestão inteligente de obra padrão se o remetente omitiu o canteiro
+    const { extracao: extracaoComObra, obraSugeridaAplicada } =
+      sugerirObraPadraoSeOmitida(
+        resultadoPipeline.extracao,
+        contextoAprendido.perfilRemetente
+      );
+
+    if (obraSugeridaAplicada) {
+      resultadoPipeline.logsAjuste.push(
+        `[CONTEXTO_OBRA_REMETENTE] Obra padrão sugerida aplicada: ${obraSugeridaAplicada}.`
+      );
+    }
+
+    // Auto-aprendizado: se acionou a 2ª passagem complementar, grava assinatura estrutural
+    // para que futuras mensagens semelhantes sejam extraídas em 1 única passada
+    if (resultadoPipeline.segundaPassagemExecutada) {
+      const assinaturaInfo = extrairAssinaturaEstruturalMensagem(
+        textoMensagem,
+        resultadoPipeline.sanitizacao,
+        extracaoComObra
+      );
+      void registrarRegraAprendida({
+        tenantId: targetTenantId,
+        tipoRegra: 'ASSINATURA_ESTRUTURAL',
+        origemPadrao: assinaturaInfo.assinatura,
+        destinoCanonico: assinaturaInfo.descricaoDestino,
+        origemAprendizado: 'AUTO_PASSAGEM_2',
+        remetenteTelefone: contextoRemetente?.remetenteTelefone || null,
+        remetenteNome: contextoRemetente?.remetenteNome || null,
+        exemploMensagem: textoMensagem.slice(0, 240),
+        criadoPor: 'Auto-Aprendizado Passagem 2',
+      }).catch(() => {});
+
+      if (contextoRemetente?.remetenteTelefone) {
+        void atualizarPerfilRemetenteValidado({
+          tenantId: targetTenantId,
+          remetenteTelefone: contextoRemetente.remetenteTelefone,
+          remetenteNome: contextoRemetente.remetenteNome || undefined,
+          habitosAdicionais: assinaturaInfo.habitosDetectados,
+        }).catch(() => {});
+      }
+    }
+
     if (resultadoPipeline.logsAjuste.length > 0) {
       console.log(
         `[EXTRACAO_2_PASSAGENS] ${resultadoPipeline.logsAjuste.join(' | ')}`
       );
     }
 
-    if (resultadoPipeline.extracao.obras.length > 0) {
-      return resultadoPipeline.extracao;
+    if (extracaoComObra.obras.length > 0) {
+      return extracaoComObra;
     }
 
     return {
@@ -228,8 +312,12 @@ export async function extrairDadosMensagem(
       null,
       opcoesTenant
     );
-    if (fallback.obras.length > 0) {
-      return fallback;
+    const { extracao: fallbackComObra } = sugerirObraPadraoSeOmitida(
+      fallback,
+      contextoAprendido.perfilRemetente
+    );
+    if (fallbackComObra.obras.length > 0) {
+      return fallbackComObra;
     }
     return {
       obras: [

@@ -248,6 +248,7 @@ export default function AjudaPage() {
             <li><strong>Revisão de Fração</strong>: Confira se a IA classificou 1x diária ou meio período (0.5x).</li>
             <li><strong>Recibos em Lightbox</strong>: Na coluna Anexo/Recibo, clique no clipe de papel para ampliar a foto do comprovante e baixar localmente.</li>
             <li><strong>Trava de Confirmação Prévia ("Já Confirmado")</strong>: Como agora Patrícia e Daniel recebem avisos e operam o sistema, se um lote já foi aprovado por um deles, qualquer tentativa de revalidação exibe o alerta: <em>"O registro já foi confirmado por [Nome]. Quer continuar?"</em></li>
+            <li><strong>Memória de Campo (IA) por Remetente</strong>: O sistema aprende automaticamente apelidos, hábitos de pontuação e a obra padrão de cada remetente (tanto a partir da 2ª passagem automática quanto de correções humanas na validação). Na faixa discreta <strong>&quot;Memória de Campo (IA)&quot;</strong> no topo de <code>/validacoes</code>, você pode revisar, ajustar ou excluir qualquer regra aprendida.</li>
             <li><strong>Alerta Obrigatório para Patrícia</strong>: Sempre que qualquer registro for alterado por outro usuário (como Daniel), a Administradora Patrícia Grubel recebe uma mensagem detalhada no WhatsApp informando quem alterou, colaborador, obra e os novos valores.</li>
           </ul>
         </div>

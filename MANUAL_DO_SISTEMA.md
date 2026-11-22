@@ -134,7 +134,10 @@ Dentro do painel web, você conta com um chat interno que executa as mesmas regr
      > *"O registro já foi confirmado por [NOME]. Quer continuar e alterar?"*
 6. **Alerta Obrigatório & Exclusivo para Patrícia Grubel**:
    - **REGRA CRÍTICA INVIOLÁVEL**: Sempre que qualquer registro já confirmado for editado ou alterado por qualquer usuário (seja Daniel Lopes ou outro operador), a Administradora Central **Patrícia Grubel** recebe imediatamente uma notificação exclusiva no WhatsApp contendo o autor da edição, colaborador, canteiro, motivo da alteração e o ajuste de valor (antes vs depois).
-7. Ao clicar em **"Aprovar Mensagem"**, os lançamentos daquela mensagem passam para o status `VALIDADO` e ficam liberados para pagamento no Borderô.
+7. **Memória de Campo (IA) por Remetente**:
+   - Na faixa discreta **Memória de Campo (IA)** no topo da tela `/validacoes`, o sistema registra automaticamente apelidos, hábitos de pontuação/quebra de linha e a obra padrão de cada remetente (a partir da 2ª passagem automática ou de correções humanas em diárias e vales).
+   - *Exemplo Prático*: Se um encarregado costuma abreviar um nome ou omitir o canteiro na mensagem, após a primeira correção da administração, a IA aplica o mapeamento automaticamente nos envios seguintes. Você pode expandir **Ver / Ajustar** a qualquer momento para editar ou excluir uma regra.
+8. Ao clicar em **"Aprovar Mensagem"**, os lançamentos daquela mensagem passam para o status `VALIDADO` e ficam liberados para pagamento no Borderô.
 
 ---
 

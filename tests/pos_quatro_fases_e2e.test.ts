@@ -692,14 +692,14 @@ describe('5. Reinício Pós-Quitação (21/11), Lotes 16:39 / 18:12 & Regimes Es
         loteId: 'lote-qt-1639',
         createdAt: '2026-11-21T19:39:00Z',
       },
-      // Lote Piscina Porto Seguro 21/11 18:12 — 7 trabalhadores (+R$ 2.070,00)
+      // Lote Piscina Porto Seguro 21/11 18:12 — 7 trabalhadores (+R$ 2.200,00 — Zé Baiano R$ 280,00)
       ...[
         { id: 'ps-gil', nome: 'Gil', valor: 400 },
         { id: 'ps-mat', nome: 'Mateus', valor: 340 },
         { id: 'ps-luc', nome: 'Lucas J', valor: 150 },
         { id: 'ps-peu', nome: 'Peu', valor: 450 },
         { id: 'ps-ian', nome: 'Ian', valor: 300 },
-        { id: 'ps-zeb', nome: 'Zé Baiano', valor: 150 },
+        { id: 'ps-zeb', nome: 'Zé Baiano', valor: 280 },
         { id: 'ps-dan', nome: 'Daniel', valor: 280 },
       ].map((p) => ({
         id: p.id,
@@ -728,7 +728,7 @@ describe('5. Reinício Pós-Quitação (21/11), Lotes 16:39 / 18:12 & Regimes Es
       { id: '5', nomeTrabalhador: 'Lucas J', chavePix: 'l@pix', valorDiaria: 150, valorDiariaObra: 150, valorDiariaPiscina: 150, regimeRemuneracao: 'DIARISTA' },
       { id: '6', nomeTrabalhador: 'Peu', chavePix: 'p@pix', valorDiaria: 450, valorDiariaObra: 450, valorDiariaPiscina: 450, regimeRemuneracao: 'DIARISTA' },
       { id: '7', nomeTrabalhador: 'Ian', chavePix: 'i@pix', valorDiaria: 300, valorDiariaObra: 300, valorDiariaPiscina: 300, regimeRemuneracao: 'DIARISTA' },
-      { id: '8', nomeTrabalhador: 'Zé Baiano', chavePix: 'zb@pix', valorDiaria: 150, valorDiariaObra: 150, valorDiariaPiscina: 150, regimeRemuneracao: 'DIARISTA' },
+      { id: '8', nomeTrabalhador: 'Zé Baiano', chavePix: 'zb@pix', valorDiaria: 280, valorDiariaObra: 280, valorDiariaPiscina: 280, regimeRemuneracao: 'DIARISTA' },
       { id: '9', nomeTrabalhador: 'Daniel', chavePix: 'd@pix', valorDiaria: 280, valorDiariaObra: 280, valorDiariaPiscina: 280, regimeRemuneracao: 'DIARISTA' },
     ];
 
@@ -739,8 +739,8 @@ describe('5. Reinício Pós-Quitação (21/11), Lotes 16:39 / 18:12 & Regimes Es
     });
 
     assert.equal(rel.anomalias.length, 0);
-    // Quase Tudo (410) + Piscina Porto Seguro (2.070) = 2.480 em aberto (ciclos liquidados 1.150 + 1.275 isolados)
-    assert.equal(rel.simulacao.saldoAbertoAtual, 2480);
+    // Quase Tudo (410) + Piscina Porto Seguro (2.200) = 2.610 em aberto (ciclos liquidados 1.150 + 1.275 isolados)
+    assert.equal(rel.simulacao.saldoAbertoAtual, 2610);
   });
 
   it('calcula regimes especiais: Mensalista Diego (R$ 2.350/sem) e Dias Úteis Seg–Sáb Zé Roberto (10d = R$ 2.000)', () => {

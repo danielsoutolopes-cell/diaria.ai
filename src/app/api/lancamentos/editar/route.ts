@@ -144,8 +144,24 @@ export async function POST(req: NextRequest) {
         .eq('tenant_id', activeTenant.id);
     }
 
-    // 4. REGRA CRÍTICA INVIOLÁVEL: SEMPRE Notificar a Patrícia Grubel quando qualquer edição for feita
+    // 4. Registrar correção humana na memória de aprendizado do tenant (quando houver ajuste)
     const obraNome = extrairNomeObra(lanc.obras_config);
+    if (novaFracao !== undefined) {
+      const { registrarCorrecaoHumanaAprendizado } = await import(
+        '@/services/aprendizadoCampoService'
+      );
+      await registrarCorrecaoHumanaAprendizado({
+        tenantId: activeTenant.id,
+        autorCorrecao: usuarioLogado,
+        trabalhadorCorrigido: lanc.nome_trabalhador,
+        obraCorrigida: obraNome,
+        fracaoAnterior: 1.0,
+        fracaoCorrigida: Number(novaFracao),
+        exemploMensagem: novaObservacao || null,
+      }).catch(() => {});
+    }
+
+    // 5. REGRA CRÍTICA INVIOLÁVEL: SEMPRE Notificar a Patrícia Grubel quando qualquer edição for feita
     const alertaPatricia = formatarAlertaEdicaoPatricia({
       trabalhador: lanc.nome_trabalhador,
       obra: obraNome,

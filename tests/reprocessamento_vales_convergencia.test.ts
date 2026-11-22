@@ -221,14 +221,14 @@ describe('8. Gestão de Ciclos Manoel/Wender, Quitação Externa, PIX Avulsos & 
           loteId: 'lote-qt-1639',
           createdAt: '2026-11-21T16:39:00-03:00',
         },
-        // Novo ciclo em aberto: Piscina Porto Seguro 21/11 18:12 (+R$ 2.070,00)
+        // Novo ciclo em aberto: Piscina Porto Seguro 21/11 18:12 (+R$ 2.200,00 — Zé Baiano R$ 280,00)
         ...[
           { id: 'v15-gil', nome: 'Gil', valor: 400 },
           { id: 'v15-mat', nome: 'Mateus', valor: 340 },
           { id: 'v15-luc', nome: 'Lucas J', valor: 150 },
           { id: 'v15-peu', nome: 'Peu', valor: 450 },
           { id: 'v15-ian', nome: 'Ian', valor: 300 },
-          { id: 'v15-zeb', nome: 'Zé Baiano', valor: 150 },
+          { id: 'v15-zeb', nome: 'Zé Baiano', valor: 280 },
           { id: 'v15-dan', nome: 'Daniel', valor: 280 },
         ].map((p) => ({
           id: p.id,
@@ -256,7 +256,7 @@ describe('8. Gestão de Ciclos Manoel/Wender, Quitação Externa, PIX Avulsos & 
         { id: '5', nomeTrabalhador: 'Lucas J', chavePix: 'l@pix', valorDiaria: 150, valorDiariaObra: 150, valorDiariaPiscina: 150, regimeRemuneracao: 'DIARISTA' },
         { id: '6', nomeTrabalhador: 'Peu', chavePix: 'p@pix', valorDiaria: 450, valorDiariaObra: 450, valorDiariaPiscina: 450, regimeRemuneracao: 'DIARISTA' },
         { id: '7', nomeTrabalhador: 'Ian', chavePix: 'i@pix', valorDiaria: 300, valorDiariaObra: 300, valorDiariaPiscina: 300, regimeRemuneracao: 'DIARISTA' },
-        { id: '8', nomeTrabalhador: 'Zé Baiano', chavePix: 'zb@pix', valorDiaria: 150, valorDiariaObra: 150, valorDiariaPiscina: 150, regimeRemuneracao: 'DIARISTA' },
+        { id: '8', nomeTrabalhador: 'Zé Baiano', chavePix: 'zb@pix', valorDiaria: 280, valorDiariaObra: 280, valorDiariaPiscina: 280, regimeRemuneracao: 'DIARISTA' },
         { id: '9', nomeTrabalhador: 'Daniel', chavePix: 'd@pix', valorDiaria: 280, valorDiariaObra: 280, valorDiariaPiscina: 280, regimeRemuneracao: 'DIARISTA' },
         { id: '10', nomeTrabalhador: 'Zé Roberto', chavePix: 'zr@pix', valorDiaria: 200, valorDiariaObra: 200, valorDiariaPiscina: 200, regimeRemuneracao: 'DIAS_UTEIS_SEG_SAB' },
         { id: '11', nomeTrabalhador: 'Diego', chavePix: 'dg@pix', valorDiaria: 391.67, valorDiariaObra: 391.67, valorDiariaPiscina: 391.67, regimeRemuneracao: 'MENSALISTA' },
@@ -265,7 +265,7 @@ describe('8. Gestão de Ciclos Manoel/Wender, Quitação Externa, PIX Avulsos & 
     });
 
     assert.equal(rel.anomalias.length, 0);
-    assert.equal(rel.simulacao.saldoAbertoAtual, 2480);
+    assert.equal(rel.simulacao.saldoAbertoAtual, 2610);
   });
 
   it('valida integridade da migração SQL idempotente V15 (corte 22/11 11:40, 4 campos, QUITACAO_PIX_EXTERNO e PIX avulsos)', () => {
