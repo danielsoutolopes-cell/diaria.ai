@@ -252,15 +252,18 @@ describe('10. Correção Extrato Analítico 5 Abas (Custo por Obra + Caixinha) &
     assert.equal(relCsv.qtdConciliadoExato, 1);
   });
 
-  it('Feature 2 V16 (EM HOMOLOGAÇÃO): formata Resumo Diário 19h sem valores e reconhece confirmação OK dos encarregados', () => {
-    // 2026-11-21 é sábado; 19:15 BRT = 22:15 UTC
+  it('Feature 2 V16 (EM HOMOLOGAÇÃO): opera 24/7 (inclusive domingo), formata Resumo Diário 19h sem valores e reconhece confirmação OK', () => {
+    // Valida TODOS os 7 dias da semana (Seg 16/11 até Dom 22/11) às 19:15 BRT (22:15 UTC) — ZERO trava de dia da semana!
+    for (let dia = 16; dia <= 22; dia++) {
+      assert.equal(
+        isJanelaResumoDiario19h(new Date(`2026-11-${dia}T22:15:00Z`)),
+        true,
+        `Dia 2026-11-${dia} às 19:15 BRT deve estar liberado (24/7 sem trava de domingo)`
+      );
+    }
+    // Fora da janela das 19h (ex.: 18:15 BRT = 21:15 UTC)
     assert.equal(
-      isJanelaResumoDiario19h(new Date('2026-11-21T22:15:00Z')),
-      true
-    );
-    // 2026-11-22 é domingo -> não dispara domingo
-    assert.equal(
-      isJanelaResumoDiario19h(new Date('2026-11-22T22:15:00Z')),
+      isJanelaResumoDiario19h(new Date('2026-11-22T21:15:00Z')),
       false
     );
 

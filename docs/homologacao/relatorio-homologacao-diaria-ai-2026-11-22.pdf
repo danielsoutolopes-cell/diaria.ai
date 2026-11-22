@@ -20,7 +20,7 @@ BT
 (DIARIA.AI   RELATORIO OFICIAL DE HOMOLOGACAO \(SPRINT V15\)) Tj
 /F2 10 Tf
 1 0 0 1 36 787 Tm
-(Data de Geracao: 2026-11-22T16:06:23.526Z  |  Veredito Final: APROVADO PARA PRODUCAO) Tj
+(Data de Geracao: 2026-11-22T16:08:20.209Z  |  Veredito Final: APROVADO PARA PRODUCAO) Tj
 /F2 11 Tf
 1 0 0 1 36 765 Tm
 (1. RESUMO EXECUTIVO) Tj
@@ -59,7 +59,7 @@ BT
 (---------------------------------------------------------------------------------------------) Tj
 /F2 9 Tf
 1 0 0 1 36 603 Tm
-(Taxa de Aprovacao dos Testes: 100.0% \(28/28 aprovados, 0 falhas\) | Duracao: 1554 ms) Tj
+(Taxa de Aprovacao dos Testes: 100.0% \(28/28 aprovados, 0 falhas\) | Duracao: 1440 ms) Tj
 /F1 9 Tf
 1 0 0 1 36 590 Tm
 (Checagem Estrita TypeScript \(0 'any'\): APROVADO \(0 ocorrencias\)) Tj
@@ -128,70 +128,70 @@ BT
 ([PASS] |    0.4 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): isola acesso ...) Tj
 /F1 8 Tf
 1 0 0 1 36 311 Tm
-([PASS] |   13.6 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma zero...) Tj
+([PASS] |   15.9 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma zero...) Tj
 /F1 8 Tf
 1 0 0 1 36 300 Tm
-([PASS] |    2.0 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma isol...) Tj
+([PASS] |    3.5 | 1. Multi-Tenant, Grafia Oficial \(Jhoston\) & Isolamento \(tenant_id\): confirma isol...) Tj
 /F1 8 Tf
 1 0 0 1 36 289 Tm
-([PASS] |    3.1 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: aplica valor padra...) Tj
+([PASS] |    4.2 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: aplica valor padra...) Tj
 /F1 8 Tf
 1 0 0 1 36 278 Tm
-([PASS] |    1.0 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: pareia legendas in...) Tj
+([PASS] |    1.1 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: pareia legendas in...) Tj
 /F1 8 Tf
 1 0 0 1 36 267 Tm
-([PASS] |    0.5 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: garante visibilida...) Tj
+([PASS] |    0.6 | 2. Vales em 2 Etapas + NLP Natural/Complementar + Omnichannel: garante visibilida...) Tj
 /F1 8 Tf
 1 0 0 1 36 256 Tm
-([PASS] |    0.5 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+([PASS] |    0.8 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
 /F1 8 Tf
 1 0 0 1 36 245 Tm
-([PASS] |    2.3 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+([PASS] |    2.9 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
 /F1 8 Tf
 1 0 0 1 36 234 Tm
-([PASS] |   36.2 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
+([PASS] |   33.7 | 3. Rateio Multi-Obra \(0,5 + 0,5\), Dia de Chuva \(R$ 120,00\), Espelho, PIX & Excel ...) Tj
 /F1 8 Tf
 1 0 0 1 36 223 Tm
-([PASS] |    0.5 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): unifica Gil, Gilvan, ...) Tj
+([PASS] |    0.4 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): unifica Gil, Gilvan, ...) Tj
 /F1 8 Tf
 1 0 0 1 36 212 Tm
 ([PASS] |    2.3 | 4. Caixinha Unificado \(Gil\) & Pre-Implantacao \(13/11/2026\): preserva saldo pre-im...) Tj
 /F1 8 Tf
 1 0 0 1 36 201 Tm
-([PASS] |    1.5 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: isola ...) Tj
+([PASS] |    1.4 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: isola ...) Tj
 /F1 8 Tf
 1 0 0 1 36 190 Tm
 ([PASS] |    0.5 | 5. Reinicio Pos-Quitacao \(21/11\), Lotes 16:39 / 18:12 & Regimes Especiais: calcul...) Tj
 /F1 8 Tf
 1 0 0 1 36 179 Tm
-([PASS] |    2.3 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+([PASS] |    2.2 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
 /F1 8 Tf
 1 0 0 1 36 168 Tm
-([PASS] |    5.1 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+([PASS] |    4.4 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
 /F1 8 Tf
 1 0 0 1 36 157 Tm
-([PASS] |    3.7 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
+([PASS] |    3.5 | 6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal PDF Paisagem...) Tj
 /F1 8 Tf
 1 0 0 1 36 146 Tm
-([PASS] |   34.8 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
+([PASS] |   35.1 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
 /F1 8 Tf
 1 0 0 1 36 135 Tm
-([PASS] |    3.5 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
+([PASS] |    3.7 | 7. Reprocessamento Historico WhatsApp & Loop Self-Healing V15 \(27 Vales = R$ 2.70...) Tj
 /F1 8 Tf
 1 0 0 1 36 124 Tm
-([PASS] |    2.4 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
+([PASS] |    2.6 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
 /F1 8 Tf
 1 0 0 1 36 113 Tm
-([PASS] |    0.5 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
+([PASS] |    0.6 | 8. Gestao de Ciclos Manoel/Wender, Quitacao Externa, PIX Avulsos & Migracao SQL V...) Tj
 /F1 8 Tf
 1 0 0 1 36 102 Tm
 ([PASS] |    2.1 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
 /F1 8 Tf
 1 0 0 1 36 91 Tm
-([PASS] |    7.5 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
+([PASS] |    6.7 | 9. Cobertura Exaustiva das 7 Rotas da Aplicacao & Excel V6 \(Rastreabilidade V15\):...) Tj
 /F1 8 Tf
 1 0 0 1 36 80 Tm
-([PASS] |    5.2 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: g...) Tj
+([PASS] |    5.8 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: g...) Tj
 /F1 8 Tf
 1 0 0 1 36 69 Tm
 ([PASS] |    0.3 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
@@ -200,7 +200,7 @@ BT
 ([PASS] |    4.9 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
 /F1 8 Tf
 1 0 0 1 36 47 Tm
-([PASS] |   26.8 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+([PASS] |   30.3 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
 ET
 endstream
 endobj
@@ -216,7 +216,7 @@ BT
 (DIARIA.AI   RELATORIO DE HOMOLOGACAO SPRINT V15 | PAGINA 2) Tj
 /F1 8 Tf
 1 0 0 1 36 805 Tm
-([PASS] |    2.6 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
+([PASS] |    2.5 | 10. Correcao Extrato Analitico 5 Abas \(Custo por Obra + Caixinha\) & Sprint V16: F...) Tj
 ET
 endstream
 endobj

@@ -31,7 +31,7 @@ Ler mensagens em linguagem natural (enviadas por encarregados ou digitadas no te
 
 REGRAS RÍGIDAS:
 - Realize 'Extração Multi-Contexto': se a mensagem misturar pessoas de obras diferentes (ex: "Na Bahia trabalhou Pedro e José com vale de 50. Em Jabaquara Miguel trabalhou meio dia"), separe em objetos distintos dentro do array "obras".
-- Aceite envios em qualquer dia e horário (incluindo sábado à tarde/noite, ex.: 16:39 na Quase Tudo e 18:12 na Piscina Porto Seguro) sem mesclar obras diferentes.
+- Aceite envios 24/7 em qualquer dia da semana e horário (segunda a domingo, incluindo sábado à tarde/noite, domingos e feriados — ex.: 16:39 na Quase Tudo, 18:12 na Piscina Porto Seguro e domingo 08:35) sem mesclar obras diferentes e sem nenhuma trava de dia da semana.
 - RETORNE ESTRITAMENTE um JSON válido SEM formatação markdown (\`\`\`json ou \`\`\`), SEM explicações adicionais, correspondendo exatamente a este formato:
 {
   "obras": [

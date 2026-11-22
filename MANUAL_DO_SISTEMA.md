@@ -325,7 +325,7 @@ Na tela **Fechamento & Pagamentos** (`/bordero`):
 
 ### 16.2 Governança de Homologação por Empresa (`/setup` — Super Usuário)
 No rodapé da tela `/setup`, o Super Usuário controla independentemente por empresa as **Feature Flags de Homologação** (sem necessidade de novo deploy):
-1. **`FF_RESUMO_DIARIO_19H` (Resumo Diário Automático às 19h — `EM HOMOLOGAÇÃO`)**: Envia às 19:00 (Horário de Brasília, segunda a sábado) o espelho de presenças do dia no grupo da obra (sem valores em R$) e captura automaticamente a resposta **"OK"** do encarregado para homologar o dia.
+1. **`FF_RESUMO_DIARIO_19H` (Resumo Diário Automático às 19h — `EM HOMOLOGAÇÃO`)**: Envia às 19:00 (Horário de Brasília, **24/7 — todos os dias da semana, inclusive domingos e feriados** sempre que houver trabalho registrado) o espelho de presenças do dia no grupo da obra (sem valores em R$) e captura automaticamente a resposta **"OK"** do encarregado para homologar o dia.
 2. **`FF_EXTRATO_COLABORADOR_LINK` (Portal / Extrato Simplificado do Colaborador — `EM HOMOLOGAÇÃO`)**: Libera no Borderô o botão **Link Extrato (`EM HOMOLOGAÇÃO`)**, gerando um link temporário assinado (`/extrato/[token]`, sem login) para o colaborador consultar suas diárias, dias de chuva (`R$ 120,00`), rateios (`½+½`) e vales no celular.
 - **Isolamento Seguro**: Quando uma flag está desligada para uma empresa, os botões, rotas e agendamentos ficam 100% ocultos e bloqueados para aquela empresa.
 

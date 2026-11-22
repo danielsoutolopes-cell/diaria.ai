@@ -25,20 +25,16 @@ export interface HomologacaoDiaria19hRecord {
 
 /**
  * Verifica se o horário atual em America/Sao_Paulo está na janela de disparo
- * do Resumo Diário às 19:00 (segunda a sábado, 19:00–19:59).
+ * do Resumo Diário às 19:00 (24/7 — todos os 7 dias da semana, inclusive domingos e feriados).
  */
 export function isJanelaResumoDiario19h(agora: Date = new Date()): boolean {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Sao_Paulo',
-    weekday: 'short',
     hour: '2-digit',
     hour12: false,
   }).formatToParts(agora);
 
-  const weekday = parts.find((p) => p.type === 'weekday')?.value || '';
   const hour = Number(parts.find((p) => p.type === 'hour')?.value || '-1');
-
-  if (weekday === 'Sun') return false;
   return hour === 19;
 }
 

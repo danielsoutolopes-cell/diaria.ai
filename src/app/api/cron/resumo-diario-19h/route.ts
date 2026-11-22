@@ -168,6 +168,11 @@ export async function POST(req: NextRequest) {
     }> = [];
 
     for (const [obraNome, presencas] of Array.from(porObra.entries())) {
+      const chave = `${hojeIso}__${obraNome}`;
+      if (!force && homologacoesAtuais.some((h) => h.chave === chave)) {
+        continue;
+      }
+
       const mensagem = formatarResumoDiario19hWhatsApp({
         empresaNome: activeTenant.nome,
         obraNome,
@@ -199,7 +204,6 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const chave = `${hojeIso}__${obraNome}`;
       const registro: HomologacaoDiaria19hRecord = {
         chave,
         dataIso: hojeIso,
