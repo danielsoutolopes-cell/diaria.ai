@@ -1287,7 +1287,7 @@ export default function BorderoPage() {
                             : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        {fr === 1 ? '1.0 Integral' : fr === 0.5 ? '0.5 Chuva' : '0.0 Falta'}
+                        {fr === 1 ? '1.0 Integral' : fr === 0.5 ? '0.5 Meio Dia' : '0.0 Falta'}
                       </button>
                     ))}
                   </div>

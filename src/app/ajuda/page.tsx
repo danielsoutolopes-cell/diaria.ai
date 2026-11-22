@@ -211,7 +211,7 @@ export default function AjudaPage() {
             <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-500">
               <li><strong>Diária Variável por Canteiro</strong>: Suporte a valores diferentes para o mesmo funcionário (ex: R$ 220 no <em>Quase Tudo</em> e R$ 200 no <em>Jabaquara</em>).</li>
               <li><strong>Dia de Viagem</strong>: R$ 120,00 para os trabalhadores em trânsito; motorista que dirigiu recebe diária integral.</li>
-              <li><strong>Dia de Chuva</strong>: R$ 120,00 quando as chuvas impedem a execução dos trabalhos.</li>
+              <li><strong>Dia de Chuva</strong>: R$ 120,00 (padrão <strong>1.0 integral</strong>, sem meio-dia automático, pois cobre alimentação/estadia em dia não trabalhado por chuva).</li>
               <li><strong>Dia Parado</strong>: R$ 120,00 quando o condomínio não autoriza a entrada ou a portaria trava o acesso.</li>
               <li><em>(Todos esses valores podem ser editados na tela de Configurações)</em>.</li>
             </ul>

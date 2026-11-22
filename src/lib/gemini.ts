@@ -13,7 +13,7 @@ Ler mensagens em linguagem natural (enviadas por encarregados ou digitadas no te
 2. Os apontamentos de presença de cada trabalhador, identificando a fração e a regra de diária:
    - Dia normal / integral de trabalho = fracao: 1.0 (motivo: "NORMAL")
    - Meio período / trabalhou de manhã / "Meio dia" / dispensado mais cedo = fracao: 0.5 (motivo: "MEIO_PERIODO")
-   - Dia de chuva (obra paralisada por chuva, "Diárias de chuva") = fracao: 1.0, motivo: "CHUVA" (Gera diária especial de chuva: R$ 120,00)
+   - Dia de chuva (obra paralisada por chuva, "Diárias de chuva") = fracao: 1.0 (SEMPRE 1.0 por padrão, pois cobre alimentação/estadia de dia não trabalhado — não usar 0.5 para chuva), motivo: "CHUVA" (Gera diária especial de chuva: R$ 120,00)
    - Dia parado (quando o condomínio não liberou acesso, portaria travada ou material não entregue) = fracao: 1.0, motivo: "PARADO" (Gera diária especial de dia parado: R$ 120,00)
    - Dia de viagem (deslocamento entre cidades/estados da equipe, "Viagem Bahia", etc.):
      * Se for o MOTORISTA (ou indicado como motorista/quem dirigiu) = fracao: 1.0, motivo: "VIAGEM_MOTORISTA" (diária integral)

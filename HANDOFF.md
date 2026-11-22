@@ -24,7 +24,7 @@
   - Semente inicial de canteiros e colaboradores cadastrada no banco remoto.
 - **Regras Operacionais de Diárias Parametrizáveis**:
   - **Dia de Viagem**: R$ 120,00 para passageiros da equipe; diária integral para o motorista que conduz o veículo.
-  - **Dia de Chuva**: R$ 120,00 quando as condições meteorológicas inviabilizam o trabalho.
+  - **Dia de Chuva**: R$ 120,00 com fração padrão **1.0 integral** (não possui 0,5 automático, pois cobre alimentação/estadia em dia não trabalhado; ajuste manual permanece opcional à administradora).
   - **Dia Parado**: R$ 120,00 quando o condomínio barra o acesso à obra ou há impedimento por terceiros.
   - **Configurável**: Todos os valores são gerenciáveis dinamicamente pela Administradora na tela de Configurações (`/configuracoes`) via tabela `parametros_sistema`.
 - **Notificações Espelhadas (Patrícia Grubel & Daniel Lopes)**:
