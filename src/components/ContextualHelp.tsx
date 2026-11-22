@@ -236,17 +236,17 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
   '/compras': {
     titulo: 'Gerador Inteligente de Pedido de Compras (IA)',
     resumo:
-      'Transforma listas informais de materiais enviadas nos grupos de obra em pedidos organizados por categoria prontos para copiar e encaminhar a fornecedores.',
+      'Transforma listas informais de materiais enviadas nos grupos de obra em pedidos organizados por categoria já com Alias do Cliente, Endereço e Complemento/Obs. de Entrega.',
     funcoes: [
       {
-        nome: 'Agrupamento Automático por Categoria (IA)',
+        nome: 'Cabeçalho Automático p/ Fornecedores',
         descricao:
-          'Separa automaticamente Alvenaria, Hidráulica, Elétrica, Acabamento, Pintura, Ferramentas e EPIs com sinalização de itens urgentes.',
+          'Insere automaticamente o Nome do Cliente p/ Fornecedor (Alias), Endereço de Entrega, CEP, Complemento/Regras de Descarga e quem recebe na obra.',
       },
       {
-        nome: 'Mensagem Pronta p/ Copiar & WhatsApp da Administração',
+        nome: 'Copiar Tudo ou Só Uma Categoria',
         descricao:
-          'Copie o pedido formatado em 1 clique ou envie diretamente para o WhatsApp da equipe de compras.',
+          'Copie o pedido completo ou clique em "Copiar só esta categoria" (ex.: só Elétrica ou só Hidráulica) já levando o cabeçalho de entrega.',
       },
       {
         nome: 'Ativação por Empresa (Feature Flag)',
@@ -255,7 +255,7 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       },
     ],
     exemplo:
-      'Cole "Precisando urgente de 20 sacos de cimento, 3 rolos de fio 2.5mm e 6 tubos pvc 50mm" e clique em "Agrupar por Categoria & Gerar Pedido".',
+      'Cole "Precisando urgente de 20 sacos de cimento, 3 rolos de fio 2.5mm e 6 tubos pvc 50mm" e clique em "Copiar só esta categoria" em Elétrica para mandar direto à loja elétrica.',
   },
   '/auditoria': {
     titulo: 'Auditoria Interna com Correção Assistida por IA',
@@ -298,8 +298,13 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
   '/setup': {
     titulo: 'Cadastro de Obras & Equipes (Setup)',
     resumo:
-      'Cadastro expresso de obras, colaboradores, apelidos reconhecidos pela IA e valores de diária.',
+      'Cadastro expresso de obras (com Alias de Cliente p/ Fornecedores, CEP/Endereço, Complemento/Obs. de Entrega e Contato de Recebimento) e colaboradores.',
     funcoes: [
+      {
+        nome: 'Logística de Entrega & Alias do Cliente p/ Fornecedores',
+        descricao:
+          'Nas empresas com módulo de compras ativo, o Endereço de Entrega (com busca automática por CEP) e o Alias do Cliente são obrigatórios para sair automaticamente nos pedidos.',
+      },
       {
         nome: 'Apelidos para IA',
         descricao:
@@ -307,7 +312,7 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       },
     ],
     exemplo:
-      'Cadastre a obra com seu nome oficial e adicione apelidos curtos usados pela equipe no WhatsApp.',
+      'Cadastre a obra com o Alias do Cliente (como o fornecedor identifica), digite o CEP para preencher o endereço e informe no Complemento "Portaria de serviço • Descarga 08h–17h".',
   },
   '/whatsapp': {
     titulo: 'Conexão do Bot & Vínculo de Grupos',

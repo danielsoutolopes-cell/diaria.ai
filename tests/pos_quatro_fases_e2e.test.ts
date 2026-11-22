@@ -37,6 +37,7 @@ import {
   isMensagemPedidoCompra,
   extrairItensCompraHeuristico,
   formatarMensagemPedidoWhatsApp,
+  formatarMensagemCategoriaWhatsApp,
 } from '@/services/pedidosComprasNlp';
 import {
   executarAuditoriaInterna,
@@ -811,15 +812,52 @@ describe('6. Recibo Individual PIX, Compras Intermack/Jhoston & Cron Quinzenal P
     assert.equal(itens[2].categoria, 'Hidráulica');
     assert.equal(itens[3].categoria, 'Acabamento & Revestimento');
 
+    const dadosEntrega = {
+      aliasFornecedor: 'Cliente Corporativo Alpha Ltda',
+      enderecoEntrega: 'Av. Brigadeiro Faria Lima, 2000 - São Paulo/SP',
+      cepEntrega: '01451-000',
+      complementoObservacao: 'Torre B, 12º andar • Portaria Serviço 08h–17h',
+      contatoRecebimento: 'Mestre Carlos (11 99999-8888)',
+    };
+
     const msg = formatarMensagemPedidoWhatsApp({
       empresaNome: 'Intermack',
       obraNome: 'Obra Corporativa',
       solicitadoPor: 'Mestre Carlos',
       dataHoraLabel: '22/11/2026 09:00',
       itens,
+      dadosEntrega,
     });
     assert.ok(msg.includes('PEDIDO DE COMPRAS — INTERMACK'));
+    assert.ok(msg.includes('Cliente / Ref. Fornecedor:* Cliente Corporativo Alpha Ltda'));
+    assert.ok(msg.includes('Av. Brigadeiro Faria Lima, 2000 - São Paulo/SP (CEP: 01451-000)'));
+    assert.ok(msg.includes('Torre B, 12º andar • Portaria Serviço 08h–17h'));
+    assert.ok(msg.includes('Mestre Carlos (11 99999-8888)'));
     assert.ok(msg.includes('Mensagem pronta para copiar e encaminhar ao fornecedor'));
+
+    // Cópia isolada de uma única categoria ("Copiar só esta categoria")
+    const msgEletrica = formatarMensagemCategoriaWhatsApp({
+      empresaNome: 'Intermack',
+      obraNome: 'Obra Corporativa',
+      solicitadoPor: 'Mestre Carlos',
+      dataHoraLabel: '22/11/2026 09:00',
+      categoria: 'Elétrica',
+      itens,
+      dadosEntrega,
+    });
+    assert.ok(msgEletrica.includes('PEDIDO DE COMPRAS (ELÉTRICA) — INTERMACK'));
+    assert.ok(msgEletrica.includes('Cliente Corporativo Alpha Ltda'));
+    assert.ok(msgEletrica.includes('Av. Brigadeiro Faria Lima, 2000'));
+    assert.ok(msgEletrica.includes('fio 2.5mm'));
+    assert.equal(msgEletrica.includes('cimento'), false);
+
+    // Backend /api/obras exige Endereço e Alias de Fornecedor na Intermack
+    const obrasApiSrc = fs.readFileSync(
+      path.join(REPO_ROOT, 'src/app/api/obras/route.ts'),
+      'utf8'
+    );
+    assert.ok(obrasApiSrc.includes('Endereço de Entrega completo é obrigatório'));
+    assert.ok(obrasApiSrc.includes('Alias (Nome do Cliente p/ Fornecedores) é obrigatório'));
   });
 
   it('valida janela quinzenal (2ª e última sexta 18:00 America/Sao_Paulo) e gera PDF Paisagem Base64', () => {

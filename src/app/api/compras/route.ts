@@ -5,9 +5,14 @@ import { getActiveTenantFromRequest } from '@/lib/tenant';
 import {
   agruparItensCompraComGemini,
   formatarMensagemPedidoWhatsApp,
+  type DadosEntregaPedido,
   type PedidoCompraRecord,
   type StatusPedidoCompra,
 } from '@/services/pedidosComprasNlp';
+import {
+  buscarLogisticaPorNomeObra,
+  lerObrasLogisticaTenant,
+} from '@/services/obrasLogisticaStorage';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +36,7 @@ interface TenantFlagRow {
 interface ObraSimpleRow {
   id: string;
   nome: string;
+  local: string | null;
 }
 
 async function verificarModuloComprasAtivo(
@@ -141,19 +147,36 @@ export async function GET(req: NextRequest) {
       activeTenant.moduloComprasAtivo
     );
 
-    const [{ pedidos }, { data: obrasData }] = await Promise.all([
+    const [{ pedidos }, { data: obrasData }, { porObraId }] = await Promise.all([
       lerPedidosComprasTenant(activeTenant.id),
       supabaseAdmin
         .from('obras_config')
-        .select('id, nome')
+        .select('id, nome, local')
         .eq('tenant_id', activeTenant.id)
-        .eq('ativa', true)
+        .eq('ativo', true)
         .order('nome', { ascending: true }),
+      lerObrasLogisticaTenant(activeTenant.id),
     ]);
 
-    const obras = ((obrasData as ObraSimpleRow[] | null) || []).map(
-      (o) => o.nome
-    );
+    const obrasRows = (obrasData as ObraSimpleRow[] | null) || [];
+    const obras = obrasRows.map((o) => o.nome);
+    const obrasDetalhes = obrasRows.map((o) => {
+      const log = porObraId[o.id];
+      const endereco =
+        log?.enderecoEntrega ||
+        (o.local && o.local !== 'Canteiro Volante' ? o.local : '');
+      const alias = log?.aliasFornecedor || '';
+      return {
+        id: o.id,
+        nome: o.nome,
+        aliasFornecedor: alias,
+        enderecoEntrega: endereco,
+        cepEntrega: log?.cepEntrega || '',
+        complementoObservacao: log?.complementoObservacao || '',
+        contatoRecebimento: log?.contatoRecebimento || '',
+        cadastroCompleto: Boolean(alias && endereco),
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -165,6 +188,7 @@ export async function GET(req: NextRequest) {
       },
       moduloComprasAtivo,
       obras,
+      obrasDetalhes,
       pedidos: pedidos.sort((a, b) => b.criadoEm.localeCompare(a.criadoEm)),
     });
   } catch (error: unknown) {
@@ -304,12 +328,27 @@ export async function POST(req: NextRequest) {
       timeZone: 'America/Sao_Paulo',
     });
 
+    const logisticaObra = await buscarLogisticaPorNomeObra(
+      activeTenant.id,
+      obraNome
+    );
+    const dadosEntrega: DadosEntregaPedido | undefined = logisticaObra
+      ? {
+          aliasFornecedor: logisticaObra.aliasFornecedor,
+          enderecoEntrega: logisticaObra.enderecoEntrega,
+          cepEntrega: logisticaObra.cepEntrega,
+          complementoObservacao: logisticaObra.complementoObservacao,
+          contatoRecebimento: logisticaObra.contatoRecebimento,
+        }
+      : undefined;
+
     const mensagemFormatada = formatarMensagemPedidoWhatsApp({
       empresaNome: activeTenant.nome,
       obraNome,
       solicitadoPor,
       dataHoraLabel,
       itens,
+      dadosEntrega,
     });
 
     let enviadoPatricia = false;
@@ -323,6 +362,7 @@ export async function POST(req: NextRequest) {
       tenantId: activeTenant.id,
       empresaNome: activeTenant.nome,
       obraNome,
+      dadosEntrega,
       grupoJid: null,
       solicitadoPor,
       textoOriginal,

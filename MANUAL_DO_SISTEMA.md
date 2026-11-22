@@ -301,11 +301,11 @@ Na tela **Fechamento & Pagamentos** (`/bordero`):
 
 ## 🛒 15. Pedidos de Compras por Grupo de Obra (`/compras`) & Auditoria Interna IA (`/auditoria`)
 
-### 15.1 Gerador Inteligente de Pedido de Compras (`/compras`)
+### 15.1 Gerador Inteligente de Pedido de Compras (`/compras`) & Logística de Obra (`/setup`)
 - **Controle por Empresa (`modulo_compras_ativo`)**: Ativado especificamente nas empresas com rotina de suprimentos por grupo de obra (Modo Empreita), permanecendo em *standby* nas empresas focadas apenas em folha de diárias.
-- **Captura Automática & Manual**: Mensagens solicitando materiais em grupos monitorados ou coladas na tela `/compras` são agrupadas pela IA por categoria (**Alvenaria**, **Hidráulica**, **Elétrica**, **Acabamento**, **Pintura**, **Ferramentas & EPI**, **Fixação**).
-- **Pronto para Fornecedores**: Gera uma mensagem limpa pronta para **Copiar e Colar** no WhatsApp e dispara cópia automática para a coordenação de compras, com controle de status (`Novo` → `Em Cotação` → `Comprado` → `Entregue`).
-- **Exemplo Prático**: O encarregado envia no grupo *"Precisando urgente de 20 sacos de cimento, 3 rolos de fio 2,5mm e 6 tubos PVC 50mm"*. O sistema separa automaticamente em **Alvenaria**, **Elétrica** e **Hidráulica** e entrega a lista pronta para cotação.
+- **Cadastro Obrigatório de Entrega & Alias do Cliente (`/setup`)**: Nas empresas com módulo de compras ativo, cada obra exige **Alias / Nome do Cliente p/ Fornecedores** (identificação usada no pedido e na NF) e **Endereço de Entrega** (com preenchimento automático via CEP), além de **Complemento / Observação de Entrega** (bloco, andar, portaria de serviço, horário de descarga) e **Quem Recebe na Obra**.
+- **Captura Automática & Cópia por Categoria**: Mensagens solicitando materiais em grupos monitorados ou coladas em `/compras` são agrupadas pela IA por categoria (**Alvenaria**, **Hidráulica**, **Elétrica**, **Acabamento**, **Pintura**, **Ferramentas & EPI**, **Fixação**), com botões para copiar o pedido completo ou **Copiar só esta categoria** já levando automaticamente o cabeçalho de entrega e o Alias do Cliente.
+- **Exemplo Prático**: A obra cadastrada com Alias *"Cliente XPTO"*, endereço *"Av. Paulista, 1000"* e complemento *"Portaria de Serviço • Descarga 08h–17h"* recebe uma lista mista no grupo. Ao clicar em **Copiar só esta categoria** em *Elétrica*, a mensagem já sai pronta para a casa elétrica com todos os dados de entrega e faturamento.
 
 ### 15.2 Auditoria Interna com Correção Assistida por IA (`/auditoria`)
 - **Cruzamento Banco × WhatsApp**: Compara os lançamentos gravados no banco com as mensagens originais recebidas dos grupos, tabelas de diária, regras de chuva e cadastros de chave PIX.

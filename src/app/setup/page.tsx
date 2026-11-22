@@ -18,9 +18,16 @@ import {
   Edit2,
   X,
   Save,
+  Tag,
+  AlertCircle,
 } from 'lucide-react';
 import { TipoObra } from '@/types/database';
 import { supabase } from '@/lib/supabase';
+import {
+  getActiveTenantFromBrowser,
+  TENANTS,
+  type TenantConfig,
+} from '@/lib/tenant';
 
 interface ObraItem {
   id: string;
@@ -29,6 +36,10 @@ interface ObraItem {
   tipo_obra: TipoObra;
   valor_diaria_padrao?: number;
   ativo: boolean;
+  alias_fornecedor?: string;
+  cep_entrega?: string;
+  complemento_entrega?: string;
+  contato_recebimento?: string;
 }
 
 interface FuncionarioItem {
@@ -50,18 +61,26 @@ interface FuncionarioItem {
 }
 
 export default function SetupPage() {
+  const [activeTenant, setActiveTenant] = useState<TenantConfig>(TENANTS.jhoston);
+  const isIntermack = activeTenant.slug === 'intermack';
   const [tabAtiva, setTabAtiva] = useState<'FUNCIONARIOS' | 'OBRAS'>('FUNCIONARIOS');
-  
+
   // Obras
   const [obras, setObras] = useState<ObraItem[]>([]);
   const [loadingObras, setLoadingObras] = useState(true);
   const [cadastrandoObra, setCadastrandoObra] = useState(false);
   const [nomeObra, setNomeObra] = useState('');
+  const [aliasFornecedorObra, setAliasFornecedorObra] = useState('');
+  const [cepObra, setCepObra] = useState('');
+  const [buscandoCep, setBuscandoCep] = useState(false);
   const [localObra, setLocalObra] = useState('');
+  const [complementoObra, setComplementoObra] = useState('');
+  const [contatoRecebimentoObra, setContatoRecebimentoObra] = useState('');
   const [apelidosObra, setApelidosObra] = useState('');
   const [tipoObra, setTipoObra] = useState<TipoObra>('PISCINA');
   const [valorDiariaObra, setValorDiariaObra] = useState<string>('150');
   const [salvoObra, setSalvoObra] = useState(false);
+  const [erroObra, setErroObra] = useState<string | null>(null);
 
   // Funcionários (Apenas Nome e Chave PIX obrigatórios)
   const [funcionarios, setFuncionarios] = useState<FuncionarioItem[]>([]);
@@ -120,11 +139,16 @@ export default function SetupPage() {
 
   const [editingObra, setEditingObra] = useState<ObraItem | null>(null);
   const [editObraNome, setEditObraNome] = useState('');
+  const [editObraAliasFornecedor, setEditObraAliasFornecedor] = useState('');
+  const [editObraCep, setEditObraCep] = useState('');
   const [editObraLocal, setEditObraLocal] = useState('');
+  const [editObraComplemento, setEditObraComplemento] = useState('');
+  const [editObraContatoRecebimento, setEditObraContatoRecebimento] = useState('');
   const [editObraTipo, setEditObraTipo] = useState<TipoObra>('PISCINA');
   const [editObraValor, setEditObraValor] = useState('');
   const [editObraApelidos, setEditObraApelidos] = useState('');
   const [editObraGrupoJid, setEditObraGrupoJid] = useState('');
+  const [erroEditObra, setErroEditObra] = useState<string | null>(null);
   const [gruposZapDisponiveis, setGruposZapDisponiveis] = useState<
     Array<{ jid: string; name: string; monitored?: boolean }>
   >([]);
@@ -188,15 +212,69 @@ export default function SetupPage() {
   }
 
   useEffect(() => {
+    const tenant = getActiveTenantFromBrowser();
+    setActiveTenant(tenant);
+    if (tenant.slug === 'intermack') {
+      setTipoObra('OBRA_CIVIL');
+      setValorDiariaObra('180');
+      setTabAtiva('OBRAS');
+    }
     carregarObras();
     carregarFuncionarios();
     carregarApelidos();
     carregarPrecosDuplos();
   }, []);
 
+  async function buscarEnderecoPorCep(
+    cepDigitado: string,
+    modo: 'NOVO' | 'EDIT'
+  ) {
+    const limpo = cepDigitado.replace(/\D/g, '');
+    if (limpo.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+      const data = (await res.json()) as {
+        erro?: boolean;
+        logradouro?: string;
+        bairro?: string;
+        localidade?: string;
+        uf?: string;
+      };
+      if (!data.erro && data.logradouro) {
+        const montado = `${data.logradouro}, nº __ - ${data.bairro || ''} - ${data.localidade || ''}/${data.uf || ''}`;
+        if (modo === 'NOVO') {
+          setLocalObra((prev) => (prev.trim() ? prev : montado));
+        } else {
+          setEditObraLocal((prev) => (prev.trim() ? prev : montado));
+        }
+      }
+    } catch {
+      // Silencioso caso offline
+    } finally {
+      setBuscandoCep(false);
+    }
+  }
+
   async function handleAddObra(e: React.FormEvent) {
     e.preventDefault();
+    setErroObra(null);
     if (!nomeObra.trim()) return;
+
+    if (isIntermack) {
+      if (!aliasFornecedorObra.trim()) {
+        setErroObra(
+          'Informe o Alias (Nome do Cliente p/ Fornecedores) para identificar os pedidos de compra.'
+        );
+        return;
+      }
+      if (!localObra.trim()) {
+        setErroObra(
+          'Informe o Endereço de Entrega completo da obra (obrigatório para entregas de material).'
+        );
+        return;
+      }
+    }
 
     setCadastrandoObra(true);
     try {
@@ -211,18 +289,34 @@ export default function SetupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nome: nomeObra.trim().toUpperCase(),
-          local: localObra.trim() || 'Canteiro Volante',
+          local: localObra.trim() || (isIntermack ? '' : 'Canteiro Volante'),
+          alias_fornecedor: aliasFornecedorObra.trim(),
+          cep_entrega: cepObra.trim(),
+          complemento_entrega: complementoObra.trim(),
+          contato_recebimento: contatoRecebimentoObra.trim(),
           tipo_obra: tipoObra,
           valor_diaria_padrao: valorFinal,
           apelidos: listaApelidos,
         }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as {
+        obra?: ObraItem;
+        error?: string;
+      };
+
+      if (!res.ok || data.error) {
+        setErroObra(data.error || 'Erro ao cadastrar obra.');
+        return;
+      }
 
       if (data && data.obra) {
         setObras((prev) => [data.obra as ObraItem, ...prev]);
         setNomeObra('');
+        setAliasFornecedorObra('');
+        setCepObra('');
         setLocalObra('');
+        setComplementoObra('');
+        setContatoRecebimentoObra('');
         setApelidosObra('');
         setSalvoObra(true);
         carregarApelidos();
@@ -230,6 +324,7 @@ export default function SetupPage() {
       }
     } catch (err) {
       console.error(err);
+      setErroObra('Falha de conexão ao salvar obra.');
     } finally {
       setCadastrandoObra(false);
     }
@@ -439,8 +534,13 @@ export default function SetupPage() {
 
   function handleStartEditObra(o: ObraItem) {
     setEditingObra(o);
+    setErroEditObra(null);
     setEditObraNome(o.nome);
-    setEditObraLocal(o.local || '');
+    setEditObraAliasFornecedor(o.alias_fornecedor || '');
+    setEditObraCep(o.cep_entrega || '');
+    setEditObraLocal(o.local === 'Canteiro Volante' ? '' : o.local || '');
+    setEditObraComplemento(o.complemento_entrega || '');
+    setEditObraContatoRecebimento(o.contato_recebimento || '');
     setEditObraTipo(o.tipo_obra || 'PISCINA');
     setEditObraValor(String(o.valor_diaria_padrao || (o.tipo_obra === 'PISCINA' ? 150 : 180)));
     setEditObraApelidos((mapaApelidos.obras[o.id] || []).join(', '));
@@ -449,6 +549,23 @@ export default function SetupPage() {
   async function handleSalvarEditObra(e: React.FormEvent) {
     e.preventDefault();
     if (!editingObra) return;
+    setErroEditObra(null);
+
+    if (isIntermack) {
+      if (!editObraAliasFornecedor.trim()) {
+        setErroEditObra(
+          'Na Intermack, o Alias (Nome do Cliente p/ Fornecedores) é obrigatório.'
+        );
+        return;
+      }
+      if (!editObraLocal.trim()) {
+        setErroEditObra(
+          'Na Intermack, o Endereço de Entrega completo é obrigatório.'
+        );
+        return;
+      }
+    }
+
     setSalvandoEdicaoObra(true);
 
     try {
@@ -464,14 +581,25 @@ export default function SetupPage() {
         body: JSON.stringify({
           id: editingObra.id,
           nome: editObraNome,
-          local: editObraLocal,
+          local: editObraLocal.trim() || (isIntermack ? '' : 'Canteiro Volante'),
+          alias_fornecedor: editObraAliasFornecedor.trim(),
+          cep_entrega: editObraCep.trim(),
+          complemento_entrega: editObraComplemento.trim(),
+          contato_recebimento: editObraContatoRecebimento.trim(),
           tipo_obra: editObraTipo,
           valor_diaria_padrao: val,
           apelidos: listaApelidos,
         }),
       });
 
-      const data = await res.json();
+      const data = (await res.json()) as {
+        obra?: ObraItem;
+        error?: string;
+      };
+      if (!res.ok || data.error) {
+        setErroEditObra(data.error || 'Erro ao atualizar obra.');
+        return;
+      }
       if (data && data.obra) {
         // Se selecionou um grupo do WhatsApp, vincula automaticamente no Hub de Configuração Geral
         if (editObraGrupoJid) {
@@ -950,26 +1078,120 @@ export default function SetupPage() {
             </div>
 
             <form onSubmit={handleAddObra} className="space-y-4">
+              {erroObra && (
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-800 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{erroObra}</span>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">Identificação da Obra *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Ex: Condomínio Alphaville - Lote 14"
+                  placeholder={
+                    isIntermack
+                      ? 'Ex: Reforma Corporativa Faria Lima - 12º Andar'
+                      : 'Ex: Condomínio Alphaville - Lote 14'
+                  }
                   value={nomeObra}
                   onChange={(e) => setNomeObra(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
                 />
               </div>
 
+              {/* Alias / Nome do Cliente p/ Fornecedores (Obrigatório na Intermack) */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Localização / Cidade</label>
+                <div className="flex items-center justify-between text-xs">
+                  <label className="font-bold text-slate-700">
+                    Alias / Cliente p/ Fornecedores {isIntermack ? '*' : '(Opcional)'}
+                  </label>
+                  {isIntermack && (
+                    <span className="text-[10px] text-indigo-700 font-black uppercase bg-indigo-50 px-2 py-0.5 rounded-full">
+                      Obrigatório Intermack
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
-                  placeholder="Ex: Barueri - SP"
-                  value={localObra}
-                  onChange={(e) => setLocalObra(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
+                  required={isIntermack}
+                  placeholder="Ex: Cliente XPTO Ltda (nome que identifica a obra no fornecedor/NF)"
+                  value={aliasFornecedorObra}
+                  onChange={(e) => setAliasFornecedorObra(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner"
+                />
+                <p className="text-[11px] text-slate-400">
+                  Sai automaticamente no cabeçalho do Pedido de Compras para o fornecedor identificar o cliente.
+                </p>
+              </div>
+
+              {/* CEP + Endereço de Entrega (Obrigatório na Intermack) */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="space-y-1.5 col-span-1">
+                  <label className="text-xs font-bold text-slate-700">CEP</label>
+                  <input
+                    type="text"
+                    placeholder="01451-000"
+                    value={cepObra}
+                    onChange={(e) => setCepObra(e.target.value)}
+                    onBlur={() => void buscarEnderecoPorCep(cepObra, 'NOVO')}
+                    className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner"
+                  />
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <label className="font-bold text-slate-700">
+                      {isIntermack ? 'Endereço de Entrega *' : 'Endereço / Localização'}
+                    </label>
+                    {buscandoCep ? (
+                      <span className="text-[10px] text-indigo-600 font-bold">Buscando CEP...</span>
+                    ) : isIntermack ? (
+                      <span className="text-[10px] text-indigo-700 font-black uppercase">
+                        Obrigatório
+                      </span>
+                    ) : null}
+                  </div>
+                  <input
+                    type="text"
+                    required={isIntermack}
+                    placeholder={
+                      isIntermack
+                        ? 'Rua/Av, nº, Bairro, Cidade - UF'
+                        : 'Ex: Barueri - SP'
+                    }
+                    value={localObra}
+                    onChange={(e) => setLocalObra(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
+                  />
+                </div>
+              </div>
+
+              {/* Complemento / Observação de Entrega */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Complemento / Observação de Entrega
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Ex: Torre B, 12º andar, Portaria de Serviço • Descarga Seg–Sex 08h–17h • Cadastrar placa/RG com 24h"
+                  value={complementoObra}
+                  onChange={(e) => setComplementoObra(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner"
+                />
+              </div>
+
+              {/* Contato de Recebimento na Obra */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Quem Recebe na Obra (Nome + WhatsApp)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Mestre Carlos — (11) 99999-8888"
+                  value={contatoRecebimentoObra}
+                  onChange={(e) => setContatoRecebimentoObra(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner"
                 />
               </div>
 
@@ -1099,82 +1321,117 @@ export default function SetupPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {obras.map((o) => (
-                  <div
-                    key={o.id}
-                    className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all space-y-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {o.tipo_obra === 'PISCINA' ? (
-                          <span className="p-2 bg-sky-50 text-sky-600 rounded-xl">
-                            <Waves className="w-4 h-4" />
+                {obras.map((o) => {
+                  const faltaLogisticaIntermack =
+                    isIntermack &&
+                    (!o.alias_fornecedor?.trim() ||
+                      !o.local?.trim() ||
+                      o.local === 'Canteiro Volante');
+
+                  return (
+                    <div
+                      key={o.id}
+                      className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all space-y-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          {o.tipo_obra === 'PISCINA' ? (
+                            <span className="p-2 bg-sky-50 text-sky-600 rounded-xl">
+                              <Waves className="w-4 h-4" />
+                            </span>
+                          ) : (
+                            <span className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                              <Building2 className="w-4 h-4" />
+                            </span>
+                          )}
+                          <span
+                            className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                              o.tipo_obra === 'PISCINA'
+                                ? 'bg-sky-50 text-sky-800 border border-sky-200/60'
+                                : 'bg-amber-50 text-amber-800 border border-amber-200/60'
+                            }`}
+                          >
+                            {o.tipo_obra === 'PISCINA' ? 'Piscina' : 'Obra Civil'}
+                          </span>
+                        </div>
+
+                        {faltaLogisticaIntermack ? (
+                          <span className="text-[10px] text-amber-800 font-black bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                            Completar Entrega/Alias
                           </span>
                         ) : (
-                          <span className="p-2 bg-amber-50 text-amber-600 rounded-xl">
-                            <Building2 className="w-4 h-4" />
+                          <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">
+                            Ativa
                           </span>
                         )}
-                        <span
-                          className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
-                            o.tipo_obra === 'PISCINA'
-                              ? 'bg-sky-50 text-sky-800 border border-sky-200/60'
-                              : 'bg-amber-50 text-amber-800 border border-amber-200/60'
-                          }`}
-                        >
-                          {o.tipo_obra === 'PISCINA' ? 'Piscina' : 'Obra Civil'}
-                        </span>
                       </div>
 
-                      <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">
-                        Ativa
-                      </span>
-                    </div>
-
-                    <div>
-                      <h3 className="font-black text-base text-slate-950">{o.nome}</h3>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{o.local}</span>
-                      </div>
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium">Diária Padrão:</span>
-                        <span className="font-black text-slate-950 text-xs">
-                          R$ {Number(o.valor_diaria_padrao || (o.tipo_obra === 'PISCINA' ? 150 : 180)).toFixed(2)}
-                        </span>
-                      </div>
-
-                      {/* Exibição dos Apelidos da Obra */}
-                      {mapaApelidos.obras[o.id] && mapaApelidos.obras[o.id].length > 0 && (
-                        <div className="pt-1 flex flex-wrap items-center gap-1 border-t border-slate-100/70">
-                          <span className="text-[10px] text-slate-400 font-bold">Apelidos no Zap:</span>
-                          {mapaApelidos.obras[o.id].map((ap, idx) => (
-                            <span
-                              key={idx}
-                              className="text-[10px] font-bold bg-sky-50 text-sky-800 px-2 py-0.5 rounded-lg border border-sky-200/60"
-                            >
-                              {ap}
-                            </span>
-                          ))}
+                      <div className="space-y-1">
+                        <h3 className="font-black text-base text-slate-950">{o.nome}</h3>
+                        {o.alias_fornecedor && (
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-700">
+                            <Tag className="w-3.5 h-3.5 shrink-0" />
+                            <span>Cliente Fornecedor: {o.alias_fornecedor}</span>
+                          </div>
+                        )}
+                        <div className="flex items-start gap-1.5 text-xs text-slate-600">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                          <span>
+                            {o.local}
+                            {o.cep_entrega ? ` • CEP ${o.cep_entrega}` : ''}
+                          </span>
                         </div>
-                      )}
+                        {o.complemento_entrega && (
+                          <p className="text-[11px] text-slate-500 pl-5">
+                            <strong>Obs. Entrega:</strong> {o.complemento_entrega}
+                          </p>
+                        )}
+                        {o.contato_recebimento && (
+                          <p className="text-[11px] text-slate-500 pl-5">
+                            <strong>Receber com:</strong> {o.contato_recebimento}
+                          </p>
+                        )}
+                      </div>
 
-                      <div className="pt-2 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => handleStartEditObra(o)}
-                          className="px-3 py-1 bg-slate-100 hover:bg-sky-50 hover:text-sky-700 text-slate-700 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 border border-slate-200/80"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                          Editar Obra
-                        </button>
+                      <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
+                        {!isIntermack && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 font-medium">Diária Padrão:</span>
+                            <span className="font-black text-slate-950 text-xs">
+                              R$ {Number(o.valor_diaria_padrao || (o.tipo_obra === 'PISCINA' ? 150 : 180)).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Exibição dos Apelidos da Obra */}
+                        {mapaApelidos.obras[o.id] && mapaApelidos.obras[o.id].length > 0 && (
+                          <div className="pt-1 flex flex-wrap items-center gap-1 border-t border-slate-100/70">
+                            <span className="text-[10px] text-slate-400 font-bold">Apelidos no Zap:</span>
+                            {mapaApelidos.obras[o.id].map((ap, idx) => (
+                              <span
+                                key={idx}
+                                className="text-[10px] font-bold bg-sky-50 text-sky-800 px-2 py-0.5 rounded-lg border border-sky-200/60"
+                              >
+                                {ap}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="pt-2 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditObra(o)}
+                            className="px-3 py-1 bg-slate-100 hover:bg-sky-50 hover:text-sky-700 text-slate-700 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 border border-slate-200/80"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            Editar Obra
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1359,12 +1616,16 @@ export default function SetupPage() {
 
       {/* ================= MODAL DE EDIÇÃO DE OBRA ================= */}
       {editingObra && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in duration-150">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-lg font-black text-slate-900">Editar Canteiro / Obra</h3>
-                <p className="text-xs text-slate-500">Altere o nome, localização, tipo de serviço e diária padrão.</p>
+                <p className="text-xs text-slate-500">
+                  {isIntermack
+                    ? 'Configure identificação, Alias do Cliente p/ Fornecedores, endereço e regras de entrega.'
+                    : 'Altere o nome, localização, tipo de serviço e diária padrão.'}
+                </p>
               </div>
               <button
                 onClick={() => setEditingObra(null)}
@@ -1374,7 +1635,14 @@ export default function SetupPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSalvarEditObra} className="space-y-4">
+            <form onSubmit={handleSalvarEditObra} className="space-y-3.5">
+              {erroEditObra && (
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-800 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{erroEditObra}</span>
+                </div>
+              )}
+
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700">Identificação da Obra *</label>
                 <input
@@ -1386,16 +1654,74 @@ export default function SetupPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Cidade / Localização</label>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Alias / Cliente p/ Fornecedores {isIntermack ? '*' : '(Opcional)'}
+                </label>
+                <input
+                  type="text"
+                  required={isIntermack}
+                  placeholder="Nome do cliente que identifica o pedido junto ao fornecedor/NF"
+                  value={editObraAliasFornecedor}
+                  onChange={(e) => setEditObraAliasFornecedor(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="space-y-1 col-span-1">
+                  <label className="text-xs font-bold text-slate-700">CEP</label>
                   <input
                     type="text"
+                    placeholder="01451-000"
+                    value={editObraCep}
+                    onChange={(e) => setEditObraCep(e.target.value)}
+                    onBlur={() => void buscarEnderecoPorCep(editObraCep, 'EDIT')}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <label className="text-xs font-bold text-slate-700">
+                    {isIntermack ? 'Endereço de Entrega *' : 'Cidade / Localização'}
+                  </label>
+                  <input
+                    type="text"
+                    required={isIntermack}
                     value={editObraLocal}
                     onChange={(e) => setEditObraLocal(e.target.value)}
+                    placeholder="Rua/Av, nº, Bairro, Cidade - UF"
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Complemento / Observação de Entrega
+                </label>
+                <textarea
+                  rows={2}
+                  value={editObraComplemento}
+                  onChange={(e) => setEditObraComplemento(e.target.value)}
+                  placeholder="Torre/Andar/Portaria de serviço, horário de descarga, regras de acesso..."
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Quem Recebe na Obra (Nome + WhatsApp)
+                </label>
+                <input
+                  type="text"
+                  value={editObraContatoRecebimento}
+                  onChange={(e) => setEditObraContatoRecebimento(e.target.value)}
+                  placeholder="Ex: Mestre Carlos — (11) 99999-8888"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700">Tipo de Obra</label>
                   <select
@@ -1407,18 +1733,18 @@ export default function SetupPage() {
                     <option value="OBRA_CIVIL">Construção Civil</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Diária Padrão da Obra (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={editObraValor}
-                  onChange={(e) => setEditObraValor(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
-                />
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Diária Padrão (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editObraValor}
+                    onChange={(e) => setEditObraValor(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">

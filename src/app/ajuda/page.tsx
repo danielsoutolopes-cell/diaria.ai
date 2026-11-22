@@ -408,7 +408,7 @@ export default function AjudaPage() {
         <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
           <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
             <li>
-              <strong>Gerador de Pedido de Compras (<code>/compras</code>)</strong>: Nas empresas com módulo de compras habilitado, listas informais de materiais enviadas nos grupos de obra ou coladas na tela são agrupadas automaticamente pela IA por categoria (Alvenaria, Hidráulica, Elétrica, Acabamento, Pintura e EPI) em mensagem pronta para copiar e encaminhar a fornecedores.
+              <strong>Gerador de Pedido de Compras (<code>/compras</code>) &amp; Logística da Obra (<code>/setup</code>)</strong>: Nas empresas com módulo de compras habilitado, o cadastro da obra exige <strong>Alias / Cliente p/ Fornecedores</strong> e <strong>Endereço de Entrega</strong> (com busca por CEP, Complemento/Observações de descarga e contato de recebimento). Os pedidos agrupados pela IA já saem com esse cabeçalho completo e permitem clicar em <strong>&quot;Copiar só esta categoria&quot;</strong> (ex.: só Elétrica ou só Hidráulica) para encaminhar direto a cada fornecedor.
             </li>
             <li>
               <strong>Auditoria Interna (<code>/auditoria</code>)</strong>: Cruza os lançamentos do banco com os logs originais do WhatsApp para identificar duplicidades, soma diária acima de 1,0, valores divergentes da tabela/chuva, apelidos não normalizados e vales pendentes de comprovante.

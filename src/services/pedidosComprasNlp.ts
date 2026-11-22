@@ -29,11 +29,20 @@ export interface ItemPedidoCompra {
   observacao?: string;
 }
 
+export interface DadosEntregaPedido {
+  aliasFornecedor?: string; // Nome do cliente que identifica o pedido junto ao fornecedor
+  enderecoEntrega?: string;
+  cepEntrega?: string;
+  complementoObservacao?: string;
+  contatoRecebimento?: string;
+}
+
 export interface PedidoCompraRecord {
   id: string;
   tenantId: string;
   empresaNome: string;
   obraNome: string;
+  dadosEntrega?: DadosEntregaPedido;
   grupoJid?: string | null;
   solicitadoPor: string;
   textoOriginal: string;
@@ -294,6 +303,43 @@ ${textoOriginal}
   };
 }
 
+function montarCabecalhoEntrega(params: {
+  empresaNome: string;
+  obraNome: string;
+  solicitadoPor: string;
+  dataHoraLabel: string;
+  dadosEntrega?: DadosEntregaPedido;
+  categoriaUnica?: CategoriaCompra;
+}): string[] {
+  const ent = params.dadosEntrega;
+  const titulo = params.categoriaUnica
+    ? `🛒 *PEDIDO DE COMPRAS (${params.categoriaUnica.toUpperCase()}) — ${params.empresaNome.toUpperCase()}*`
+    : `🛒 *PEDIDO DE COMPRAS — ${params.empresaNome.toUpperCase()}*`;
+
+  const linhas: string[] = [titulo];
+
+  if (ent?.aliasFornecedor?.trim()) {
+    linhas.push(`🏷️ *Cliente / Ref. Fornecedor:* ${ent.aliasFornecedor.trim()}`);
+  }
+  linhas.push(`🏗️ *Obra:* ${params.obraNome}`);
+
+  if (ent?.enderecoEntrega?.trim()) {
+    const cepParte = ent.cepEntrega?.trim() ? ` (CEP: ${ent.cepEntrega.trim()})` : '';
+    linhas.push(`📍 *Endereço de Entrega:* ${ent.enderecoEntrega.trim()}${cepParte}`);
+  }
+  if (ent?.complementoObservacao?.trim()) {
+    linhas.push(`📝 *Complemento / Obs. Entrega:* ${ent.complementoObservacao.trim()}`);
+  }
+  if (ent?.contatoRecebimento?.trim()) {
+    linhas.push(`👷 *Receber com:* ${ent.contatoRecebimento.trim()}`);
+  }
+
+  linhas.push(`👤 *Solicitado por:* ${params.solicitadoPor}`);
+  linhas.push(`📅 *Data/Hora:* ${params.dataHoraLabel}`);
+  linhas.push(`--------------------------------------`);
+  return linhas;
+}
+
 /**
  * Formata o pedido agrupado por categoria pronto para copiar e colar no WhatsApp de fornecedores ou da Patrícia.
  */
@@ -303,6 +349,7 @@ export function formatarMensagemPedidoWhatsApp(params: {
   solicitadoPor: string;
   dataHoraLabel: string;
   itens: ItemPedidoCompra[];
+  dadosEntrega?: DadosEntregaPedido;
 }): string {
   const porCategoria = new Map<CategoriaCompra, ItemPedidoCompra[]>();
 
@@ -312,13 +359,7 @@ export function formatarMensagemPedidoWhatsApp(params: {
     porCategoria.set(item.categoria, lista);
   }
 
-  const linhas: string[] = [
-    `🛒 *PEDIDO DE COMPRAS — ${params.empresaNome.toUpperCase()}*`,
-    `🏗️ *Obra:* ${params.obraNome}`,
-    `👤 *Solicitado por:* ${params.solicitadoPor}`,
-    `📅 *Data/Hora:* ${params.dataHoraLabel}`,
-    `--------------------------------------`,
-  ];
+  const linhas = montarCabecalhoEntrega(params);
 
   for (const [categoria, lista] of Array.from(porCategoria.entries())) {
     linhas.push('');
@@ -335,6 +376,45 @@ export function formatarMensagemPedidoWhatsApp(params: {
   linhas.push(
     `✅ *Total de itens:* ${params.itens.length} (${porCategoria.size} categoria(s))`
   );
+  linhas.push(`_Mensagem pronta para copiar e encaminhar ao fornecedor._`);
+
+  return linhas.join('\n');
+}
+
+/**
+ * Formata apenas uma categoria específica (ex.: só Elétrica ou só Hidráulica) já levando o cabeçalho completo
+ * de identificação do cliente no fornecedor, endereço, complemento/observações e contato de recebimento.
+ */
+export function formatarMensagemCategoriaWhatsApp(params: {
+  empresaNome: string;
+  obraNome: string;
+  solicitadoPor: string;
+  dataHoraLabel: string;
+  categoria: CategoriaCompra;
+  itens: ItemPedidoCompra[];
+  dadosEntrega?: DadosEntregaPedido;
+}): string {
+  const filtrados = params.itens.filter((i) => i.categoria === params.categoria);
+  const linhas = montarCabecalhoEntrega({
+    empresaNome: params.empresaNome,
+    obraNome: params.obraNome,
+    solicitadoPor: params.solicitadoPor,
+    dataHoraLabel: params.dataHoraLabel,
+    dadosEntrega: params.dadosEntrega,
+    categoriaUnica: params.categoria,
+  });
+
+  linhas.push('');
+  linhas.push(`📦 *${params.categoria.toUpperCase()}*`);
+  for (const it of filtrados) {
+    const tagUrg = it.urgencia === 'ALTA' ? ' 🚨 [URGENTE]' : '';
+    const obs = it.observacao ? ` _(${it.observacao})_` : '';
+    linhas.push(`• ${it.quantidade} ${it.unidade} — ${it.nome}${tagUrg}${obs}`);
+  }
+
+  linhas.push('');
+  linhas.push(`--------------------------------------`);
+  linhas.push(`✅ *Total nesta categoria:* ${filtrados.length} item(ns)`);
   linhas.push(`_Mensagem pronta para copiar e encaminhar ao fornecedor._`);
 
   return linhas.join('\n');

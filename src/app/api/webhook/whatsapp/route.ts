@@ -25,6 +25,7 @@ import {
   isMensagemPedidoCompra,
   type PedidoCompraRecord,
 } from '@/services/pedidosComprasNlp';
+import { buscarLogisticaPorNomeObra } from '@/services/obrasLogisticaStorage';
 import crypto from 'crypto';
 
 // Mutex em memória para evitar concorrência e mensagens duplicadas do WhatsApp
@@ -292,12 +293,26 @@ export async function POST(req: NextRequest) {
         });
         const solicitanteCompra =
           body?.data?.pushName || senderNumber || 'Grupo de Obra';
+        const logisticaObra = await buscarLogisticaPorNomeObra(
+          tenantId,
+          obraNomeCompra
+        );
+        const dadosEntrega = logisticaObra
+          ? {
+              aliasFornecedor: logisticaObra.aliasFornecedor,
+              enderecoEntrega: logisticaObra.enderecoEntrega,
+              cepEntrega: logisticaObra.cepEntrega,
+              complementoObservacao: logisticaObra.complementoObservacao,
+              contatoRecebimento: logisticaObra.contatoRecebimento,
+            }
+          : undefined;
         const mensagemFormatada = formatarMensagemPedidoWhatsApp({
           empresaNome: TENANTS[empresaAtivaSlug].nome,
           obraNome: obraNomeCompra,
           solicitadoPor: solicitanteCompra,
           dataHoraLabel,
           itens,
+          dadosEntrega,
         });
 
         let enviadoPatricia = false;
@@ -320,6 +335,7 @@ export async function POST(req: NextRequest) {
           tenantId,
           empresaNome: TENANTS[empresaAtivaSlug].nome,
           obraNome: obraNomeCompra,
+          dadosEntrega,
           grupoJid: remoteJid,
           solicitadoPor: solicitanteCompra,
           textoOriginal: messageText,

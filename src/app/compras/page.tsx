@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
   ShoppingCart,
   Sparkles,
@@ -14,6 +15,8 @@ import {
   Clock,
   CheckCircle2,
   PauseCircle,
+  MapPin,
+  Tag,
 } from 'lucide-react';
 import {
   getActiveTenantFromBrowser,
@@ -22,17 +25,30 @@ import {
   TENANTS,
   type TenantConfig,
 } from '@/lib/tenant';
-import type {
-  CategoriaCompra,
-  PedidoCompraRecord,
-  StatusPedidoCompra,
+import {
+  formatarMensagemCategoriaWhatsApp,
+  type CategoriaCompra,
+  type PedidoCompraRecord,
+  type StatusPedidoCompra,
 } from '@/services/pedidosComprasNlp';
+
+interface ObraDetalheCompra {
+  id: string;
+  nome: string;
+  aliasFornecedor: string;
+  enderecoEntrega: string;
+  cepEntrega: string;
+  complementoObservacao: string;
+  contatoRecebimento: string;
+  cadastroCompleto: boolean;
+}
 
 interface ComprasApiResponse {
   success?: boolean;
   tenant?: { id: string; slug: string; nome: string; razaoSocial: string };
   moduloComprasAtivo?: boolean;
   obras?: string[];
+  obrasDetalhes?: ObraDetalheCompra[];
   pedidos?: PedidoCompraRecord[];
   error?: string;
 }
@@ -70,6 +86,7 @@ export default function ComprasPage() {
   const [moduloAtivo, setModuloAtivo] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [obras, setObras] = useState<string[]>([]);
+  const [obrasDetalhes, setObrasDetalhes] = useState<ObraDetalheCompra[]>([]);
   const [pedidos, setPedidos] = useState<PedidoCompraRecord[]>([]);
 
   // Formulário de geração
@@ -81,6 +98,7 @@ export default function ComprasPage() {
 
   // Estados de ação/feedback
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
+  const [copiadaCategoriaKey, setCopiadaCategoriaKey] = useState<string | null>(null);
   const [reenviandoId, setReenviandoId] = useState<string | null>(null);
   const [atualizandoStatusId, setAtualizandoStatusId] = useState<string | null>(null);
   const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
@@ -98,6 +116,7 @@ export default function ComprasPage() {
         setModuloAtivo(Boolean(data.moduloComprasAtivo));
         const listaObras = data.obras || [];
         setObras(listaObras);
+        setObrasDetalhes(data.obrasDetalhes || []);
         setObraSelecionada((prev) => prev || listaObras[0] || 'Obra Intermack');
         setPedidos(data.pedidos || []);
       }
@@ -235,6 +254,32 @@ export default function ComprasPage() {
     setTimeout(() => setCopiadoId(null), 2500);
   }
 
+  function handleCopiarCategoria(
+    pedido: PedidoCompraRecord,
+    categoria: CategoriaCompra
+  ) {
+    const dataHoraLabel = new Date(pedido.criadoEm).toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+    });
+    const textoCategoria = formatarMensagemCategoriaWhatsApp({
+      empresaNome: pedido.empresaNome,
+      obraNome: pedido.obraNome,
+      solicitadoPor: pedido.solicitadoPor,
+      dataHoraLabel,
+      categoria,
+      itens: pedido.itens,
+      dadosEntrega: pedido.dadosEntrega,
+    });
+    navigator.clipboard.writeText(textoCategoria);
+    const key = `${pedido.id}::${categoria}`;
+    setCopiadaCategoriaKey(key);
+    setTimeout(() => setCopiadaCategoriaKey(null), 2500);
+  }
+
+  const obraDetalheAtual = obrasDetalhes.find(
+    (o) => o.nome.toUpperCase() === obraSelecionada.toUpperCase()
+  );
+
   const pedidosFiltrados =
     filtroStatus === 'TODOS'
       ? pedidos
@@ -297,7 +342,7 @@ export default function ComprasPage() {
             Gerador Inteligente de Pedido de Compras
           </h1>
           <p className="text-sm text-slate-600 mt-0.5">
-            Monitoramento automático de grupos da obra + agrupamento de itens por categoria via Gemini AI, pronto para copiar e encaminhar no WhatsApp.
+            Monitoramento automático de grupos da obra + agrupamento de itens por categoria via Gemini AI, com Alias do Cliente e Endereço de Entrega embutidos no pedido.
           </p>
         </div>
 
@@ -400,6 +445,70 @@ export default function ComprasPage() {
             />
           </div>
         </div>
+
+        {/* Preview dos Dados de Entrega & Alias do Cliente p/ Fornecedores */}
+        {obraDetalheAtual && (
+          obraDetalheAtual.cadastroCompleto ? (
+            <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 text-xs space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 font-black text-indigo-950">
+                  <Tag className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>
+                    Cliente / Ref. Fornecedor: {obraDetalheAtual.aliasFornecedor}
+                  </span>
+                </span>
+                <Link
+                  href="/setup"
+                  className="text-[11px] font-bold text-indigo-700 underline hover:text-indigo-900"
+                >
+                  Editar dados da obra
+                </Link>
+              </div>
+              <p className="text-slate-700 flex items-start gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Entrega:</strong> {obraDetalheAtual.enderecoEntrega}
+                  {obraDetalheAtual.cepEntrega
+                    ? ` (CEP: ${obraDetalheAtual.cepEntrega})`
+                    : ''}
+                </span>
+              </p>
+              {obraDetalheAtual.complementoObservacao && (
+                <p className="text-[11px] text-slate-600">
+                  <strong>Complemento / Obs.:</strong>{' '}
+                  {obraDetalheAtual.complementoObservacao}
+                </p>
+              )}
+              {obraDetalheAtual.contatoRecebimento && (
+                <p className="text-[11px] text-slate-600">
+                  <strong>Receber com:</strong>{' '}
+                  {obraDetalheAtual.contatoRecebimento}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block">
+                    Cadastro de entrega incompleto para {obraDetalheAtual.nome}
+                  </strong>
+                  <span className="text-[11px] text-amber-800">
+                    Preencha o <strong>Endereço de Entrega</strong> e o{' '}
+                    <strong>Alias (Cliente p/ Fornecedores)</strong> em Setup para que saiam automaticamente no pedido.
+                  </span>
+                </div>
+              </div>
+              <Link
+                href="/setup"
+                className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black shrink-0"
+              >
+                Completar em Setup
+              </Link>
+            </div>
+          )
+        )}
 
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-700">
@@ -589,36 +698,64 @@ export default function ComprasPage() {
                       <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
                         Itens Agrupados por Categoria ({categorias.size})
                       </span>
-                      {Array.from(categorias.entries()).map(([cat, lista]) => (
-                        <div
-                          key={cat}
-                          className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2"
-                        >
-                          <div className="text-xs font-black text-indigo-900">
-                            {cat}
-                          </div>
-                          <ul className="space-y-1">
-                            {lista.map((it, idx) => (
-                              <li
-                                key={`${cat}-${idx}`}
-                                className="text-xs text-slate-700 flex items-center justify-between gap-2"
+                      {Array.from(categorias.entries()).map(([cat, lista]) => {
+                        const catKey = `${pedido.id}::${cat}`;
+                        const copiadaCat = copiadaCategoriaKey === catKey;
+                        return (
+                          <div
+                            key={cat}
+                            className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-xs font-black text-indigo-900">
+                                {cat}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCopiarCategoria(pedido, cat)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 transition-all ${
+                                  copiadaCat
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-700'
+                                }`}
+                                title="Copiar somente esta categoria já com Alias do Cliente e Endereço de Entrega"
                               >
-                                <span>
-                                  <strong className="tabular-nums text-slate-950">
-                                    {it.quantidade} {it.unidade}
-                                  </strong>{' '}
-                                  — {it.nome}
-                                </span>
-                                {it.urgencia === 'ALTA' && (
-                                  <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-black">
-                                    URGENTE
-                                  </span>
+                                {copiadaCat ? (
+                                  <>
+                                    <Check className="w-3 h-3" />
+                                    <span>Copiada!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    <span>Copiar só esta categoria</span>
+                                  </>
                                 )}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
+                              </button>
+                            </div>
+                            <ul className="space-y-1">
+                              {lista.map((it, idx) => (
+                                <li
+                                  key={`${cat}-${idx}`}
+                                  className="text-xs text-slate-700 flex items-center justify-between gap-2"
+                                >
+                                  <span>
+                                    <strong className="tabular-nums text-slate-950">
+                                      {it.quantidade} {it.unidade}
+                                    </strong>{' '}
+                                    — {it.nome}
+                                  </span>
+                                  {it.urgencia === 'ALTA' && (
+                                    <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-black">
+                                      URGENTE
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     <div className="space-y-2">
