@@ -16,9 +16,9 @@ ALTER TABLE lancamentos_financeiros
     ADD COLUMN IF NOT EXISTS ciclo_encerrado BOOLEAN NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS chave_idempotencia VARCHAR(160);
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_lancamentos_chave_idempotencia
-    ON lancamentos_financeiros(chave_idempotencia)
-    WHERE chave_idempotencia IS NOT NULL;
+DROP INDEX IF EXISTS idx_lancamentos_chave_idempotencia;
+CREATE UNIQUE INDEX idx_lancamentos_chave_idempotencia
+    ON lancamentos_financeiros(chave_idempotencia);
 
 CREATE INDEX IF NOT EXISTS idx_lancamentos_tenant_ciclo_encerrado
     ON lancamentos_financeiros(tenant_id, status, ciclo_encerrado);
@@ -31,9 +31,9 @@ ALTER TABLE ciclos_financeiros
     ADD COLUMN IF NOT EXISTS ciclo_encerrado BOOLEAN NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS chave_idempotencia VARCHAR(160);
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_ciclos_chave_idempotencia
-    ON ciclos_financeiros(chave_idempotencia)
-    WHERE chave_idempotencia IS NOT NULL;
+DROP INDEX IF EXISTS idx_ciclos_chave_idempotencia;
+CREATE UNIQUE INDEX idx_ciclos_chave_idempotencia
+    ON ciclos_financeiros(chave_idempotencia);
 
 -- Backfill seguro de rastreabilidade nos vales legados já gravados
 UPDATE lancamentos_financeiros

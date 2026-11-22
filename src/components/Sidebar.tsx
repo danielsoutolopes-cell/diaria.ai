@@ -117,6 +117,14 @@ const navItems = [
     onlyDiarista: true,
   },
   {
+    name: 'Conciliação Bancária (OFX/CSV)',
+    href: '/conciliacao',
+    icon: Receipt,
+    badge: 'PIX',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    onlyDiarista: true,
+  },
+  {
     name: 'Relatórios & Exportações',
     intermackName: 'Relatório de Efetivo',
     href: '/relatorios',

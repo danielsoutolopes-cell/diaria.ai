@@ -114,6 +114,42 @@ export default function BorderoPage() {
   const [erroOcr, setErroOcr] = useState<string | null>(null);
   const [gerandoReciboId, setGerandoReciboId] = useState<string | null>(null);
   const [reciboModal, setReciboModal] = useState<ReciboLiquidacaoModalState | null>(null);
+  const [ffExtratoLink, setFfExtratoLink] = useState<boolean>(false);
+  const [linkExtratoCopiado, setLinkExtratoCopiado] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/feature-flags', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d: { flags?: { FF_EXTRATO_COLABORADOR_LINK?: boolean } }) => {
+        setFfExtratoLink(d?.flags?.FF_EXTRATO_COLABORADOR_LINK === true);
+      })
+      .catch(() => setFfExtratoLink(false));
+  }, []);
+
+  async function handleGerarLinkExtratoColaborador(nomeTrabalhador: string) {
+    try {
+      const res = await fetch('/api/extrato-colaborador', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trabalhador: nomeTrabalhador, periodoDias: 15 }),
+      });
+      const data = (await res.json()) as {
+        success?: boolean;
+        urlCompleta?: string;
+        urlRelativa?: string;
+      };
+      const url = data.urlCompleta || data.urlRelativa;
+      if (res.ok && url) {
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(url);
+        }
+        setLinkExtratoCopiado(nomeTrabalhador);
+        setTimeout(() => setLinkExtratoCopiado(null), 3500);
+      }
+    } catch {
+      // Silencioso caso usuário não autorize clipboard
+    }
+  }
 
   // Modal para Edição de Lançamento Já Confirmado
   const [edicaoModal, setEdicaoModal] = useState<{
@@ -1001,11 +1037,31 @@ export default function BorderoPage() {
                     )}
                   </div>
 
-                  <div className="text-sm font-bold text-slate-900">
-                    Subtotal a transferir:{' '}
-                    <span className="text-emerald-700 font-black text-base ml-1">
-                      R$ {totais.totalLiquido.toFixed(2)}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {ffExtratoLink && (
+                      <button
+                        type="button"
+                        onClick={() => void handleGerarLinkExtratoColaborador(f.nome)}
+                        className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-black flex items-center gap-1.5 transition-all"
+                        title="Gerar e copiar link seguro de extrato para o colaborador (sem login)"
+                      >
+                        <span>
+                          {linkExtratoCopiado === f.nome
+                            ? 'Link Copiado!'
+                            : 'Link Extrato'}
+                        </span>
+                        <span className="text-[9px] uppercase px-1.5 py-0.5 rounded-full bg-amber-600 text-white">
+                          EM HOMOLOGAÇÃO
+                        </span>
+                      </button>
+                    )}
+
+                    <div className="text-sm font-bold text-slate-900">
+                      Subtotal a transferir:{' '}
+                      <span className="text-emerald-700 font-black text-base ml-1">
+                        R$ {totais.totalLiquido.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

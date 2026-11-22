@@ -257,6 +257,25 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
     exemplo:
       'Cole "Precisando urgente de 20 sacos de cimento, 3 rolos de fio 2.5mm e 6 tubos pvc 50mm" e clique em "Copiar só esta categoria" em Elétrica para mandar direto à loja elétrica.',
   },
+  '/conciliacao': {
+    titulo: 'Conciliação Bancária Automática (OFX / CSV)',
+    resumo:
+      'Cruza automaticamente o extrato bancário (.OFX ou .CSV) com vales, diárias e repasses PIX do sistema para aprovar conciliações em 1 clique.',
+    funcoes: [
+      {
+        nome: 'Leitura Multibanco (OFX e CSV)',
+        descricao:
+          'Compatível com arquivos de bancos digitais e tradicionais; identifica automaticamente saídas PIX, datas e favorecidos.',
+      },
+      {
+        nome: 'Matching Inteligente & Divergências',
+        descricao:
+          'Classifica cada saída como Match Exato, Sugestão para validação em 1 clique ou Divergência sem lançamento correspondente.',
+      },
+    ],
+    exemplo:
+      'Baixe o extrato .OFX ou .CSV do mês no internet banking, arraste na área de upload e clique em "Aprovar em 1 clique" nos pares confirmados.',
+  },
   '/auditoria': {
     titulo: 'Auditoria Interna com Correção Assistida por IA',
     resumo:

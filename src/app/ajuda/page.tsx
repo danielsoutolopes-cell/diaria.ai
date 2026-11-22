@@ -102,10 +102,16 @@ export default function AjudaPage() {
                 <strong>Exemplo:</strong> Pedidos naturais no grupo entram na Etapa 1 (padrão R$ 100,00). Ao subir o comprovante PIX com IA, o vale é pareado para a Etapa 2. No Borderô, o botão <strong>Liquidar PIX (Foto OCR)</strong> lê o comprovante e mostra a prévia exata antes de baixar o ciclo.
               </p>
             </div>
-            <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200/80 space-y-1 md:col-span-2">
-              <span className="font-black text-purple-950 block">5. Rateio Multi-Obra (½ + ½) &amp; Relatórios PDF Zap</span>
+            <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200/80 space-y-1">
+              <span className="font-black text-purple-950 block">5. Rateio Multi-Obra (½ + ½) &amp; Excel 5 Abas</span>
               <p className="text-[11px] text-purple-900">
-                <strong>Exemplo:</strong> Quando um colaborador trabalha 0,5d na Obra A e 0,5d na Obra B no mesmo dia, o Espelho do Ponto exibe o selo <strong>½+½</strong> e o código PIX detalha ambas as obras. No envio por <strong>PDF Zap</strong>, administradores recebem com valores e a equipe recebe versão operacional sem R$.
+                <strong>Exemplo:</strong> Quando um colaborador trabalha 0,5d na Obra A e 0,5d na Obra B no mesmo dia, o Espelho do Ponto exibe <strong>½+½</strong> e o Extrato Analítico baixa 5 abas completas com fórmulas <code className="font-mono">=SUM</code> (incluindo Mão de Obra + Caixinha em Custo por Obra).
+              </p>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200/80 space-y-1">
+              <span className="font-black text-teal-950 block">6. Conciliação Bancária (/conciliacao) &amp; Feature Flags (/setup)</span>
+              <p className="text-[11px] text-teal-900">
+                <strong>Exemplo:</strong> Suba extratos <strong>.OFX / .CSV</strong> para cruzar saídas PIX em 1 clique. No <strong>/setup</strong>, o Super Usuário ativa/desativa recursos <strong>EM HOMOLOGAÇÃO</strong> (Resumo 19h &quot;OK&quot; e Portal <code>/extrato/[token]</code>) independentemente por empresa.
               </p>
             </div>
           </div>

@@ -92,6 +92,8 @@ export interface ExcelV6CustoObra {
   diariasQuitadas: number;
   totalDiarias: number;
   valesRelacionados: number;
+  despesasCaixinha?: number;
+  custoTotalObra?: number;
 }
 
 export interface ExtratoAnaliticoV6Payload {
@@ -326,7 +328,7 @@ export function gerarWorkbookAnalitico5AbasV6(
   aplicarLarguras(ws4, [12, 8, 20, 22, 22, 16, 20, 36, 16, 18, 18]);
   XLSX.utils.book_append_sheet(wb, ws4, 'Caixinha de Campo');
 
-  // ABA 5: Custo por Obra
+  // ABA 5: Custo por Obra (Mão de Obra + Despesas/Notas do Caixinha por Centro de Custo)
   const rowsAba5: Array<Array<string | number>> = [
     [
       'Obra (Canônica)',
@@ -334,20 +336,41 @@ export function gerarWorkbookAnalitico5AbasV6(
       'Qtd Trabalhadores',
       'Diárias Abertas (R$)',
       'Diárias Quitadas (R$)',
-      'Total Diárias (R$)',
+      'Total Mão de Obra (R$)',
       'Vales Relacionados (R$)',
+      'Despesas Caixinha (R$)',
+      'Custo Total Obra (R$)',
     ],
-    ...payload.custoPorObra.map((o) => [
-      o.obra,
-      o.tipologia,
-      o.qtdTrabalhadores,
-      o.diariasAbertas,
-      o.diariasQuitadas,
-      o.totalDiarias,
-      o.valesRelacionados,
-    ]),
+    ...payload.custoPorObra.map((o) => {
+      const despesasCx = Number((o.despesasCaixinha || 0).toFixed(2));
+      const custoTotal =
+        o.custoTotalObra !== undefined
+          ? Number(o.custoTotalObra.toFixed(2))
+          : Number((o.totalDiarias + despesasCx).toFixed(2));
+      return [
+        o.obra,
+        o.tipologia,
+        o.qtdTrabalhadores,
+        o.diariasAbertas,
+        o.diariasQuitadas,
+        o.totalDiarias,
+        o.valesRelacionados,
+        despesasCx,
+        custoTotal,
+      ];
+    }),
   ];
   const ws5 = XLSX.utils.aoa_to_sheet(rowsAba5);
+  // Fórmula linha a linha para Custo Total Obra (=F{r}+H{r}: Mão de Obra + Despesas Caixinha)
+  for (let i = 0; i < payload.custoPorObra.length; i++) {
+    const excelRow = i + 2;
+    const refCusto = XLSX.utils.encode_cell({ r: excelRow - 1, c: 8 });
+    ws5[refCusto] = {
+      t: 'n',
+      f: `F${excelRow}+H${excelRow}`,
+      z: '#,##0.00',
+    };
+  }
   adicionarLinhaFormulaSoma(
     ws5,
     rowsAba5.length + 1,
@@ -357,10 +380,12 @@ export function gerarWorkbookAnalitico5AbasV6(
       { colIndex0: 4, colLetra: 'E' },
       { colIndex0: 5, colLetra: 'F' },
       { colIndex0: 6, colLetra: 'G' },
+      { colIndex0: 7, colLetra: 'H' },
+      { colIndex0: 8, colLetra: 'I' },
     ],
-    7
+    9
   );
-  aplicarLarguras(ws5, [26, 16, 18, 20, 20, 20, 22]);
+  aplicarLarguras(ws5, [26, 16, 18, 20, 20, 22, 22, 22, 22]);
   XLSX.utils.book_append_sheet(wb, ws5, 'Custo por Obra');
 
   return wb;

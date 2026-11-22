@@ -307,20 +307,9 @@ export default function RelatoriosPage() {
     exportarParaExcel(linhas, `custo-obras-${periodo}-${new Date().toISOString().split('T')[0]}`, 'Custos por Canteiro');
   }
 
-  // Exportar Extrato Detalhado para XLS
+  // Exportar Extrato Analítico Completo em 5 Abas Inteligentes (V6) com Fórmulas =SUM(...)
   function handleExportarAnaliticoXls() {
-    const linhas: LinhaExtratoAnaliticoExport[] = lancamentosDetalhados.map((l) => ({
-      Data: l.data_referencia,
-      Colaborador: l.nome_trabalhador,
-      Obra: extrairNomeObraRel(l.obras_config),
-      Tipo: l.tipo_lancamento === 'PONTO' ? 'Diária' : 'Vale',
-      'Fração / Qtd': l.tipo_lancamento === 'PONTO' ? `${l.fracao_dia || 1}x` : '—',
-      'Valor (R$)': Number(l.valor_monetario || 0),
-      Status: l.status,
-      'Chave PIX': l.comprovante_url ? 'Comprovante em Anexo' : '—',
-    }));
-
-    exportarParaExcel(linhas, `extrato-analitico-${periodo}-${new Date().toISOString().split('T')[0]}`, 'Extrato Analítico');
+    void handleExportarExcel5AbasV6();
   }
 
   // Disparo de Resumo do Borderô via WhatsApp para a Diretoria / Patrícia
@@ -844,31 +833,37 @@ export default function RelatoriosPage() {
             </div>
 
             <button
+              type="button"
               onClick={handleExportarAnaliticoXls}
-              disabled={lancamentosDetalhados.length === 0}
+              disabled={exportandoExcelV6}
               className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all disabled:opacity-40"
-              title="Baixar extrato analítico em Excel"
+              title="Baixar Extrato Analítico completo em 5 abas (.xlsx)"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>XLS</span>
+              <span>{exportandoExcelV6 ? '...' : '5 Abas'}</span>
             </button>
           </div>
 
           <div className="bg-gradient-to-br from-slate-950 to-slate-900 text-white p-6 rounded-2xl space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-400">Total de Linhas Auditadas</span>
-              <span className="text-emerald-400 font-bold text-xs">{lancamentosDetalhados.length} lançamentos</span>
+              <span className="text-emerald-400 font-bold text-xs">{lancamentosDetalhados.length} lançamentos • 5 abas</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              O arquivo analítico inclui o registro temporal exato, fracionamento de diárias (1x, 0.5x), status de aprovação pela administradora e indicação de fotos de recibos no Cloudflare R2.
+              Gera a planilha completa com 5 abas e fórmulas nativas <code className="text-emerald-300">=SUM(...)</code>: Resumo por Trabalhador, Detalhamento de Diárias (rateios ½+½ e chuva R$ 120), Controle de Vales (rastreabilidade 4 campos), Caixinha de Campo (pré-implantação 13/11) e Custo por Obra (Mão de Obra + Caixinha).
             </p>
             <button
+              type="button"
               onClick={handleExportarAnaliticoXls}
-              disabled={lancamentosDetalhados.length === 0}
+              disabled={exportandoExcelV6}
               className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs rounded-xl shadow-lg shadow-emerald-950/40 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <FileSpreadsheet className="w-4 h-4" />
-              <span>Baixar Planilha Completa (.xlsx)</span>
+              <span>
+                {exportandoExcelV6
+                  ? 'Gerando Planilha 5 Abas...'
+                  : 'Baixar Extrato Analítico (5 Abas .xlsx)'}
+              </span>
             </button>
           </div>
         </div>

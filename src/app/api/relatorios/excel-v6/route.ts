@@ -329,7 +329,10 @@ export async function GET(req: NextRequest) {
     });
 
     // 4. Detectar rateios multi-obra no mesmo dia (mesmo trabalhador + mesma data em >=2 obras)
-    const obrasPorTrabalhadorDia = new Map<string, Set<string>>();
+    const obrasPorTrabalhadorDia = new Map<
+      string,
+      Array<{ obra: string; fracao: number }>
+    >();
     lancamentos.forEach((l) => {
       if (l.tipo_lancamento !== 'PONTO') return;
       const nomeCanon = normalizarNomeTrabalhadorCanonico(l.nome_trabalhador);
@@ -339,10 +342,9 @@ export async function GET(req: NextRequest) {
         obraRel.tipo_obra
       );
       const chave = `${nomeCanon.toUpperCase()}__${l.data_referencia}`;
-      if (!obrasPorTrabalhadorDia.has(chave)) {
-        obrasPorTrabalhadorDia.set(chave, new Set());
-      }
-      obrasPorTrabalhadorDia.get(chave)?.add(obraNome);
+      const atual = obrasPorTrabalhadorDia.get(chave) || [];
+      atual.push({ obra: obraNome, fracao: Number(l.fracao_dia || 1) });
+      obrasPorTrabalhadorDia.set(chave, atual);
     });
 
     // 5. Construir Abas 1, 2, 3 e 5
@@ -402,6 +404,8 @@ export async function GET(req: NextRequest) {
           diariasQuitadas: 0,
           totalDiarias: 0,
           valesRelacionados: 0,
+          despesasCaixinha: 0,
+          custoTotalObra: 0,
           trabalhadoresSet: new Set(),
         });
       }
@@ -410,7 +414,26 @@ export async function GET(req: NextRequest) {
 
       if (l.tipo_lancamento === 'PONTO') {
         const chaveDia = `${chaveFunc}__${l.data_referencia}`;
-        const isRateio = (obrasPorTrabalhadorDia.get(chaveDia)?.size || 0) > 1;
+        const partesDia = obrasPorTrabalhadorDia.get(chaveDia) || [];
+        const obrasDistintasDia = new Set(partesDia.map((p) => p.obra));
+        const isRateio = obrasDistintasDia.size > 1;
+        const resumoRateio = isRateio
+          ? partesDia
+              .map(
+                (p) =>
+                  `${String(p.fracao).replace('.', ',')}d ${p.obra}`
+              )
+              .join(' + ')
+          : '';
+        const obsBase = (l.observacao || '').trim();
+        const obsFinal = isRateio
+          ? obsBase && obsBase.includes('0,5d')
+            ? obsBase
+            : obsBase
+              ? `${resumoRateio} | ${obsBase}`
+              : resumoRateio
+          : obsBase || '—';
+
         detalhamentoDiarias.push({
           data: l.data_referencia,
           trabalhador: nomeCanon,
@@ -426,7 +449,7 @@ export async function GET(req: NextRequest) {
           fracao,
           valor,
           status: l.status,
-          observacao: l.observacao || '—',
+          observacao: obsFinal,
         });
 
         regObra.totalDiarias = Number((regObra.totalDiarias + valor).toFixed(2));
@@ -446,7 +469,7 @@ export async function GET(req: NextRequest) {
             (regObra.diariasAbertas + valor).toFixed(2)
           );
         }
-      } else {
+      } else if (l.tipo_lancamento === 'VALE') {
         const horaOrigem = l.horario_origem || extrairHora(l.created_at);
         const pagadorFinal =
           l.aprovado_por ||
@@ -494,6 +517,30 @@ export async function GET(req: NextRequest) {
       }
     });
 
+    // Incorpora despesas/notas comprovadas do Caixinha de Campo no Custo por Obra (Centro de Custo)
+    caixinhaCampo.forEach((cx) => {
+      if (cx.saida <= 0) return;
+      const obraCx = normalizarNomeObraCanonica(cx.obra);
+      if (!obrasMap.has(obraCx)) {
+        obrasMap.set(obraCx, {
+          obra: obraCx,
+          tipologia: obraCx.includes('PISCINA') ? 'PISCINA' : 'OBRA_CIVIL',
+          qtdTrabalhadores: 0,
+          diariasAbertas: 0,
+          diariasQuitadas: 0,
+          totalDiarias: 0,
+          valesRelacionados: 0,
+          despesasCaixinha: 0,
+          custoTotalObra: 0,
+          trabalhadoresSet: new Set(),
+        });
+      }
+      const regObra = obrasMap.get(obraCx)!;
+      regObra.despesasCaixinha = Number(
+        ((regObra.despesasCaixinha || 0) + cx.saida).toFixed(2)
+      );
+    });
+
     const resumoTrabalhadores: ExcelV6ResumoTrabalhador[] = Array.from(
       resumoMap.values()
     )
@@ -514,16 +561,21 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => b.liquidoPagar - a.liquidoPagar);
 
     const custoPorObra: ExcelV6CustoObra[] = Array.from(obrasMap.values())
-      .map((item) => ({
-        obra: item.obra,
-        tipologia: item.tipologia,
-        qtdTrabalhadores: item.trabalhadoresSet.size,
-        diariasAbertas: item.diariasAbertas,
-        diariasQuitadas: item.diariasQuitadas,
-        totalDiarias: item.totalDiarias,
-        valesRelacionados: item.valesRelacionados,
-      }))
-      .sort((a, b) => b.totalDiarias - a.totalDiarias);
+      .map((item) => {
+        const despesasCx = Number((item.despesasCaixinha || 0).toFixed(2));
+        return {
+          obra: item.obra,
+          tipologia: item.tipologia,
+          qtdTrabalhadores: item.trabalhadoresSet.size,
+          diariasAbertas: item.diariasAbertas,
+          diariasQuitadas: item.diariasQuitadas,
+          totalDiarias: item.totalDiarias,
+          valesRelacionados: item.valesRelacionados,
+          despesasCaixinha: despesasCx,
+          custoTotalObra: Number((item.totalDiarias + despesasCx).toFixed(2)),
+        };
+      })
+      .sort((a, b) => (b.custoTotalObra || 0) - (a.custoTotalObra || 0));
 
     const payload: ExtratoAnaliticoV6Payload = {
       empresaNome: activeTenant.razaoSocial || activeTenant.nome,

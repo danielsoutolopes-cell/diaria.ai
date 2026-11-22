@@ -26,6 +26,11 @@ import {
   type PedidoCompraRecord,
 } from '@/services/pedidosComprasNlp';
 import { buscarLogisticaPorNomeObra } from '@/services/obrasLogisticaStorage';
+import { lerFeatureFlagsTenant } from '@/services/featureFlagsStorage';
+import {
+  isConfirmacaoOkEncarregado,
+  type HomologacaoDiaria19hRecord,
+} from '@/services/resumoDiario19h';
 import crypto from 'crypto';
 
 // Mutex em memória para evitar concorrência e mensagens duplicadas do WhatsApp
@@ -533,6 +538,70 @@ export async function POST(req: NextRequest) {
       hour: '2-digit',
       minute: '2-digit',
     });
+
+    // FEATURE 2 (V16 — EM HOMOLOGAÇÃO): Confirmação "OK" do Encarregado no Resumo Diário 19h
+    if (messageText && isConfirmacaoOkEncarregado(messageText)) {
+      const ff = await lerFeatureFlagsTenant(tenantId);
+      if (ff.FF_RESUMO_DIARIO_19H) {
+        const { data: paramHom } = await supabaseAdmin
+          .from('parametros_sistema')
+          .select('id, configuracoes')
+          .eq('tenant_id', tenantId)
+          .limit(1)
+          .maybeSingle();
+
+        const cfgs = (paramHom?.configuracoes || {}) as Record<string, unknown>;
+        const homList: HomologacaoDiaria19hRecord[] = Array.isArray(
+          cfgs.homologacoes_diarias_19h
+        )
+          ? (cfgs.homologacoes_diarias_19h as HomologacaoDiaria19hRecord[])
+          : [];
+
+        const pendenteHoje = homList.find(
+          (h) =>
+            h.dataIso === hojeBrasilia &&
+            h.status === 'AGUARDANDO_OK' &&
+            (!h.grupoJid || h.grupoJid === remoteJid)
+        );
+
+        if (pendenteHoje) {
+          const { data: encOk } = await supabaseAdmin
+            .from('encarregados_obras')
+            .select('nome')
+            .eq('tenant_id', tenantId)
+            .eq('telefone_encarregado', senderNumber)
+            .limit(1)
+            .maybeSingle();
+
+          const quemHomologou = normalizarNomeTrabalhadorCanonico(
+            encOk?.nome || senderNumber || 'Encarregado'
+          );
+          pendenteHoje.status = 'HOMOLOGADO_ENCARREGADO';
+          pendenteHoje.homologadoPor = quemHomologou;
+          pendenteHoje.homologadoEm = new Date().toISOString();
+
+          if (paramHom?.id) {
+            await supabaseAdmin
+              .from('parametros_sistema')
+              .update({
+                configuracoes: {
+                  ...cfgs,
+                  homologacoes_diarias_19h: homList,
+                },
+              })
+              .eq('id', paramHom.id);
+          }
+
+          return NextResponse.json({
+            status: 'success',
+            tipo: 'RESUMO_19H_HOMOLOGADO_OK',
+            obra: pendenteHoje.obraNome,
+            homologadoPor: quemHomologou,
+            whatsappNotifications: [],
+          });
+        }
+      }
+    }
 
     // FLUXO VALES ETAPA 2 (Prompt 3 & 11): Comprovante PIX enviado com legenda informal
     // Ex.: "Daniel vlw bahia", "Ian vale bahia", "Mateus vale bahia" ou comprovante PIX lido por Gemini Vision

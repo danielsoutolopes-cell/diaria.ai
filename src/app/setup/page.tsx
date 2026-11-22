@@ -28,6 +28,7 @@ import {
   TENANTS,
   type TenantConfig,
 } from '@/lib/tenant';
+import FeatureFlagsHomologacaoPanel from '@/components/FeatureFlagsHomologacaoPanel';
 
 interface ObraItem {
   id: string;
@@ -1914,6 +1915,11 @@ export default function SetupPage() {
           </div>
         </div>
       )}
+
+      {/* Governança de Homologação (Feature Flags por Empresa — Sprint V16) */}
+      <div className="pt-2">
+        <FeatureFlagsHomologacaoPanel />
+      </div>
     </div>
   );
 }

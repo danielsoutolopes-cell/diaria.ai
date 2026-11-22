@@ -35,7 +35,7 @@ next.on('error', (err) => {
   console.error('[PROD-RUNNER] Erro ao iniciar Next.js:', err);
 });
 
-// 3. Agendador Quinzenal (2ª e última sexta-feira do mês às 18:00 America/Sao_Paulo)
+// 3. Agendador Automático (Quinzenal 18h + Resumo Diário 19h controlado por Feature Flag)
 const cronInterval = setInterval(async () => {
   try {
     const res = await fetch(`http://127.0.0.1:${port}/api/cron/relatorio-quinzenal`, {
@@ -51,6 +51,28 @@ const cronInterval = setInterval(async () => {
     }
   } catch {
     // Servidor Next.js ainda inicializando ou em restart — ignora silenciosamente
+  }
+
+  // Feature 2 (V16 — EM HOMOLOGAÇÃO): Resumo Diário 19h por tenant (só dispara se FF_RESUMO_DIARIO_19H=true)
+  for (const tenantSlug of ['jhoston', 'intermack']) {
+    try {
+      const res19 = await fetch(`http://127.0.0.1:${port}/api/cron/resumo-diario-19h`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-slug': tenantSlug,
+        },
+        body: JSON.stringify({ force: false }),
+      });
+      if (res19.ok) {
+        const d19 = await res19.json();
+        if (d19 && d19.obrasProcessadas > 0) {
+          console.log(`[PROD-RUNNER][RESUMO-19H][${tenantSlug}] Enviado para ${d19.obrasProcessadas} obra(s).`);
+        }
+      }
+    } catch {
+      // Ignora silenciosamente fora da janela ou se flag desligada
+    }
   }
 }, 60 * 1000);
 

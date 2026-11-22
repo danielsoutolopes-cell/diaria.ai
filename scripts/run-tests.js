@@ -68,6 +68,7 @@ try {
   const testFiles = [
     path.join(repoRoot, 'tests/pos_quatro_fases_e2e.test.ts'),
     path.join(repoRoot, 'tests/reprocessamento_vales_convergencia.test.ts'),
+    path.join(repoRoot, 'tests/v16_features_homologacao.test.ts'),
     path.join(repoRoot, 'tests/reporters/pdfTestReportGenerator.ts'),
   ];
 
@@ -101,6 +102,7 @@ try {
   const compiledTests = [
     path.join(outDir, 'tests/pos_quatro_fases_e2e.test.js'),
     path.join(outDir, 'tests/reprocessamento_vales_convergencia.test.js'),
+    path.join(outDir, 'tests/v16_features_homologacao.test.js'),
   ];
 
   const startedAt = Date.now();
