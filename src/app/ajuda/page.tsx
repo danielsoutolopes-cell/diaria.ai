@@ -267,12 +267,15 @@ export default function AjudaPage() {
             Líquido a Pagar = (Soma das Diárias Marcadas) - (Vales Marcados para Desconto Hoje)
           </div>
           <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
-            <li><strong>Desconto Opcional & Saldo a Dever</strong>: Se a Administradora desmarcar a caixa de um vale, ele <strong>não é descontado da folha atual</strong> e <strong>não é liquidado</strong>. O sistema preserva o registro no banco de dados e ele <strong>permanece ativo como saldo a dever</strong> para as semanas seguintes até autorização expressa.</li>
-            <li><strong>Visualização em Linha</strong>: Ao desmarcar um vale, a linha fica riscada levemente e um aviso exibe o <em>Saldo a dever postergado</em>.</li>
-            <li><strong>Copiar PIX Copia e Cola</strong>: Gera o código padrão do Banco Central com valor exato ajustado na hora, pronto para colar no aplicativo do seu banco.</li>
-            <li><strong>Ver QR Code PIX</strong>: Exibe o código na tela para leitura direta pelo app do banco no celular.</li>
-            <li><strong>Exportar XLS</strong>: Gera instantaneamente a planilha de fechamento do dia.</li>
+            <li><strong>Desmarcar Todos / Marcar Todos (Global)</strong>: Na barra superior do Borderô, clique em <strong>&quot;Desmarcar Todos&quot;</strong> para zerar toda a folha selecionada (<code>R$ 0,00</code>) de uma vez ou em <strong>&quot;Marcar Todos&quot;</strong> para selecionar toda a folha aberta.</li>
+            <li><strong>Marcar Todos / Desmarcar por Colaborador</strong>: Dentro do card de cada colaborador, os atalhos <strong>&quot;Marcar Todos&quot;</strong> e <strong>&quot;Desmarcar&quot;</strong> atuam exclusivamente nos lançamentos daquele colaborador, sem alterar os demais.</li>
+            <li><strong>Pagar por Obra (com Aviso de Vales em Aberto)</strong>: Escolha uma obra no seletor <strong>&quot;Pagar por Obra&quot;</strong> para desmarcar as demais e manter marcadas <strong>somente as diárias daquela obra</strong>. Caso algum colaborador tenha vales em aberto, o sistema exibe um aviso discreto para conferência humana antes do PIX.</li>
+            <li><strong>Desconto Opcional &amp; Saldo a Dever</strong>: Se a administração desmarcar a caixa de um vale, ele <strong>não é descontado da folha atual</strong> e <strong>não é liquidado</strong>, permanecendo ativo como saldo a dever para os próximos fechamentos.</li>
+            <li><strong>PIX Copia e Cola, QR Code &amp; Exportar XLS</strong>: Gera o código padrão do Banco Central com valor exato ajustado na hora, QR Code para leitura direta e planilha de fechamento do dia.</li>
           </ul>
+          <div className="p-3 bg-slate-100 rounded-2xl text-[11px] text-slate-700 border border-slate-200">
+            <strong>Exemplo Prático:</strong> Para quitar hoje apenas as diárias de uma <em>Obra Residencial</em>, escolha-a em <strong>Pagar por Obra</strong>; o total líquido passa a refletir só aquela obra e um aviso discreto lembra quais colaboradores possuem vales em aberto caso deseje abater algum deles.
+          </div>
         </div>
       ),
     },

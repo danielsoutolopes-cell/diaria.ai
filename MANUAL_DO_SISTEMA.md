@@ -144,17 +144,22 @@ Na tela de **Fechamento (Borderô)**:
 1. O sistema agrupa todos os lançamentos validados por colaborador.
 2. **Cálculo Sob Demanda (Human-in-the-Loop)**:
    $$\text{Líquido a Pagar} = \sum (\text{Diárias Marcadas}) - \sum (\text{Vales Marcados})$$
-3. **Liquidação Seletiva e Manutenção do Saldo a Dever**:
+3. **Controles de Seleção Rápida & Pagar por Obra**:
+   - **Desmarcar Todos / Marcar Todos (Global)**: No topo do Borderô, desmarque todos os lançamentos de todos os colaboradores de uma só vez (zerando o total a pagar para `R$ 0,00`) ou marque toda a folha aberta novamente em 1 clique.
+   - **Marcar Todos / Desmarcar (Por Colaborador)**: Dentro da janela/card de cada colaborador, os botões **Marcar Todos** e **Desmarcar** atuam exclusivamente naquele colaborador, sem alterar a seleção dos demais.
+   - **Pagar por Obra**: Escolha uma obra no seletor **Pagar por Obra** para desmarcar as demais e manter marcadas **somente as diárias daquela obra**. Quando algum colaborador da obra selecionada possuir vales em aberto, o sistema exibe um aviso discreto (no topo e no card do colaborador) para conferência humana antes do pagamento.
+   - *Exemplo Prático*: Em uma Empresa Modo Diarista com duas frentes ativas (*Obra Residencial* e *Obra Piscina*), selecione *Obra Piscina* em **Pagar por Obra** para pagar apenas aquela frente hoje; se um colaborador tiver um vale de R$ 100,00 em aberto, o aviso discreto lembra a administradora de decidir manualmente se deseja marcá-lo ou postergá-lo.
+4. **Liquidação Seletiva e Manutenção do Saldo a Dever**:
    - **Toda decisão final de desconto é humana**: se a administradora desmarcar a caixa de um vale, ele **NÃO** é descontado da folha atual e **NÃO** é liquidado.
    - O vale desmarcado permanece gravado com segurança no banco de dados e **continua ativo como saldo a dever** para os fechamentos futuros.
    - Isso permite, por exemplo, que a empresa parcele o desconto de um vale alto ou poupe o trabalhador em semanas de poucas diárias.
-4. **PIX Dinâmico com 1 Clique**:
+5. **PIX Dinâmico com 1 Clique**:
    - Clique em **"Copiar PIX Copia e Cola"** para colar direto no aplicativo do banco.
    - Ou clique em **"Ver QR Code PIX"** para ler o código na tela do computador com o celular do banco.
-   - O payload PIX contém a chave do trabalhador, o valor exato calculado e a identificação do lote.
-5. **Recibos Anexos (Lightbox)**:
+   - O payload PIX contém a chave do trabalhador, o valor exato calculado e a identificação do lote/obra.
+6. **Recibos Anexos (Lightbox)**:
    - Na coluna **"Anexo/Recibo"**, clique no ícone para ampliar a foto do comprovante do vale e baixar o arquivo com o nome oficial `recibo-[nome]-[data].jpg`.
-6. Ao clicar em **"Liquidar e Baixar Folha"**, os itens marcados passam para `LIQUIDADO`.
+7. Ao clicar em **"Liquidar e Encerrar Semana"**, os itens marcados passam para `LIQUIDADO`.
 
 ---
 

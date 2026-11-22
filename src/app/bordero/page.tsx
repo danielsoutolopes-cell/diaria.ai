@@ -20,11 +20,24 @@ import {
   Printer,
   Send,
   ExternalLink,
+  Building2,
+  CheckSquare,
+  Square,
+  Info,
 } from 'lucide-react';
 import { gerarPayloadPix } from '@/lib/pix';
 import { ReceiptLightbox } from '@/components/ReceiptLightbox';
 import { exportarParaExcel, LinhaBorderoExport } from '@/lib/exportExcel';
 import { calcularBrutoPorRegime } from '@/services/regimesRemuneracao';
+import {
+  alterarSelecaoFuncionario,
+  desmarcarTodosGlobal,
+  extrairObrasComDiariasEmAberto,
+  listarAvisosValesAbertosParaObra,
+  marcarTodosGlobal,
+  resolverObraLancamento,
+  selecionarPagarPorObra,
+} from '@/lib/borderoSelecao';
 
 interface ReciboLiquidacaoModalState {
   nomeTrabalhador: string;
@@ -104,6 +117,7 @@ export default function BorderoPage() {
   const [funcionarios, setFuncionarios] = useState<ExtratoFuncionario[]>([]);
   const [loading, setLoading] = useState(true);
   const [cicloAtivo, setCicloAtivo] = useState<'SEMANAL' | 'QUINZENAL' | 'TODOS'>('TODOS');
+  const [obraSelecionada, setObraSelecionada] = useState<string>('');
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
   const [modalPix, setModalPix] = useState<{ nome: string; valor: number; payload: string; chave: string } | null>(null);
   const [liquidando, setLiquidando] = useState(false);
@@ -182,9 +196,11 @@ export default function BorderoPage() {
       const res = await fetch('/api/bordero');
       const data = await res.json();
       setFuncionarios(data.funcionarios || []);
+      setObraSelecionada('');
     } catch (e) {
       console.error(e);
       setFuncionarios([]);
+      setObraSelecionada('');
     } finally {
       setLoading(false);
     }
@@ -208,6 +224,32 @@ export default function BorderoPage() {
     );
   }
 
+  function handleDesmarcarTodosGlobal() {
+    setObraSelecionada('');
+    setFuncionarios((prev) => desmarcarTodosGlobal(prev));
+  }
+
+  function handleMarcarTodosGlobal() {
+    setObraSelecionada('');
+    setFuncionarios((prev) => marcarTodosGlobal(prev));
+  }
+
+  function handleMarcarTodosFuncionario(funcId: string) {
+    setFuncionarios((prev) => alterarSelecaoFuncionario(prev, funcId, true));
+  }
+
+  function handleDesmarcarTodosFuncionario(funcId: string) {
+    setFuncionarios((prev) => alterarSelecaoFuncionario(prev, funcId, false));
+  }
+
+  function handleSelecionarObraPagamento(obra: string) {
+    setObraSelecionada(obra);
+    if (!obra) {
+      return;
+    }
+    setFuncionarios((prev) => selecionarPagarPorObra(prev, obra));
+  }
+
   function updatePix(funcId: string, novaChave: string) {
     setFuncionarios((prev) =>
       prev.map((f) => (f.id === funcId ? { ...f, chavePix: novaChave } : f))
@@ -220,7 +262,7 @@ export default function BorderoPage() {
     );
     const porObra = new Map<string, number>();
     pontosMarcados.forEach((p) => {
-      const ob = p.obra || f.obra;
+      const ob = resolverObraLancamento(p.obra, f.obra);
       porObra.set(ob, Number(((porObra.get(ob) || 0) + p.fracao).toFixed(2)));
     });
     if (porObra.size > 1) {
@@ -228,8 +270,9 @@ export default function BorderoPage() {
         .map(([ob, fr]) => `${String(fr).replace('.', ',')}d ${ob}`)
         .join(' + ');
     }
+    const obraUnica = Array.from(porObra.keys())[0] || f.obra;
     const soma = pontosMarcados.reduce((acc, p) => acc + p.fracao, 0);
-    return `${String(Number(soma.toFixed(2))).replace('.', ',')}d ${f.obra}`;
+    return `${String(Number(soma.toFixed(2))).replace('.', ',')}d ${obraUnica}`;
   }
 
   function calcularTotais(f: ExtratoFuncionario) {
@@ -238,6 +281,19 @@ export default function BorderoPage() {
 
     const somaPontosBrutos = pontosMarcados.reduce((acc, curr) => acc + curr.valor, 0);
     const somaFracoesPontos = pontosMarcados.reduce((acc, curr) => acc + curr.fracao, 0);
+    const totalVales = valesMarcados.reduce((acc, curr) => acc + curr.valor, 0);
+
+    // Se nenhuma diária/ponto está selecionada, o bruto selecionado é R$ 0,00
+    // (garante que "Desmarcar Todos" ou "Pagar por Obra" sem diárias na obra zere exatamente em R$ 0,00)
+    if (pontosMarcados.length === 0) {
+      return {
+        totalBruto: 0,
+        totalVales,
+        totalLiquido: 0,
+        totalDiarias: 0,
+        detalheRegime: 'Nenhum ponto selecionado',
+      };
+    }
 
     const regimeCalc = calcularBrutoPorRegime({
       nomeTrabalhador: f.nome,
@@ -250,7 +306,6 @@ export default function BorderoPage() {
     });
 
     const totalBruto = regimeCalc.totalBruto;
-    const totalVales = valesMarcados.reduce((acc, curr) => acc + curr.valor, 0);
     const totalLiquido = Math.max(0, totalBruto - totalVales);
     const totalDiarias = regimeCalc.totalDiasConsiderados;
 
@@ -571,6 +626,22 @@ export default function BorderoPage() {
     return acc + calcularTotais(curr).totalVales;
   }, 0);
 
+  const obrasDisponiveis = extrairObrasComDiariasEmAberto(funcionarios);
+  const avisosValesPorObra = obraSelecionada
+    ? listarAvisosValesAbertosParaObra(funcionarios, obraSelecionada)
+    : [];
+  const avisosValesPorFuncId = new Map(
+    avisosValesPorObra.map((aviso) => [aviso.funcionarioId, aviso])
+  );
+  const totalItensAbertos = funcionarios.reduce(
+    (acc, f) => acc + f.lancamentos.length,
+    0
+  );
+  const totalItensSelecionados = funcionarios.reduce(
+    (acc, f) => acc + f.lancamentos.filter((l) => l.selecionado).length,
+    0
+  );
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5 sm:space-y-8 pb-52 lg:pb-36">
       {/* Top Header */}
@@ -813,7 +884,114 @@ export default function BorderoPage() {
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5 sm:space-y-6">
+          {/* Barra Global: Desmarcar Todos / Marcar Todos / Pagar por Obra */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-3.5 sm:p-4 shadow-sm space-y-3">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              {/* Ações Globais de Seleção */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1.5 rounded-xl tabular-nums">
+                  {totalItensSelecionados}/{totalItensAbertos} selecionado(s)
+                </span>
+
+                <button
+                  type="button"
+                  onClick={handleDesmarcarTodosGlobal}
+                  disabled={totalItensSelecionados === 0}
+                  className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-45 disabled:cursor-not-allowed"
+                  title="Desmarcar todos os lançamentos de todos os colaboradores (zera total para R$ 0,00)"
+                >
+                  <Square className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                  <span>Desmarcar Todos</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleMarcarTodosGlobal}
+                  disabled={totalItensSelecionados === totalItensAbertos && totalItensAbertos > 0}
+                  className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 text-xs font-black transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-45 disabled:cursor-not-allowed"
+                  title="Marcar todos os lançamentos em aberto de todos os colaboradores"
+                >
+                  <CheckSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Marcar Todos</span>
+                </button>
+              </div>
+
+              {/* Seletor Pagar por Obra */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
+                <label
+                  htmlFor="bordero-pagar-por-obra"
+                  className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5 shrink-0"
+                >
+                  <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Pagar por Obra:</span>
+                </label>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <select
+                    id="bordero-pagar-por-obra"
+                    aria-label="Pagar por Obra"
+                    value={obraSelecionada}
+                    onChange={(e) => handleSelecionarObraPagamento(e.target.value)}
+                    className="flex-1 sm:w-72 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none transition-all"
+                  >
+                    <option value="">Selecionar obra (somente diárias)...</option>
+                    {obrasDisponiveis.map((ob) => (
+                      <option key={ob.nome} value={ob.nome}>
+                        {ob.nome} — {ob.qtdDiarias} diária(s) • R$ {ob.valorTotalDiarias.toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+
+                  {obraSelecionada && (
+                    <button
+                      type="button"
+                      onClick={() => setObraSelecionada('')}
+                      className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold shrink-0 transition-all"
+                      title="Sair do modo Pagar por Obra"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Faixa de status do modo Pagar por Obra + Aviso discreto de vales em aberto */}
+            {obraSelecionada && (
+              <div className="pt-2.5 border-t border-slate-100 flex flex-col gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-bold">
+                    <Building2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span>
+                      Somente diárias de <strong>{obraSelecionada}</strong> selecionadas
+                    </span>
+                  </span>
+                  <span className="text-slate-500">
+                    Demais obras e vales foram desmarcados automaticamente.
+                  </span>
+                </div>
+
+                {avisosValesPorObra.length > 0 && (
+                  <div className="px-3 py-2 rounded-xl bg-amber-50/90 border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2">
+                    <Info className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      <strong>Conferência de vales em aberto:</strong>{' '}
+                      {avisosValesPorObra.length} colaborador(es) com diárias nesta obra possuem vales desmarcados (
+                      {avisosValesPorObra
+                        .map(
+                          (a) =>
+                            `${a.nome}: R$ ${a.valorTotalValesAbertos.toFixed(2)}`
+                        )
+                        .join(' • ')}
+                      ). Marque manualmente no card do colaborador caso deseje abater neste pagamento.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {funcionarios
             .filter((f) => {
               if (cicloAtivo === 'TODOS') return true;
@@ -822,6 +1000,10 @@ export default function BorderoPage() {
             })
             .map((f) => {
             const totais = calcularTotais(f);
+            const qtdSelFunc = f.lancamentos.filter((l) => l.selecionado).length;
+            const todosMarcadosFunc =
+              f.lancamentos.length > 0 && qtdSelFunc === f.lancamentos.length;
+            const avisoValeFunc = avisosValesPorFuncId.get(f.id);
 
             return (
               <div
@@ -872,7 +1054,7 @@ export default function BorderoPage() {
                       <button
                         type="button"
                         onClick={() => void handleGerarReciboIndividual(f)}
-                        disabled={gerandoReciboId === f.id}
+                        disabled={gerandoReciboId === f.id || qtdSelFunc === 0}
                         className="px-3 sm:px-3.5 py-2.5 sm:py-3 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl sm:rounded-2xl transition-all border border-slate-700 shadow-sm text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
                         title="Gerar Comprovante Detalhado Individual de Liquidação PIX (salvo no R2, com impressão/download e envio opcional no WhatsApp)"
                       >
@@ -911,8 +1093,9 @@ export default function BorderoPage() {
                   </div>
                 </div>
 
-                <div className="px-4 sm:px-6 py-3 bg-slate-50 border-b border-slate-100 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2.5 sm:gap-3 text-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                {/* Sub-header da Janela do Funcionário: Chave PIX + Atalhos Exclusivos Marcar Todos / Desmarcar */}
+                <div className="px-4 sm:px-6 py-3 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row md:flex-wrap md:items-center justify-between gap-2.5 sm:gap-3 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full md:w-auto">
                     <span className="font-bold text-slate-700 shrink-0">Chave PIX:</span>
                     <input
                       type="text"
@@ -921,17 +1104,54 @@ export default function BorderoPage() {
                       placeholder="Digite a chave PIX..."
                       className="px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:ring-2 focus:ring-emerald-500 w-full sm:w-64 shadow-sm"
                     />
-                    <span className="hidden sm:inline text-slate-400 text-[11px]">(editável para conferência)</span>
+                    <span className="hidden lg:inline text-slate-400 text-[11px]">(editável para conferência)</span>
                   </div>
 
-                  <div className="text-slate-500 text-[11px]">
-                    Toque em um lançamento para incluir ou retirar do pagamento
+                  <div className="flex flex-wrap items-center justify-between md:justify-end gap-2">
+                    <span className="text-[11px] font-semibold text-slate-500 tabular-nums">
+                      {qtdSelFunc}/{f.lancamentos.length} marcados
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleMarcarTodosFuncionario(f.id)}
+                        disabled={todosMarcadosFunc}
+                        className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 text-[11px] font-black transition-all flex items-center gap-1 disabled:opacity-45 disabled:cursor-not-allowed active:scale-95"
+                        title={`Marcar todos os registros de ${f.nome} sem alterar os demais`}
+                      >
+                        <CheckSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>Marcar Todos</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDesmarcarTodosFuncionario(f.id)}
+                        disabled={qtdSelFunc === 0}
+                        className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold transition-all flex items-center gap-1 disabled:opacity-45 disabled:cursor-not-allowed active:scale-95"
+                        title={`Desmarcar todos os registros de ${f.nome} sem alterar os demais`}
+                      >
+                        <Square className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span>Desmarcar</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
+                {/* Aviso discreto de vales em aberto para conferência quando no modo Pagar por Obra */}
+                {avisoValeFunc && obraSelecionada && (
+                  <div className="px-4 sm:px-6 py-2 bg-amber-50/75 border-b border-amber-200/70 text-[11px] text-amber-900 flex items-center gap-2">
+                    <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>
+                      <strong>Vale em aberto para conferência:</strong> {avisoValeFunc.qtdValesAbertos} vale(s) totalizando{' '}
+                      <strong className="tabular-nums">R$ {avisoValeFunc.valorTotalValesAbertos.toFixed(2)}</strong> ficaram desmarcados no modo <em>Pagar por Obra</em> ({obraSelecionada}).
+                    </span>
+                  </div>
+                )}
+
                 {/* Visão Mobile Retrato: Cards Empilhados Toque-Fácil */}
                 <div className="md:hidden divide-y divide-slate-100">
-                  {f.lancamentos.map((l) => (
+                  {f.lancamentos.map((l) => {
+                    const obraLinha = resolverObraLancamento(l.obra, f.obra);
+                    return (
                     <div
                       key={`mob-${l.id}`}
                       onClick={() => toggleItem(f.id, l.id)}
@@ -962,6 +1182,9 @@ export default function BorderoPage() {
                                 }`}
                               >
                                 {l.tipo === 'PONTO' ? `DIÁRIA ${l.fracao}x` : 'VALE'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/70 font-semibold text-[10px] truncate max-w-[140px]">
+                                {obraLinha}
                               </span>
                             </div>
                             <p
@@ -1026,7 +1249,8 @@ export default function BorderoPage() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Visão Desktop / Tablet: Tabela Completa */}
@@ -1045,7 +1269,9 @@ export default function BorderoPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {f.lancamentos.map((l) => (
+                      {f.lancamentos.map((l) => {
+                        const obraLinha = resolverObraLancamento(l.obra, f.obra);
+                        return (
                         <tr
                           key={l.id}
                           className={`transition-colors ${l.selecionado
@@ -1074,7 +1300,12 @@ export default function BorderoPage() {
                             className="p-4 font-bold text-slate-900 cursor-pointer"
                             onClick={() => toggleItem(f.id, l.id)}
                           >
-                            {l.descricao}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span>{l.descricao}</span>
+                              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/70 font-semibold text-[10px] no-underline">
+                                {obraLinha}
+                              </span>
+                            </div>
                           </td>
                           <td
                             className="p-4 cursor-pointer"
@@ -1135,7 +1366,8 @@ export default function BorderoPage() {
                             </button>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

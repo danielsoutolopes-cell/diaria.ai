@@ -150,26 +150,26 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
   '/bordero': {
     titulo: 'Fechamento & Pagamentos (PIX)',
     resumo:
-      'Consolidação final por colaborador com decisão 100% humana sobre cada vale, leitura OCR de comprovante PIX e emissão de Recibo Individual em PDF salvo em nuvem.',
+      'Consolidação final por colaborador com seleção global, controle individual por colaborador, filtro Pagar por Obra, decisão 100% humana sobre vales e emissão de Recibo PIX em PDF.',
     funcoes: [
       {
-        nome: 'Desconto Opcional de Vales',
+        nome: 'Desmarcar Todos / Marcar Todos (Global & Por Colaborador)',
         descricao:
-          'Desmarcar um vale não o apaga: ele continua ativo como saldo a dever para os próximos fechamentos.',
+          'Use "Desmarcar Todos" no topo para zerar toda a folha (R$ 0,00) e começar limpo, ou use "Marcar Todos" / "Desmarcar" dentro do card de cada colaborador sem afetar os demais.',
       },
       {
-        nome: 'PIX Copia e Cola & QR Code',
+        nome: 'Pagar por Obra (com Aviso de Vales em Aberto)',
         descricao:
-          'Gera o código PIX com o valor líquido exato e discriminação de rateio multi-obra calculado apenas sobre os itens marcados.',
+          'Escolha uma obra no seletor "Pagar por Obra" para deixar marcadas somente as diárias daquela obra. Se algum colaborador tiver vales em aberto, um aviso discreto alerta para conferência humana.',
       },
       {
-        nome: 'Recibo Individual de Liquidação PIX (PDF + Nuvem)',
+        nome: 'Desconto Opcional de Vales & Recibo PIX (PDF + Nuvem)',
         descricao:
-          'Clique em "Recibo PIX" no card do colaborador para gerar o comprovante detalhado em PDF com hash pericial, salvo automaticamente em nuvem, com opção de baixar, imprimir e envio OPCIONAL no WhatsApp.',
+          'Desmarcar um vale não o apaga (permanece como saldo a dever). Gere PIX Copia e Cola, QR Code e Recibo Individual em PDF com envio opcional no WhatsApp.',
       },
     ],
     exemplo:
-      'Marque as diárias e vales que entram no pagamento, copie o PIX, clique em "Recibo PIX" para arquivar/imprimir o comprovante e, somente se desejar, clique em "Enviar no Zap".',
+      'Para pagar somente a equipe da Obra Residencial hoje, selecione-a em "Pagar por Obra": apenas as diárias dela ficam marcadas e o sistema avisa caso algum colaborador tenha vale em aberto para conferir antes do PIX.',
   },
   '/relatorios': {
     titulo: 'Relatórios, Excel 5 Abas & Envio Quinzenal',
