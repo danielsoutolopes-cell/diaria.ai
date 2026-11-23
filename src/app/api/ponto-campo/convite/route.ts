@@ -98,17 +98,40 @@ export async function POST(req: NextRequest) {
     let enviadoWhatsapp = false;
     const telefoneNorm = normalizarTelefoneBrasil(destinoBruto);
     if (telefoneNorm.length >= 12) {
+      const jid = `${telefoneNorm}@s.whatsapp.net`;
+      // 1. Tenta via servidor Baileys HTTP (mesmo motor do Resumo 19h em produção)
+      const baileysUrl = (
+        process.env.BAILEYS_SERVER_URL || 'http://127.0.0.1:3001'
+      ).replace(/\/$/, '');
       try {
-        const wa = await iniciarOuObterBaileys();
-        const sock = global.__baileysSocket;
-        if (wa.status === 'CONNECTED' && sock) {
-          await sock.sendMessage(`${telefoneNorm}@s.whatsapp.net`, {
-            text: mensagemPronta,
-          });
-          enviadoWhatsapp = true;
+        const r = await fetch(`${baileysUrl}/send-message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: jid,
+            message: mensagemPronta,
+          }),
+        });
+        enviadoWhatsapp = r.ok;
+      } catch {
+        enviadoWhatsapp = false;
+      }
+
+      // 2. Fallback: socket Baileys em memória
+      if (!enviadoWhatsapp) {
+        try {
+          const wa = await iniciarOuObterBaileys();
+          const sock = global.__baileysSocket;
+          if (wa.status === 'CONNECTED' && sock) {
+            await sock.sendMessage(jid, { text: mensagemPronta });
+            enviadoWhatsapp = true;
+          }
+        } catch (err) {
+          console.warn(
+            '[ponto-campo/convite] Falha ao enviar via Baileys:',
+            err
+          );
         }
-      } catch (err) {
-        console.warn('[ponto-campo/convite] Falha ao enviar via Baileys:', err);
       }
     }
 
