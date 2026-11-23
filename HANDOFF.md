@@ -327,3 +327,12 @@
   - Migração de modelos descontinuados para o modelo ativo e rápido `gemini-3.5-flash-lite`.
 - **Documentação & Navegação**:
   - Atualizados `Sidebar.tsx`, `MANUAL_DO_SISTEMA.md`, tela interativa `/ajuda` e este `HANDOFF.md`.
+
+
+### Evolução Intermack (`/setup`) — Replicação de Empreiteiro na Equipe de Campo (23/11/2026)
+- **Contexto exclusivo `Intermack` (`EMPREITA`)**: Em obras de subempreita, é comum o próprio empreiteiro/encarregado (ex.: Edson — Gesso) também atuar fisicamente na obra junto com sua equipe.
+- **Implementação em `src/components/SetupIntermackPanel.tsx`**:
+  - Checkbox **`Também atua na obra`** (marcado por padrão) no formulário *Novo Empreiteiro / Encarregado*: ao salvar o novo empreiteiro, o sistema replica automaticamente o cadastro em **Funcionários / Equipe** vinculado a ele mesmo (`empreiteiroId`), herdando nome, apelidos, documento e etapa padrão.
+  - Botão em 1 clique **`+ Incluir na Equipe`** nos cards de empreiteiros já cadastrados (substituído pelo selo verde **`✓ Atua na Obra`** quando já estiver na equipe, evitando duplicidades).
+- **Documentação atualizada (white-label)**: `src/components/ContextualHelp.tsx`, `MANUAL_DO_SISTEMA.md` e `src/app/ajuda/page.tsx`.
+- **Isolamento**: 100% restrito ao painel `SetupIntermackPanel.tsx` (`Intermack`), sem qualquer impacto no fluxo da `Jhoston`.

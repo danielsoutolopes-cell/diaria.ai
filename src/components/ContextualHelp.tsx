@@ -342,7 +342,7 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       {
         nome: 'Empreiteiros, Funcionários & Etapas (Modo Empreita)',
         descricao:
-          'Cadastre Empreiteiros/Encarregados (com apelidos, documento e etapa padrão), vincule Funcionários da equipe (com apelidos e CPF/RG, sem exigir PIX individual) e personalize as Etapas de cada obra para alimentar automaticamente o Diário de Obra.',
+          'Cadastre Empreiteiros/Encarregados (com apelidos, documento e etapa padrão), vincule Funcionários da equipe (com apelidos e CPF/RG, sem exigir PIX individual) e personalize as Etapas de cada obra para alimentar automaticamente o Diário de Obra. Se o próprio empreiteiro também atuar em campo, marque "Também atua na obra" no cadastro ou clique em "+ Incluir na Equipe" no card dele para replicá-lo em 1 clique.',
       },
       {
         nome: 'Cadastro Expresso & Logística de Entrega',

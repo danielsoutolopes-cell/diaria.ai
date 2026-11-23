@@ -85,7 +85,11 @@ export default function SetupIntermackPanel() {
   const [empEtapaPadrao, setEmpEtapaPadrao] = useState('Hidráulica');
   const [empTelefone, setEmpTelefone] = useState('');
   const [empPix, setEmpPix] = useState('');
+  const [empTambemAtuaNaObra, setEmpTambemAtuaNaObra] = useState(true);
   const [salvandoEmp, setSalvandoEmp] = useState(false);
+  const [incluindoNaEquipeId, setIncluindoNaEquipeId] = useState<string | null>(
+    null
+  );
 
   // =========================================================================
   // ABA 2: FUNCIONÁRIOS / EQUIPE (vinculados ao Empreiteiro, PIX não exigido)
@@ -212,6 +216,69 @@ export default function SetupIntermackPanel() {
   // =========================================================================
   // HANDLERS EMPREITEIRO
   // =========================================================================
+  function empreiteiroJaNaEquipe(emp: EmpreiteiroDiarioRecord): boolean {
+    const nomeNorm = normalizarTextoBusca(emp.nome);
+    if (!nomeNorm) return false;
+    return funcionarios.some(
+      (f) =>
+        f.empreiteiroId === emp.id &&
+        normalizarTextoBusca(f.nomeOficial) === nomeNorm
+    );
+  }
+
+  async function handleIncluirEmpreiteiroNaEquipe(
+    emp: EmpreiteiroDiarioRecord
+  ) {
+    if (empreiteiroJaNaEquipe(emp)) {
+      mostrarFeedback(
+        'sucesso',
+        `${emp.nome} já está incluído em Funcionários / Equipe.`
+      );
+      return;
+    }
+    setIncluindoNaEquipeId(emp.id);
+    try {
+      const res = await fetch('/api/diario-obra/equipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'funcionario',
+          nomeOficial: emp.nome.trim(),
+          empreiteiroId: emp.id,
+          apelidos: emp.apelidos.join(', '),
+          documento: emp.documento || null,
+          funcao: emp.etapaPadrao || null,
+        }),
+      });
+      const data = (await res.json()) as {
+        success?: boolean;
+        error?: string;
+        empreiteiros?: EmpreiteiroDiarioRecord[];
+        funcionarios?: FuncionarioEmpreiteiroRecord[];
+      };
+      if (!res.ok || !data.success) {
+        mostrarFeedback(
+          'erro',
+          data.error || 'Falha ao incluir empreiteiro na equipe de campo.'
+        );
+        return;
+      }
+      if (data.empreiteiros) setEmpreiteiros(data.empreiteiros);
+      if (data.funcionarios) setFuncionarios(data.funcionarios);
+      mostrarFeedback(
+        'sucesso',
+        `${emp.nome} replicado em Funcionários / Equipe e disponível no Diário de Obra!`
+      );
+    } catch {
+      mostrarFeedback(
+        'erro',
+        'Erro de conexão ao incluir empreiteiro na equipe.'
+      );
+    } finally {
+      setIncluindoNaEquipeId(null);
+    }
+  }
+
   function limparFormEmp() {
     setEditEmpId(null);
     setEmpNome('');
@@ -220,11 +287,18 @@ export default function SetupIntermackPanel() {
     setEmpEtapaPadrao('Hidráulica');
     setEmpTelefone('');
     setEmpPix('');
+    setEmpTambemAtuaNaObra(true);
   }
 
   async function handleSalvarEmpreiteiro(e: React.FormEvent) {
     e.preventDefault();
     if (!empNome.trim()) return;
+    const nomeTrim = empNome.trim();
+    const apelidosTrim = empApelidos;
+    const docTrim = empDocumento.trim() || null;
+    const etapaTrim = empEtapaPadrao.trim() || null;
+    const replicarNaEquipe = !editEmpId && empTambemAtuaNaObra;
+
     setSalvandoEmp(true);
     try {
       const res = await fetch('/api/diario-obra/equipes', {
@@ -233,10 +307,10 @@ export default function SetupIntermackPanel() {
         body: JSON.stringify({
           tipo: 'empreiteiro',
           id: editEmpId || undefined,
-          nome: empNome.trim(),
-          apelidos: empApelidos,
-          documento: empDocumento.trim() || null,
-          etapaPadrao: empEtapaPadrao.trim() || null,
+          nome: nomeTrim,
+          apelidos: apelidosTrim,
+          documento: docTrim,
+          etapaPadrao: etapaTrim,
           telefone: empTelefone.trim() || null,
           chavePix: empPix.trim() || null,
         }),
@@ -251,13 +325,49 @@ export default function SetupIntermackPanel() {
         mostrarFeedback('erro', data.error || 'Falha ao salvar empreiteiro.');
         return;
       }
+      const listaEmps = data.empreiteiros || empreiteiros;
       if (data.empreiteiros) setEmpreiteiros(data.empreiteiros);
       if (data.funcionarios) setFuncionarios(data.funcionarios);
+
+      let replicadoComSucesso = false;
+      if (replicarNaEquipe) {
+        const nomeNorm = normalizarTextoBusca(nomeTrim);
+        const empCriado = listaEmps.find(
+          (item) => normalizarTextoBusca(item.nome) === nomeNorm
+        );
+        if (empCriado) {
+          const resFunc = await fetch('/api/diario-obra/equipes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tipo: 'funcionario',
+              nomeOficial: empCriado.nome.trim(),
+              empreiteiroId: empCriado.id,
+              apelidos: apelidosTrim,
+              documento: docTrim,
+              funcao: etapaTrim,
+            }),
+          });
+          const dataFunc = (await resFunc.json()) as {
+            success?: boolean;
+            empreiteiros?: EmpreiteiroDiarioRecord[];
+            funcionarios?: FuncionarioEmpreiteiroRecord[];
+          };
+          if (resFunc.ok && dataFunc.success) {
+            if (dataFunc.empreiteiros) setEmpreiteiros(dataFunc.empreiteiros);
+            if (dataFunc.funcionarios) setFuncionarios(dataFunc.funcionarios);
+            replicadoComSucesso = true;
+          }
+        }
+      }
+
       mostrarFeedback(
         'sucesso',
         editEmpId
           ? 'Empreiteiro atualizado e sincronizado com o Diário de Obra!'
-          : 'Empreiteiro cadastrado e disponível no Diário de Obra!'
+          : replicadoComSucesso
+            ? 'Empreiteiro cadastrado e incluído automaticamente em Funcionários / Equipe!'
+            : 'Empreiteiro cadastrado e disponível no Diário de Obra!'
       );
       limparFormEmp();
     } catch {
@@ -718,6 +828,24 @@ export default function SetupIntermackPanel() {
               </div>
             </div>
 
+            {!editEmpId && (
+              <label className="flex items-start gap-2.5 p-3 rounded-2xl bg-indigo-50/70 border border-indigo-100 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={empTambemAtuaNaObra}
+                  onChange={(e) => setEmpTambemAtuaNaObra(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="text-[11px] leading-snug text-slate-700">
+                  <strong className="text-slate-900">
+                    Também atua na obra
+                  </strong>{' '}
+                  — incluir automaticamente em <em>Funcionários / Equipe</em>{' '}
+                  para apontar no Diário de Obra.
+                </span>
+              </label>
+            )}
+
             <button
               type="submit"
               disabled={salvandoEmp}
@@ -770,6 +898,8 @@ export default function SetupIntermackPanel() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {empreiteiros.map((emp) => {
                   const qtdEquipe = qtdFuncionariosPorEmp.get(emp.id) || 0;
+                  const jaNaEquipe = empreiteiroJaNaEquipe(emp);
+                  const incluindo = incluindoNaEquipeId === emp.id;
                   return (
                     <div
                       key={emp.id}
@@ -789,6 +919,12 @@ export default function SetupIntermackPanel() {
                             <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full tabular-nums">
                               {qtdEquipe} funcionário(s)
                             </span>
+                            {jaNaEquipe && (
+                              <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                                <Check className="w-3 h-3" />
+                                Atua na Obra
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -829,7 +965,7 @@ export default function SetupIntermackPanel() {
                         )}
                       </div>
 
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                         <button
                           type="button"
                           onClick={() => void handleRemoverEquipe('empreiteiro', emp.id)}
@@ -838,22 +974,41 @@ export default function SetupIntermackPanel() {
                           <Trash2 className="w-3.5 h-3.5" />
                           <span>Remover</span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditEmpId(emp.id);
-                            setEmpNome(emp.nome);
-                            setEmpApelidos(emp.apelidos.join(', '));
-                            setEmpDocumento(emp.documento || '');
-                            setEmpEtapaPadrao(emp.etapaPadrao || '');
-                            setEmpTelefone(emp.telefone || '');
-                            setEmpPix(emp.chavePix || '');
-                          }}
-                          className="px-3 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 rounded-xl text-[11px] font-bold flex items-center gap-1 border border-slate-200"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                          <span>Editar</span>
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {!jaNaEquipe && (
+                            <button
+                              type="button"
+                              disabled={incluindo}
+                              onClick={() =>
+                                void handleIncluirEmpreiteiroNaEquipe(emp)
+                              }
+                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-[11px] font-bold flex items-center gap-1 border border-emerald-200 disabled:opacity-50"
+                            >
+                              <Users className="w-3 h-3" />
+                              <span>
+                                {incluindo
+                                  ? 'Incluindo...'
+                                  : '+ Incluir na Equipe'}
+                              </span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditEmpId(emp.id);
+                              setEmpNome(emp.nome);
+                              setEmpApelidos(emp.apelidos.join(', '));
+                              setEmpDocumento(emp.documento || '');
+                              setEmpEtapaPadrao(emp.etapaPadrao || '');
+                              setEmpTelefone(emp.telefone || '');
+                              setEmpPix(emp.chavePix || '');
+                            }}
+                            className="px-3 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 rounded-xl text-[11px] font-bold flex items-center gap-1 border border-slate-200"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            <span>Editar</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

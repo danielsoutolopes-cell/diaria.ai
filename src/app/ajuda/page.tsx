@@ -358,7 +358,7 @@ export default function AjudaPage() {
           </p>
           <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
             <li><strong>Obrigatório (Modo Diarista)</strong>: Apenas <strong>Nome do Trabalhador</strong> e <strong>Chave PIX</strong>.</li>
-            <li><strong>Subempreita em 3 Abas (Modo Empreita)</strong>: Exibe automaticamente as abas <strong>Empreiteiros / Encarregados</strong> (com apelidos, documento, etapa padrão e PIX opcional), <strong>Funcionários / Equipe</strong> (vinculados ao empreiteiro com apelidos, CPF/RG e etapa, sem exigir PIX individual) e <strong>Obras &amp; Etapas</strong> (alimentando direto os dropdowns do Diário de Obra).</li>
+            <li><strong>Subempreita em 3 Abas (Modo Empreita)</strong>: Exibe automaticamente as abas <strong>Empreiteiros / Encarregados</strong> (com apelidos, documento, etapa padrão, PIX opcional, opção <em>Também atua na obra</em> e botão em 1 clique <strong>+ Incluir na Equipe</strong> quando o próprio empreiteiro também trabalha em campo), <strong>Funcionários / Equipe</strong> (vinculados ao empreiteiro com apelidos, CPF/RG e etapa, sem exigir PIX individual) e <strong>Obras &amp; Etapas</strong> (alimentando direto os dropdowns do Diário de Obra).</li>
             <li><strong>Múltiplos Apelidos</strong>: Você pode cadastrar apelidos alternativos para profissionais e obras. A IA e a busca do Diário de Obra reconhecem esses apelidos automaticamente.</li>
             <li><strong>Opcional</strong>: Telefone, Canteiro de Obra e Valor da Diária. Se deixar a diária em branco, o sistema assume automaticamente a diária padrão da obra.</li>
           </ul>
