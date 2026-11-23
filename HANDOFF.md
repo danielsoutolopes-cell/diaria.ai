@@ -351,3 +351,6 @@
 - **Biometria Nativa WebAuthn (Digital / Face ID)** (`/api/ponto-campo/biometria` + `/ponto`): Após o primeiro login com PIN, o encarregado pode ativar a biometria do próprio celular (Android / iPhone) em 1 toque e passar a entrar com Digital ou Face ID nas próximas sessões (mantendo o PIN como fallback).
 - **Ajuste de Regime — Beto (José Roberto) (`Jhoston`)**: Atualizado no Supabase (`funcionarios_obra`) para `regime_remuneracao = 'DIARISTA'` e `regra_dias_uteis_seg_sab = false`, passando a receber a diária cadastrada conforme o ponto anotado pelo encarregado (Diego).
 - **Fix `/api/ponto-campo/auth`**: Corrigida a coluna de consulta em `funcionarios_obra` para `nome_trabalhador`.
+- **Reajuste Chuva & Viagem para R$ 150,00 a partir de 18/11/2026 (`Jhoston`)**:
+  - Atualizado `parametros_sistema.configuracoes` (`dia_chuva_padrao = 150`, `dia_viagem_padrao = 150`, `vigencia_chuva_viagem_150 = '2026-11-18'`).
+  - Recalculados retroativamente no Supabase (`lancamentos_financeiros`) os lançamentos em aberto de Chuva/Viagem com `data_referencia >= '2026-11-18'` (14 registros de `18/11` e `19/11`: de `R$ 120,00` para `R$ 150,00`).
