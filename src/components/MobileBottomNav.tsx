@@ -34,7 +34,12 @@ export default function MobileBottomNav() {
 
   useEffect(() => {
     setActiveTenant(getActiveTenantFromBrowser());
-    if (pathname === '/login' || pathname.startsWith('/extrato/')) return;
+    if (
+      pathname === '/login' ||
+      pathname.startsWith('/extrato/') ||
+      pathname.startsWith('/ponto')
+    )
+      return;
 
     fetch('/api/dashboard', { cache: 'no-store' })
       .then((r) => r.json())
@@ -46,7 +51,11 @@ export default function MobileBottomNav() {
       .catch(() => {});
   }, [pathname]);
 
-  if (pathname === '/login' || pathname.startsWith('/extrato/')) {
+  if (
+    pathname === '/login' ||
+    pathname.startsWith('/extrato/') ||
+    pathname.startsWith('/ponto')
+  ) {
     return null;
   }
 

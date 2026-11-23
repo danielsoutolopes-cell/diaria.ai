@@ -4,6 +4,7 @@ import { TENANTS, type TenantSlug } from '@/lib/tenant';
 export interface FeatureFlagsHomologacao {
   FF_RESUMO_DIARIO_19H: boolean;
   FF_EXTRATO_COLABORADOR_LINK: boolean;
+  FF_PWA_PONTO_CAMPO: boolean;
 }
 
 export type FeatureFlagKey = keyof FeatureFlagsHomologacao;
@@ -11,6 +12,7 @@ export type FeatureFlagKey = keyof FeatureFlagsHomologacao;
 export const FEATURE_FLAGS_DEFAULT: FeatureFlagsHomologacao = {
   FF_RESUMO_DIARIO_19H: false,
   FF_EXTRATO_COLABORADOR_LINK: false,
+  FF_PWA_PONTO_CAMPO: false,
 };
 
 export type FeatureFlagFase = 'HOMOLOGAÇÃO' | 'IMPLANTAÇÃO';
@@ -56,6 +58,19 @@ export const FEATURE_FLAGS_CATALOGO: readonly FeatureFlagMetadata[] = [
       'API /api/extrato-colaborador',
     ],
   },
+  {
+    key: 'FF_PWA_PONTO_CAMPO',
+    titulo: 'App de Campo Instalável (PWA /ponto — PIN + 3 Fotos)',
+    descricao:
+      'Libera o PWA instalável isolado (/ponto) para encarregados fora do grupo de WhatsApp marcarem ponto diário (sem valores em R$) e enviarem o relatório semanal com 3 fotos até quinta-feira.',
+    statusLabel: 'EM HOMOLOGAÇÃO',
+    fase: 'HOMOLOGAÇÃO',
+    fluxosAfetados: [
+      'PWA Instalável (/ponto)',
+      'APIs /api/ponto-campo/*',
+      'Validações Pendentes & Diário de Obra',
+    ],
+  },
 ];
 
 export function normalizarFeatureFlags(
@@ -68,6 +83,7 @@ export function normalizarFeatureFlags(
   return {
     FF_RESUMO_DIARIO_19H: obj.FF_RESUMO_DIARIO_19H === true,
     FF_EXTRATO_COLABORADOR_LINK: obj.FF_EXTRATO_COLABORADOR_LINK === true,
+    FF_PWA_PONTO_CAMPO: obj.FF_PWA_PONTO_CAMPO === true,
   };
 }
 
@@ -159,6 +175,8 @@ export async function salvarFeatureFlagsTenant(
       partial.FF_RESUMO_DIARIO_19H ?? atuais.FF_RESUMO_DIARIO_19H,
     FF_EXTRATO_COLABORADOR_LINK:
       partial.FF_EXTRATO_COLABORADOR_LINK ?? atuais.FF_EXTRATO_COLABORADOR_LINK,
+    FF_PWA_PONTO_CAMPO:
+      partial.FF_PWA_PONTO_CAMPO ?? atuais.FF_PWA_PONTO_CAMPO,
   };
 
   const { data: paramRow } = await supabaseAdmin

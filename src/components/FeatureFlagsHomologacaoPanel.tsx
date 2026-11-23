@@ -60,10 +60,12 @@ export default function FeatureFlagsHomologacaoPanel({
     jhoston: {
       FF_RESUMO_DIARIO_19H: false,
       FF_EXTRATO_COLABORADOR_LINK: false,
+      FF_PWA_PONTO_CAMPO: false,
     },
     intermack: {
       FF_RESUMO_DIARIO_19H: false,
       FF_EXTRATO_COLABORADOR_LINK: false,
+      FF_PWA_PONTO_CAMPO: false,
     },
   });
   const [auditoriaPorEmpresa, setAuditoriaPorEmpresa] = useState<

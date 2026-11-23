@@ -53,7 +53,11 @@ export default function MobileHeader() {
     setActiveTenant(getActiveTenantFromBrowser());
   }, []);
 
-  if (pathname === '/login' || pathname.startsWith('/extrato/')) {
+  if (
+    pathname === '/login' ||
+    pathname.startsWith('/extrato/') ||
+    pathname.startsWith('/ponto')
+  ) {
     return null;
   }
 

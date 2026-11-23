@@ -334,6 +334,30 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
     exemplo:
       'Ative "FF_EXTRATO_COLABORADOR_LINK" apenas para uma empresa piloto em homologação: o botão Link Extrato (EM HOMOLOGAÇÃO) aparece somente nela, enquanto a outra empresa permanece 100% intacta.',
   },
+  '/ponto': {
+    titulo: 'App de Campo Instalável (PWA — Ponto & 3 Fotos)',
+    resumo:
+      'Aplicativo mobile isolado (acesso por PIN de 4 dígitos) para encarregados fora do grupo de WhatsApp marcarem o ponto diário da equipe (sem valores em R$) e enviarem o relatório semanal com 3 fotos até quinta-feira.',
+    funcoes: [
+      {
+        nome: 'Marcação de Ponto Diária (Offline-First)',
+        descricao:
+          'Selecione uma das obras vinculadas ao encarregado, marque os colaboradores presentes e o tipo de diária (1.0, 0.5, Chuva, Viagem ou Parado). Funciona mesmo sem sinal e cai direto em Validações Pendentes para aprovação da administração.',
+      },
+      {
+        nome: 'Relatório Semanal de Obra (3 Fotos até Quinta-feira)',
+        descricao:
+          'Envie até 3 fotos da obra com um breve relato do andamento. O painel mostra o status semanal de cada obra (Enviado, Enviar até Quinta ou Pendente).',
+      },
+      {
+        nome: 'Ativação por Feature Flag (EM HOMOLOGAÇÃO)',
+        descricao:
+          'Controlado pela chave FF_PWA_PONTO_CAMPO em /config-geral, com isolamento total de sigilo (zero valores em R$).',
+      },
+    ],
+    exemplo:
+      'Um encarregado responsável por 2 obras acessa /ponto no celular, digita o PIN, marca os presentes da Obra A (Normal 1.0) e envia o relatório com 3 fotos antes de quinta-feira.',
+  },
   '/setup': {
     titulo: 'Cadastro de Obras, Empreiteiros & Equipes (Setup)',
     resumo:

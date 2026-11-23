@@ -1,0 +1,23 @@
+{
+  "name": "Ponto de Campo • Jhoston",
+  "short_name": "Ponto Campo",
+  "description": "Marcação de ponto diário e relatório semanal com 3 fotos para encarregados em campo.",
+  "start_url": "/ponto",
+  "scope": "/ponto",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#064e3b",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

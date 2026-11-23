@@ -6,6 +6,9 @@ export function middleware(request: NextRequest) {
   // Rotas públicas que não exigem autenticação
   if (
     pathname.startsWith('/login') ||
+    pathname.startsWith('/ponto') ||
+    pathname.startsWith('/extrato/') ||
+    pathname === '/manifest-ponto.json' ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon.ico') ||

@@ -336,3 +336,15 @@
   - Botão em 1 clique **`+ Incluir na Equipe`** nos cards de empreiteiros já cadastrados (substituído pelo selo verde **`✓ Atua na Obra`** quando já estiver na equipe, evitando duplicidades).
 - **Documentação atualizada (white-label)**: `src/components/ContextualHelp.tsx`, `MANUAL_DO_SISTEMA.md` e `src/app/ajuda/page.tsx`.
 - **Isolamento**: 100% restrito ao painel `SetupIntermackPanel.tsx` (`Intermack`), sem qualquer impacto no fluxo da `Jhoston`.
+
+
+### App de Campo Instalável (PWA `/ponto`) — Em Homologação (23/11/2026)
+- **Feature Flag (`FF_PWA_PONTO_CAMPO`)**: Adicionada em `src/services/featureFlagsStorage.ts` com status `EM HOMOLOGAÇÃO` (desligada por padrão; ativação exclusiva em `/config-geral` por `tenant_id`).
+- **PWA Isolado (`public/manifest-ponto.json`, `src/app/ponto/layout.tsx`, `src/app/ponto/page.tsx`)**:
+  - Layout 100% mobile sem sidebar/menu administrativo (`middleware.ts`, `Sidebar.tsx`, `MobileHeader.tsx`, `MobileBottomNav.tsx` atualizados para rota pública isolada `/ponto`).
+  - **Login por PIN (4 dígitos)** com sessão assinada HMAC-SHA256 de 30 dias (`diaria_ponto_campo`).
+  - **Perfil inicial Jhoston (`src/lib/pontoCampo.ts`)**: Encarregado **Diego** (`PIN: 1234`) vinculado exclusivamente às obras **`Jabaquara - Paraty/RJ`** e **`Quase Tudo Diego - Paraty/RJ`**.
+  - **Aba 1 — Marcar Ponto**: Obra + Data + Checkboxes de colaboradores da Jhoston (zero valores em R$) + Tipo de Diária (`1.0`, `0.5`, `Chuva`, `Viagem`, `Parado`), com fila offline automática (`localStorage`) e gravação em `ponto_lote` (`status = 'PENDENTE'`) para aprovação Human-in-the-Loop da Patrícia.
+  - **Aba 2 — Relatório Semanal (3 Fotos até Quinta-feira)**: Upload de até 3 fotos + relato do andamento gravado em `diarios_obra` (R2 + fallback seguro) e indicador visual de prazo semanal até quinta-feira por obra.
+- **APIs criadas**: `/api/ponto-campo/auth`, `/api/ponto-campo/ponto`, `/api/ponto-campo/relatorio`.
+- **Documentação atualizada**: `src/components/ContextualHelp.tsx` (`/ponto`) e `HANDOFF.md`.

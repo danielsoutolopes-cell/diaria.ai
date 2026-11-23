@@ -147,7 +147,8 @@ describe('10. Correção Extrato Analítico 5 Abas (Custo por Obra + Caixinha) &
   it('Feature Flags V16: inicia desligadas por padrão, suporta normalização segura e catálogo em homologação', () => {
     assert.equal(FEATURE_FLAGS_DEFAULT.FF_RESUMO_DIARIO_19H, false);
     assert.equal(FEATURE_FLAGS_DEFAULT.FF_EXTRATO_COLABORADOR_LINK, false);
-    assert.equal(FEATURE_FLAGS_CATALOGO.length, 2);
+    assert.equal(FEATURE_FLAGS_DEFAULT.FF_PWA_PONTO_CAMPO, false);
+    assert.equal(FEATURE_FLAGS_CATALOGO.length, 3);
 
     const parsed = normalizarFeatureFlags({
       FF_RESUMO_DIARIO_19H: true,

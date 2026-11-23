@@ -245,7 +245,11 @@ export default function Sidebar() {
     router.push('/login');
   }
 
-  if (pathname === '/login' || pathname?.startsWith('/extrato/')) {
+  if (
+    pathname === '/login' ||
+    pathname?.startsWith('/extrato/') ||
+    pathname?.startsWith('/ponto')
+  ) {
     return null;
   }
 
