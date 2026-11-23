@@ -85,9 +85,9 @@ export default function AjudaPage() {
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 space-y-1">
-              <span className="font-black text-indigo-950 block">2. Caixinha de Campo &amp; Reembolsos (/caixinha)</span>
+              <span className="font-black text-indigo-950 block">2. Caixinha de Campo, Emissor PIX &amp; OCR Inteligente (/caixinha)</span>
               <p className="text-[11px] text-indigo-900">
-                <strong>Exemplo:</strong> Em uma única tela (sem menus duplicados), a empresa acompanha o caixinha (ex.: R$ 700,00 recebidos − R$ 544,62 em notas = <strong>Troco em Mãos: R$ 155,38</strong>, sem desconto automático da folha) e a seção integrada de <strong>Reembolsos &amp; Adiantamentos</strong>.
+                <strong>Exemplo:</strong> Em uma única tela, separe o <strong>Portador do Caixinha</strong> do <strong>Emissor do PIX</strong> e grave <strong>Data + Hora (HH:MM)</strong>. Mesmo se a foto do PIX vier cortada, o OCR aplica fallback inteligente (remetente/horário do WhatsApp ou relógio da tela) e exibe no extrato quem enviou e o horário (<code>dd/mm/aaaa às HH:mm</code>).
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200/80 space-y-1">

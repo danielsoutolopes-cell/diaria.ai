@@ -122,11 +122,16 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       {
         nome: 'Reembolsos & Adiantamentos Integrados + Leitura IA',
         descricao:
-          'Alterne entre "Visão Completa", "Caixinha" e "Reembolsos" na mesma tela, ou suba a foto de um cupom fiscal/PIX para preenchimento automático.',
+          'Alterne entre "Visão Completa", "Caixinha" e "Reembolsos" na mesma tela. Separe claramente o Portador do Caixinha (quem recebeu) do Emissor do PIX (quem transferiu) e registre Data + Hora exata (HH:MM).',
+      },
+      {
+        nome: 'Ler Nota / PIX com IA & Fallback para Prints Cortados',
+        descricao:
+          'Suba a foto de um comprovante PIX ou cupom fiscal: a IA extrai valor, data, hora e pagador. Se o print vier cortado sem pagador ou horário completo, o sistema aplica fallback inteligente (remetente/horário do WhatsApp ou relógio da tela) exibindo a origem para revisão rápida antes de salvar.',
       },
     ],
     exemplo:
-      'Se o encarregado recebeu R$ 700,00 em suprimentos PIX e comprovou R$ 544,62 em notas detalhadas de material, o card exibe Troco em Mãos: R$ 155,38. Na mesma tela, gerencie também pedidos avulsos de reembolso.',
+      'Se a gestão enviou R$ 700,00 em suprimentos PIX (ex.: PIX de Gestor A em 23/11/2026 às 14:32) e o encarregado comprovou R$ 544,62 em notas de material, o extrato mostra quem enviou cada PIX, o horário exato e o saldo Troco em Mãos: R$ 155,38.',
   },
   '/reembolsos': {
     titulo: 'Caixa de Campo & Reembolsos',
@@ -134,14 +139,14 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       'Conta corrente de verbas de obra (materiais, locações e reembolsos), 100% separada de diárias e vales pessoais.',
     funcoes: [
       {
-        nome: 'Entradas PIX vs Notas Fiscais',
+        nome: 'Portador do Caixinha vs. Emissor do PIX',
         descricao:
-          'Saldo positivo = troco em mãos do encarregado. Saldo negativo = reembolso que a empresa deve pagar.',
+          'Identifique separadamente quem recebeu o recurso (portador) e quem efetuou a transferência (emissor), sempre com data e hora exata (dd/mm/aaaa às HH:mm).',
       },
       {
-        nome: 'Ler Nota / PIX com IA',
+        nome: 'Ler Nota / PIX com IA (com Fallback Inteligente)',
         descricao:
-          'Suba a foto de um cupom fiscal ou comprovante de PIX para preencher automaticamente tipo, valor e descrição.',
+          'Suba a foto de um cupom fiscal ou comprovante de PIX para preencher automaticamente tipo, valor, emissor, data e hora — inclusive em prints cortados.',
       },
       {
         nome: 'Liquidação & Levar p/ Fechamento',
@@ -150,7 +155,7 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       },
     ],
     exemplo:
-      'Selecione Colaborador, Obra e Data (aceita retroativo). Se enviou R$ 400 de PIX e ele prestou R$ 289,18 em notas, o sistema calcula Troco em Mãos: R$ 110,82.',
+      'Selecione Portador, Emissor do PIX, Obra, Data e Hora (HH:MM). Se enviou R$ 400 de PIX e ele prestou R$ 289,18 em notas, o sistema calcula Troco em Mãos: R$ 110,82.',
   },
   '/bordero': {
     titulo: 'Fechamento & Pagamentos (PIX)',

@@ -1,5 +1,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { normalizarNomeTrabalhadorCanonico } from '@/lib/normalizarObra';
+import {
+  extrairDataHoraTimestampWhatsApp,
+  montarDataHoraEnvioIso,
+  normalizarDataIso,
+  normalizarEmissorPix,
+  normalizarHoraHHMM,
+  obterDataHoraBrasilia,
+  type OrigemRastreabilidadeCaixinha,
+} from '@/lib/caixinhaPixRastreabilidade';
 
 export interface ContextoValeGrupo {
   ultimoEvento: 'VALE_SOLICITACAO';
@@ -25,13 +34,23 @@ export interface LegendaPixPareamento {
 }
 
 export interface ResultadoOcrPix {
-  tipoDocumento: 'SOLICITACAO_VALE' | 'COMPROVANTE_PIX_VALE' | 'LIQUIDACAO_PIX' | 'OUTRO';
+  tipoDocumento:
+    | 'SOLICITACAO_VALE'
+    | 'COMPROVANTE_PIX_VALE'
+    | 'LIQUIDACAO_PIX'
+    | 'SUPRIMENTO_CAIXINHA'
+    | 'OUTRO';
   nomeTrabalhador: string | null;
   nomeOriginalLido: string | null;
   valor: number;
   data: string | null;
   hora: string | null;
+  dataHoraEnvio?: string | null;
+  horaBarraStatus?: string | null;
   pagador: string | null;
+  origemPagador?: OrigemRastreabilidadeCaixinha;
+  origemDataHora?: OrigemRastreabilidadeCaixinha;
+  comprovanteCortado?: boolean;
   chavePix: string | null;
   obraSugerida: string | null;
   legendaInterpretada: string | null;
@@ -211,11 +230,21 @@ export async function analisarImagemPixComGemini(params: {
   imagemBase64: string;
   mimeType?: string;
   legenda?: string;
+  remetenteNome?: string | null;
+  remetenteTelefone?: string | null;
+  whatsappTimestamp?: number | string | null;
 }): Promise<ResultadoOcrPix> {
   const legendaInfo = interpretarLegendaComprovantePix(params.legenda || '');
   const apiKey = (process.env.GEMINI_API_KEY || '').replace(/^"|"$/g, '');
+  const tsZap = extrairDataHoraTimestampWhatsApp(params.whatsappTimestamp);
+  const emissorZap =
+    normalizarEmissorPix(params.remetenteNome) ||
+    normalizarEmissorPix(params.remetenteTelefone);
+  const agoraBr = obterDataHoraBrasilia();
 
   if (!apiKey) {
+    const dataFallback = tsZap?.data || agoraBr.data;
+    const horaFallback = tsZap?.hora || agoraBr.hora;
     return {
       tipoDocumento: legendaInfo.isComprovanteVale
         ? 'COMPROVANTE_PIX_VALE'
@@ -223,15 +252,14 @@ export async function analisarImagemPixComGemini(params: {
       nomeTrabalhador: legendaInfo.nomeTrabalhador,
       nomeOriginalLido: legendaInfo.nomeTrabalhador,
       valor: legendaInfo.valorSugerido || 100.0,
-      data: new Date().toLocaleDateString('en-CA', {
-        timeZone: 'America/Sao_Paulo',
-      }),
-      hora: new Date().toLocaleTimeString('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      pagador: 'Patrícia Grubel',
+      data: dataFallback,
+      hora: horaFallback,
+      dataHoraEnvio: montarDataHoraEnvioIso(dataFallback, horaFallback),
+      horaBarraStatus: null,
+      pagador: emissorZap || 'Patrícia',
+      origemPagador: emissorZap ? 'INFERIDO_WHATSAPP' : 'INFERIDO_OPERADOR',
+      origemDataHora: tsZap ? 'INFERIDO_WHATSAPP' : 'INFERIDO_OPERADOR',
+      comprovanteCortado: true,
       chavePix: null,
       obraSugerida: legendaInfo.obraSugerida,
       legendaInterpretada: params.legenda || null,
@@ -246,22 +274,30 @@ export async function analisarImagemPixComGemini(params: {
   const cleanBase64 = params.imagemBase64.replace(/^data:[^;]+;base64,/, '');
 
   const prompt = `Você é o motor OCR financeiro do sistema diaria.ai.
-Analise esta imagem (pode ser um comprovante bancário de PIX de vale/adiantamento, um comprovante PIX de quitação/acerto salarial ou um print de solicitação de vale).
+Analise esta imagem (comprovante bancário de PIX de vale/adiantamento, suprimento de caixinha de obra, quitação/acerto salarial ou print de solicitação de vale).
 ${params.legenda ? `Legenda enviada junto com a imagem: "${params.legenda}"` : ''}
 
 Regras de classificação:
-- Se for comprovante PIX de valor pequeno/redondo de adiantamento (ex.: R$ 50, R$ 100, R$ 150, R$ 200) ou a legenda mencionar "vale" / "vlw" -> tipoDocumento = "COMPROVANTE_PIX_VALE".
-- Se for comprovante PIX de acerto/quitação de diárias/quinzena (ex.: R$ 1.150,00 Manoel, R$ 1.275,00 Weslen/Wender, repasse semanal) -> tipoDocumento = "LIQUIDACAO_PIX".
+- Se for comprovante PIX de valor de adiantamento/vale ou a legenda mencionar "vale" / "vlw" -> tipoDocumento = "COMPROVANTE_PIX_VALE".
+- Se for comprovante PIX destinado ao caixinha de campo / compra de material / suprimento de obra (ex.: legenda "caixinha", "material", "suprimento", "pix pro gil obra") -> tipoDocumento = "SUPRIMENTO_CAIXINHA".
+- Se for comprovante PIX de acerto/quitação de diárias/quinzena -> tipoDocumento = "LIQUIDACAO_PIX".
 - Se for print de conversa pedindo vale sem comprovante bancário -> tipoDocumento = "SOLICITACAO_VALE" (se valor omitido, retorne 100.0).
+
+REGRAS ESTRITAS PARA PRINTS CORTADOS (ex.: Nubank cortado sem pagador ou sem campo "Quando"):
+- NÃO INVENTE o campo "pagador". Se a seção de pagador estiver cortada/invisível, retorne "pagador": null e "comprovanteCortado": true.
+- Se data ou hora do comprovante estiver cortada, retorne null em "data"/"hora".
+- Se o relógio da barra superior do celular aparecer no print, informe em "horaBarraStatus": "HH:MM" (senão null).
 
 Retorne APENAS JSON puro (sem markdown):
 {
-  "tipoDocumento": "SOLICITACAO_VALE" | "COMPROVANTE_PIX_VALE" | "LIQUIDACAO_PIX" | "OUTRO",
+  "tipoDocumento": "SOLICITACAO_VALE" | "COMPROVANTE_PIX_VALE" | "SUPRIMENTO_CAIXINHA" | "LIQUIDACAO_PIX" | "OUTRO",
   "nomeOriginalLido": "Nome do favorecido / recebedor lido na imagem ou legenda",
   "valor": 0.00,
-  "data": "YYYY-MM-DD",
-  "hora": "HH:MM",
-  "pagador": "Nome do pagador se visível (ex: Patrícia Grubel)",
+  "data": "YYYY-MM-DD ou null",
+  "hora": "HH:MM ou null",
+  "horaBarraStatus": "HH:MM do topo da tela ou null",
+  "pagador": "Nome do pagador se visível na imagem, ou null",
+  "comprovanteCortado": true ou false,
   "chavePix": "Chave PIX se visível ou null",
   "obraSugerida": "Nome da obra se inferível ou null",
   "confianca": "ALTA" | "MEDIA" | "BAIXA"
@@ -291,6 +327,40 @@ Retorne APENAS JSON puro (sem markdown):
     ? normalizarNomeTrabalhadorCanonico(nomeBruto)
     : null;
 
+  const pagadorOcr = normalizarEmissorPix(parsed.pagador);
+  const pagadorFinal = pagadorOcr || emissorZap || 'Patrícia';
+  const origemPagador: OrigemRastreabilidadeCaixinha = pagadorOcr
+    ? 'OCR_COMPROVANTE'
+    : emissorZap
+      ? 'INFERIDO_WHATSAPP'
+      : 'INFERIDO_OPERADOR';
+
+  const dataOcr = normalizarDataIso(parsed.data);
+  const horaOcr = normalizarHoraHHMM(parsed.hora);
+  const horaTela = normalizarHoraHHMM(parsed.horaBarraStatus);
+
+  let dataFinal: string;
+  let horaFinal: string;
+  let origemDataHora: OrigemRastreabilidadeCaixinha;
+
+  if (dataOcr && horaOcr) {
+    dataFinal = dataOcr;
+    horaFinal = horaOcr;
+    origemDataHora = 'OCR_COMPROVANTE';
+  } else if (tsZap) {
+    dataFinal = dataOcr || tsZap.data;
+    horaFinal = horaOcr || tsZap.hora;
+    origemDataHora = 'INFERIDO_WHATSAPP';
+  } else if (horaTela) {
+    dataFinal = dataOcr || agoraBr.data;
+    horaFinal = horaOcr || horaTela;
+    origemDataHora = 'CAPTURADO_TELA';
+  } else {
+    dataFinal = dataOcr || agoraBr.data;
+    horaFinal = horaOcr || agoraBr.hora;
+    origemDataHora = 'INFERIDO_OPERADOR';
+  }
+
   return {
     tipoDocumento:
       parsed.tipoDocumento ||
@@ -301,17 +371,15 @@ Retorne APENAS JSON puro (sem markdown):
       Number(parsed.valor) > 0
         ? Number(parsed.valor)
         : legendaInfo.valorSugerido || 100.0,
-    data:
-      parsed.data ||
-      new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }),
-    hora:
-      parsed.hora ||
-      new Date().toLocaleTimeString('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    pagador: parsed.pagador || 'Patrícia Grubel',
+    data: dataFinal,
+    hora: horaFinal,
+    dataHoraEnvio: montarDataHoraEnvioIso(dataFinal, horaFinal),
+    horaBarraStatus: horaTela,
+    pagador: pagadorFinal,
+    origemPagador,
+    origemDataHora,
+    comprovanteCortado:
+      Boolean(parsed.comprovanteCortado) || !pagadorOcr || !dataOcr || !horaOcr,
     chavePix: parsed.chavePix || null,
     obraSugerida: parsed.obraSugerida || legendaInfo.obraSugerida || null,
     legendaInterpretada: params.legenda || null,

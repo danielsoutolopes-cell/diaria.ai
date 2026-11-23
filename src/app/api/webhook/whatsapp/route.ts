@@ -616,25 +616,115 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // FLUXO VALES ETAPA 2 (Prompt 3 & 11): Comprovante PIX enviado com legenda informal
-    // Ex.: "Daniel vlw bahia", "Ian vale bahia", "Mateus vale bahia" ou comprovante PIX lido por Gemini Vision
-    if (comprovanteUrl && empresaAtivaSlug === 'jhoston') {
+    // FLUXO VALES ETAPA 2 & SUPRIMENTO CAIXINHA: Comprovante PIX enviado no WhatsApp
+    // Ex.: "Daniel vlw bahia", "caixinha gil", ou print Nubank cortado sem pagador/horário
+    if (comprovanteUrl && (empresaAtivaSlug === 'jhoston' || empresaAtivaSlug === 'intermack')) {
       const legendaPix = interpretarLegendaComprovantePix(messageText);
+      const rawMsgTimestamp =
+        body?.data?.messageTimestamp ?? body?.messageTimestamp ?? null;
+      const remetentePushName = body?.data?.pushName || null;
+      const isLegendaCaixinha =
+        /\b(caixinha|suprimento|caixa\s+de\s+campo|pra\s+material|para\s+material|troco\s+obra)\b/i.test(
+          messageText || ''
+        );
+
       let leituraOcr = null;
-      if (base64Image && (legendaPix.isComprovanteVale || !messageText || messageText.length < 40)) {
+      if (
+        base64Image &&
+        (legendaPix.isComprovanteVale ||
+          isLegendaCaixinha ||
+          !messageText ||
+          messageText.length < 60)
+      ) {
         try {
           leituraOcr = await analisarImagemPixComGemini({
             imagemBase64: base64Image,
             legenda: messageText,
+            remetenteNome: remetentePushName,
+            remetenteTelefone: senderNumber || null,
+            whatsappTimestamp: rawMsgTimestamp,
           });
         } catch (errOcr) {
-          console.warn('[WEBHOOK VALE OCR] Fallback para legenda:', errOcr);
+          console.warn('[WEBHOOK PIX OCR] Fallback para legenda:', errOcr);
         }
       }
 
+      // A) Suprimento PIX para Caixinha de Campo (com fallback de emissor_pix e data_hora_envio)
+      if (
+        (isLegendaCaixinha ||
+          leituraOcr?.tipoDocumento === 'SUPRIMENTO_CAIXINHA') &&
+        !legendaPix.isComprovanteVale &&
+        leituraOcr &&
+        leituraOcr.valor > 0
+      ) {
+        const portadorBruto =
+          leituraOcr.nomeTrabalhador ||
+          leituraOcr.nomeOriginalLido ||
+          'Gil';
+        const portadorCanonico = normalizarNomeTrabalhadorCanonico(portadorBruto);
+        const obraCaixinha = normalizarNomeObraCanonica(
+          leituraOcr.obraSugerida || grupoMapeado?.obraNome || 'PISCINA PORTO SEGURO',
+          empresaAtivaSlug === 'intermack' ? 'OBRA_CIVIL' : 'PISCINA'
+        );
+        const dataCaixinha = leituraOcr.data || hojeBrasilia;
+        const horaCaixinha = leituraOcr.hora || horaBrasilia;
+        const dataHoraEnvioCaixinha =
+          leituraOcr.dataHoraEnvio || `${dataCaixinha}T${horaCaixinha}:00-03:00`;
+        const emissorCaixinha = leituraOcr.pagador || 'Patrícia';
+        const origemEmissorCaixinha =
+          leituraOcr.origemPagador || 'INFERIDO_WHATSAPP';
+        const origemDataHoraCaixinha =
+          leituraOcr.origemDataHora || 'INFERIDO_WHATSAPP';
+        const novoIdCaixinha = crypto.randomUUID();
+        const descCaixinha =
+          (messageText || '').trim() ||
+          `Suprimento PIX Caixinha (${portadorCanonico})`;
+
+        await supabaseAdmin
+          .from('caixinha_movimentacoes')
+          .insert({
+            id: novoIdCaixinha,
+            tenant_id: tenantId,
+            encarregado_canonico: portadorCanonico,
+            encarregado_origem: portadorBruto,
+            obra_nome: obraCaixinha,
+            data_movimentacao: dataCaixinha,
+            hora_movimentacao: horaCaixinha,
+            data_hora_envio: dataHoraEnvioCaixinha,
+            tipo: 'ENTRADA_PIX',
+            categoria: 'Suprimento PIX',
+            descricao: descCaixinha,
+            valor: leituraOcr.valor,
+            status: 'PENDENTE',
+            is_pre_implantacao: false,
+            enviado_por: emissorCaixinha,
+            emissor_pix: emissorCaixinha,
+            origem_emissor: origemEmissorCaixinha,
+            origem_data_hora: origemDataHoraCaixinha,
+            comprovante_url: comprovanteUrl,
+          })
+          .then(({ error }) => {
+            if (error) console.warn('[WEBHOOK CAIXINHA SQL]:', error.message);
+          });
+
+        return NextResponse.json({
+          status: 'success',
+          tipo: 'CAIXINHA_PIX_INGESTAO',
+          portador: portadorCanonico,
+          emissorPix: emissorCaixinha,
+          origemEmissor: origemEmissorCaixinha,
+          dataHoraEnvio: dataHoraEnvioCaixinha,
+          origemDataHora: origemDataHoraCaixinha,
+          valor: leituraOcr.valor,
+          comprovanteUrl,
+          whatsappNotifications: [],
+        });
+      }
+
       const isComprovanteVale =
-        legendaPix.isComprovanteVale ||
-        leituraOcr?.tipoDocumento === 'COMPROVANTE_PIX_VALE';
+        empresaAtivaSlug === 'jhoston' &&
+        (legendaPix.isComprovanteVale ||
+          leituraOcr?.tipoDocumento === 'COMPROVANTE_PIX_VALE');
       const nomeValePix =
         legendaPix.nomeTrabalhador || leituraOcr?.nomeTrabalhador || null;
 

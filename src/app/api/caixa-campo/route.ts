@@ -11,6 +11,17 @@ import {
   type MovimentoCaixaCampo,
   type TipoMovimentoCaixa,
 } from '@/lib/caixinhaDeduplicacao';
+import {
+  aplicarFallbackOcrCaixinha,
+  listarEmissoresPixTenant,
+  montarDataHoraEnvioIso,
+  normalizarDataIso,
+  normalizarEmissorPix,
+  normalizarHoraHHMM,
+  obterDataHoraBrasilia,
+  type LeituraBrutaOcrCaixinha,
+  type OrigemRastreabilidadeCaixinha,
+} from '@/lib/caixinhaPixRastreabilidade';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +34,7 @@ interface CaixinhaDbRow {
   obra_nome: string;
   data_movimentacao: string;
   hora_movimentacao: string;
+  data_hora_envio?: string | null;
   tipo: TipoMovimentoCaixa;
   categoria: string;
   descricao: string;
@@ -30,6 +42,9 @@ interface CaixinhaDbRow {
   status: 'PENDENTE' | 'APROVADO';
   is_pre_implantacao: boolean;
   enviado_por: string | null;
+  emissor_pix?: string | null;
+  origem_emissor?: OrigemRastreabilidadeCaixinha | null;
+  origem_data_hora?: OrigemRastreabilidadeCaixinha | null;
   created_at: string;
 }
 
@@ -50,13 +65,17 @@ const MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON: MovimentoCaixaCampo[] = [
     obra: 'PISCINA PORTO SEGURO',
     data: '2026-11-13',
     hora: '09:00',
+    dataHoraEnvio: '2026-11-13T09:00:00-03:00',
     tipo: 'ENTRADA_PIX',
     categoria: 'Suprimento PIX',
     descricao: 'Entradas PIX consolidadas (Pré-implantação 13/11)',
     valor: 700.0,
     status: 'APROVADO',
     isPreImplantacao: true,
-    enviadoPor: 'Patrícia Grubel',
+    enviadoPor: 'Patrícia',
+    emissorPix: 'Patrícia',
+    origemEmissor: 'MANUAL',
+    origemDataHora: 'MANUAL',
     criadoEm: '2026-11-13T12:00:00.000Z',
   },
   {
@@ -66,6 +85,7 @@ const MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON: MovimentoCaixaCampo[] = [
     obra: 'PISCINA PORTO SEGURO',
     data: '2026-11-13',
     hora: '17:30',
+    dataHoraEnvio: '2026-11-13T17:30:00-03:00',
     tipo: 'NOTA_DESPESA',
     categoria: 'Material / Despesas de Campo',
     descricao: 'Saídas e notas comprovadas (Pré-implantação 13/11)',
@@ -73,6 +93,9 @@ const MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON: MovimentoCaixaCampo[] = [
     status: 'APROVADO',
     isPreImplantacao: true,
     enviadoPor: 'Gil',
+    emissorPix: null,
+    origemEmissor: 'MANUAL',
+    origemDataHora: 'MANUAL',
     criadoEm: '2026-11-13T20:30:00.000Z',
   },
 ];
@@ -127,31 +150,64 @@ async function lerCaixaCampo(
   const movimentosSql: MovimentoCaixaCampo[] = [];
 
   try {
-    const { data: sqlRows, error } = await supabaseAdmin
+    let sqlRows: CaixinhaDbRow[] | null = null;
+    const resV24 = await supabaseAdmin
       .from('caixinha_movimentacoes')
       .select(
-        'id, encarregado_canonico, encarregado_origem, obra_nome, data_movimentacao, hora_movimentacao, tipo, categoria, descricao, valor, status, is_pre_implantacao, enviado_por, created_at'
+        'id, encarregado_canonico, encarregado_origem, obra_nome, data_movimentacao, hora_movimentacao, data_hora_envio, tipo, categoria, descricao, valor, status, is_pre_implantacao, enviado_por, emissor_pix, origem_emissor, origem_data_hora, created_at'
       )
       .eq('tenant_id', tenantId)
       .order('data_movimentacao', { ascending: true });
 
-    if (!error && Array.isArray(sqlRows)) {
+    if (!resV24.error && Array.isArray(resV24.data)) {
+      sqlRows = resV24.data as unknown as CaixinhaDbRow[];
+    } else {
+      const resLegacy = await supabaseAdmin
+        .from('caixinha_movimentacoes')
+        .select(
+          'id, encarregado_canonico, encarregado_origem, obra_nome, data_movimentacao, hora_movimentacao, tipo, categoria, descricao, valor, status, is_pre_implantacao, enviado_por, created_at'
+        )
+        .eq('tenant_id', tenantId)
+        .order('data_movimentacao', { ascending: true });
+      if (!resLegacy.error && Array.isArray(resLegacy.data)) {
+        sqlRows = resLegacy.data as unknown as CaixinhaDbRow[];
+      }
+    }
+
+    if (sqlRows) {
       tabelaSqlAtiva = true;
-      (sqlRows as unknown as CaixinhaDbRow[]).forEach((row) => {
+      sqlRows.forEach((row) => {
+        const horaNorm = normalizarHoraHHMM(row.hora_movimentacao) || '12:00';
+        const emissorNorm =
+          row.tipo === 'ENTRADA_PIX'
+            ? normalizarEmissorPix(row.emissor_pix || row.enviado_por) ||
+              row.emissor_pix ||
+              row.enviado_por ||
+              null
+            : row.emissor_pix
+              ? normalizarEmissorPix(row.emissor_pix)
+              : null;
+
         movimentosSql.push({
           id: row.id,
           encarregado: row.encarregado_canonico,
           encarregadoOrigem: row.encarregado_origem || row.encarregado_canonico,
           obra: row.obra_nome,
           data: row.data_movimentacao,
-          hora: row.hora_movimentacao || '12:00',
+          hora: horaNorm,
+          dataHoraEnvio:
+            row.data_hora_envio ||
+            montarDataHoraEnvioIso(row.data_movimentacao, horaNorm),
           tipo: row.tipo,
           categoria: row.categoria,
           descricao: row.descricao,
           valor: Number(row.valor || 0),
           status: row.status,
           isPreImplantacao: Boolean(row.is_pre_implantacao),
-          enviadoPor: row.enviado_por || 'Administração',
+          enviadoPor: row.enviado_por || emissorNorm || 'Administração',
+          emissorPix: emissorNorm,
+          origemEmissor: row.origem_emissor || null,
+          origemDataHora: row.origem_data_hora || null,
           criadoEm: row.created_at,
         });
       });
@@ -215,15 +271,23 @@ export async function GET(req: NextRequest) {
     const aliasesExtras = await carregarAliasesTenant(activeTenant.id);
     const { movimentos } = await lerCaixaCampo(activeTenant.id, aliasesExtras);
     const contas = consolidarContasCaixinha(movimentos, aliasesExtras);
+    const emissoresHistorico = movimentos
+      .filter((m) => m.tipo === 'ENTRADA_PIX')
+      .map((m) => m.emissorPix || m.enviadoPor);
+    const emissoresPix = listarEmissoresPixTenant(emissoresHistorico);
 
     return NextResponse.json({
       tenant: activeTenant.slug,
+      emissoresPix,
       movimentos,
       contas,
     });
   } catch (error) {
     console.error('Erro em GET /api/caixa-campo:', error);
-    return NextResponse.json({ movimentos: [], contas: [] }, { status: 500 });
+    return NextResponse.json(
+      { emissoresPix: listarEmissoresPixTenant(), movimentos: [], contas: [] },
+      { status: 500 }
+    );
   }
 }
 
@@ -234,24 +298,36 @@ interface CaixaPostBody {
   obra?: string;
   data?: string;
   hora?: string;
+  dataHoraEnvio?: string;
   tipo?: TipoMovimentoCaixa;
   categoria?: string;
   descricao?: string;
   valor?: number;
   enviadoPor?: string;
+  emissorPix?: string | null;
+  origemEmissor?: OrigemRastreabilidadeCaixinha | null;
+  origemDataHora?: OrigemRastreabilidadeCaixinha | null;
   isPreImplantacao?: boolean;
   imagemBase64?: string;
   imagemMimeType?: string;
+  remetenteNome?: string | null;
+  remetenteTelefone?: string | null;
+  whatsappTimestamp?: number | string | null;
+  arquivoLastModifiedMs?: number | null;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const activeTenant = getActiveTenantFromRequest(req);
     const body = (await req.json()) as CaixaPostBody;
+    const usuarioCookie = req.cookies.get('diaria_user')?.value
+      ? decodeURIComponent(req.cookies.get('diaria_user')?.value || '')
+      : null;
 
     // 1. Leitura automática de comprovante PIX ou Nota Fiscal via Gemini Vision
+    //    com extração de emissor_pix, data_hora_envio e fallback inteligente para prints cortados
     if (body.action === 'ler-nota-ia' && body.imagemBase64) {
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = (process.env.GEMINI_API_KEY || '').replace(/^"|"$/g, '');
       if (!apiKey) {
         return NextResponse.json(
           { error: 'GEMINI_API_KEY não configurada.' },
@@ -259,16 +335,32 @@ export async function POST(req: NextRequest) {
         );
       }
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+      });
       const clean = body.imagemBase64.replace(/^data:[^;]+;base64,/, '');
 
-      const prompt = `Analise esta imagem (comprovante de PIX, cupom fiscal, nota fiscal ou contrato de locação de obra).
+      const prompt = `Você é o motor OCR financeiro de alta precisão do sistema diaria.ai.
+Analise esta imagem (comprovante de PIX de bancos como Nubank, C6, Itaú, Santander, Inter, Bradesco, cupom fiscal, nota fiscal ou recibo de obra).
+
+REGRAS ESTRITAS PARA COMPROVANTES CORTADOS (ex.: print Nubank mostrando só valor e destinatário sem pagador ou sem campo "Quando" completo):
+1. NÃO INVENTE o pagador ("emissorPix"). Se a seção de pagador/origem estiver cortada ou não aparecer claramente na imagem, retorne "emissorPix": null e "comprovanteCortado": true.
+2. Extraia a data ("YYYY-MM-DD") e a hora ("HH:MM") do campo oficial de data/hora da transferência (ex.: "Quando", "Data", "Horário"). Se estiver cortado ou ausente, retorne null.
+3. Se o campo oficial de horário estiver cortado, mas o relógio da barra superior do celular aparecer no print (ex.: "14:32" no canto superior esquerdo), informe esse horário em "horaBarraStatus": "HH:MM" (caso contrário, null).
+4. Em "destinatario", informe o nome de quem RECEBEU o PIX (se for comprovante PIX) ou null.
+
 Retorne APENAS JSON puro (sem markdown):
 {
   "tipo": "ENTRADA_PIX" ou "NOTA_DESPESA",
   "valor": 0.00,
   "categoria": "Material" | "Locação de Equipamento" | "Suprimento PIX" | "Combustível" | "Outros",
-  "descricao": "Descrição curta e clara"
+  "descricao": "Descrição curta e clara",
+  "destinatario": "Nome de quem recebeu o PIX ou null",
+  "emissorPix": "Nome de quem enviou/pagou o PIX se visível na imagem, ou null",
+  "data": "YYYY-MM-DD ou null",
+  "hora": "HH:MM ou null",
+  "horaBarraStatus": "HH:MM do topo da tela do print se visível, ou null",
+  "comprovanteCortado": true ou false
 }`;
 
       const res = await model.generateContent([
@@ -281,14 +373,23 @@ Retorne APENAS JSON puro (sem markdown):
         },
       ]);
 
-      const raw = res.response.text().replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(raw) as {
-        tipo?: TipoMovimentoCaixa;
-        valor?: number;
-        categoria?: string;
-        descricao?: string;
-      };
-      return NextResponse.json({ success: true, leitura: parsed });
+      const raw = res.response
+        .text()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/, '')
+        .replace(/\s*```$/, '')
+        .trim();
+      const parsed = JSON.parse(raw) as LeituraBrutaOcrCaixinha;
+
+      const leitura = aplicarFallbackOcrCaixinha(parsed, {
+        remetenteNome: body.remetenteNome || null,
+        remetenteTelefone: body.remetenteTelefone || null,
+        whatsappTimestamp: body.whatsappTimestamp ?? null,
+        usuarioLogado: usuarioCookie,
+        arquivoLastModifiedMs: body.arquivoLastModifiedMs ?? null,
+      });
+
+      return NextResponse.json({ success: true, leitura });
     }
 
     const [{ paramId, configs, movimentos, tabelaSqlAtiva }, aliasesExtras] =
@@ -303,30 +404,47 @@ Retorne APENAS JSON puro (sem markdown):
         encarregadoBruto,
         aliasesExtras
       );
+      const tipoFinal: TipoMovimentoCaixa = body.tipo || 'NOTA_DESPESA';
+      const agoraBr = obterDataHoraBrasilia();
+      const dataFinal = normalizarDataIso(body.data) || agoraBr.data;
+      const horaFinal = normalizarHoraHHMM(body.hora) || agoraBr.hora;
+      const dataHoraEnvioFinal =
+        body.dataHoraEnvio || montarDataHoraEnvioIso(dataFinal, horaFinal);
+
+      const emissorNormalizado =
+        tipoFinal === 'ENTRADA_PIX'
+          ? normalizarEmissorPix(
+              body.emissorPix || body.enviadoPor || usuarioCookie
+            ) || 'Patrícia'
+          : body.emissorPix
+            ? normalizarEmissorPix(body.emissorPix)
+            : null;
+
+      const enviadoPorFinal =
+        emissorNormalizado ||
+        normalizarEmissorPix(body.enviadoPor || usuarioCookie) ||
+        'Administração';
+
       const novo: MovimentoCaixaCampo = {
         id: crypto.randomUUID(),
         encarregado: encarregadoCanonico,
         encarregadoOrigem: encarregadoBruto,
         obra: (body.obra || 'PISCINA PORTO SEGURO').trim().toUpperCase(),
-        data:
-          body.data ||
-          new Date().toLocaleDateString('en-CA', {
-            timeZone: 'America/Sao_Paulo',
-          }),
-        hora:
-          body.hora ||
-          new Date().toLocaleTimeString('pt-BR', {
-            timeZone: 'America/Sao_Paulo',
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        tipo: body.tipo || 'NOTA_DESPESA',
-        categoria: body.categoria || 'Material',
+        data: dataFinal,
+        hora: horaFinal,
+        dataHoraEnvio: dataHoraEnvioFinal,
+        tipo: tipoFinal,
+        categoria:
+          body.categoria ||
+          (tipoFinal === 'ENTRADA_PIX' ? 'Suprimento PIX' : 'Material'),
         descricao: (body.descricao || 'Despesa de Campo').trim(),
         valor: Number(body.valor || 0),
         status: 'PENDENTE',
         isPreImplantacao: Boolean(body.isPreImplantacao),
-        enviadoPor: body.enviadoPor || 'Administração',
+        enviadoPor: enviadoPorFinal,
+        emissorPix: emissorNormalizado,
+        origemEmissor: body.origemEmissor || 'MANUAL',
+        origemDataHora: body.origemDataHora || 'MANUAL',
         criadoEm: new Date().toISOString(),
       };
 
@@ -334,7 +452,7 @@ Retorne APENAS JSON puro (sem markdown):
       await salvarCaixaCampo(activeTenant.id, paramId, configs, atualizados);
 
       if (tabelaSqlAtiva) {
-        await supabaseAdmin
+        const { error: errV24 } = await supabaseAdmin
           .from('caixinha_movimentacoes')
           .insert({
             id: novo.id,
@@ -344,6 +462,7 @@ Retorne APENAS JSON puro (sem markdown):
             obra_nome: novo.obra,
             data_movimentacao: novo.data,
             hora_movimentacao: novo.hora,
+            data_hora_envio: novo.dataHoraEnvio,
             tipo: novo.tipo,
             categoria: novo.categoria,
             descricao: novo.descricao,
@@ -351,10 +470,35 @@ Retorne APENAS JSON puro (sem markdown):
             status: novo.status,
             is_pre_implantacao: Boolean(novo.isPreImplantacao),
             enviado_por: novo.enviadoPor,
-          })
-          .then(({ error }) => {
-            if (error) console.warn('[CAIXINHA SQL SYNC]:', error.message);
+            emissor_pix: novo.emissorPix,
+            origem_emissor: novo.origemEmissor,
+            origem_data_hora: novo.origemDataHora,
           });
+
+        if (errV24) {
+          // Fallback seguro caso ambiente antigo ainda não tenha aplicado Migration V24
+          await supabaseAdmin
+            .from('caixinha_movimentacoes')
+            .insert({
+              id: novo.id,
+              tenant_id: activeTenant.id,
+              encarregado_canonico: novo.encarregado,
+              encarregado_origem: novo.encarregadoOrigem || novo.encarregado,
+              obra_nome: novo.obra,
+              data_movimentacao: novo.data,
+              hora_movimentacao: novo.hora,
+              tipo: novo.tipo,
+              categoria: novo.categoria,
+              descricao: novo.descricao,
+              valor: novo.valor,
+              status: novo.status,
+              is_pre_implantacao: Boolean(novo.isPreImplantacao),
+              enviado_por: novo.enviadoPor,
+            })
+            .then(({ error }) => {
+              if (error) console.warn('[CAIXINHA SQL SYNC]:', error.message);
+            });
+        }
       }
 
       return NextResponse.json({ success: true, movimento: novo });

@@ -1,4 +1,9 @@
 import { normalizarNomeTrabalhadorCanonico } from '@/lib/normalizarObra';
+import {
+  montarDataHoraEnvioIso,
+  normalizarEmissorPix,
+  type OrigemRastreabilidadeCaixinha,
+} from '@/lib/caixinhaPixRastreabilidade';
 
 export type TipoMovimentoCaixa =
   | 'ENTRADA_PIX'
@@ -12,6 +17,7 @@ export interface MovimentoCaixaCampo {
   obra: string;
   data: string;
   hora: string;
+  dataHoraEnvio?: string | null;
   tipo: TipoMovimentoCaixa;
   categoria: string;
   descricao: string;
@@ -19,6 +25,9 @@ export interface MovimentoCaixaCampo {
   status: 'PENDENTE' | 'APROVADO';
   isPreImplantacao?: boolean;
   enviadoPor: string;
+  emissorPix?: string | null;
+  origemEmissor?: OrigemRastreabilidadeCaixinha | null;
+  origemDataHora?: OrigemRastreabilidadeCaixinha | null;
   criadoEm: string;
 }
 
@@ -94,10 +103,24 @@ export function deduplicarMovimentosCaixinha(
 
     if (assinaturas.has(assinatura)) return;
     assinaturas.add(assinatura);
+    const emissorCanon =
+      m.tipo === 'ENTRADA_PIX'
+        ? normalizarEmissorPix(m.emissorPix || m.enviadoPor) ||
+          m.emissorPix ||
+          m.enviadoPor ||
+          null
+        : m.emissorPix
+          ? normalizarEmissorPix(m.emissorPix)
+          : null;
     porId.set(m.id, {
       ...m,
       encarregado: encarregadoCanon,
       encarregadoOrigem: m.encarregadoOrigem || m.encarregado,
+      dataHoraEnvio:
+        m.dataHoraEnvio || montarDataHoraEnvioIso(m.data, m.hora || '12:00'),
+      emissorPix: emissorCanon,
+      origemEmissor: m.origemEmissor || null,
+      origemDataHora: m.origemDataHora || null,
       valor: Number(Number(m.valor || 0).toFixed(2)),
     });
   };
