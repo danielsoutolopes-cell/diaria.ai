@@ -356,3 +356,6 @@
   - Recalculados retroativamente no Supabase (`lancamentos_financeiros`) os lançamentos em aberto de Chuva/Viagem com `data_referencia >= '2026-11-18'` (14 registros de `18/11` e `19/11`: de `R$ 120,00` para `R$ 150,00`).
 - **Ciclo de 3 Estados nas Feature Flags (`/config-geral`)**: Cada flag agora alterna por empresa entre **`OFF`** (cinza) → **`EM HOMOLOGAÇÃO`** (amarelo, exibe selo *EM HOMOLOGAÇÃO*) → **`100% ATIVO`** (verde, produção oficial sem o selo de homologação).
 - **Ajustes UX & Rateio IA no `/ponto`**: Termo alterado de *Encarregado* para ***Responsável***, pré-marcação automática do próprio responsável (ex.: **Diego**) na lista de equipe e rateio automático `0.5 / 0.5` (`1/N` obras) quando o mesmo colaborador for marcado em mais de uma obra no mesmo dia.
+- **PIN Dinâmico por Fase (`0000` / `1234`) & Envio de Convite pelo Sistema (`/config-geral`)**:
+  - Em **`EM HOMOLOGAÇÃO`**, o PIN do PWA `/ponto` é automaticamente **`0000`**; ao promover para **`100% ATIVO`**, volta automaticamente para **`1234`** (PIN oficial).
+  - Adicionado em `/config-geral` (card `FF_PWA_PONTO_CAMPO`) o disparador **Enviar Link + PIN** com dropdown de contatos ou campo editável de WhatsApp/e-mail (`/api/ponto-campo/convite`), enviando o link `/ponto`, o PIN vigente e as regras básicas via WhatsApp (Baileys) e copiando o texto para a área de transferência.

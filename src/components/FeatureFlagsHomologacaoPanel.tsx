@@ -63,6 +63,12 @@ export default function FeatureFlagsHomologacaoPanel({
   const [disparandoEmpresa, setDisparandoEmpresa] = useState<TenantSlug | null>(
     null
   );
+  const [contatosPwa, setContatosPwa] = useState<
+    Array<{ id: string; nome: string; telefone: string }>
+  >([]);
+  const [conviteDestino, setConviteDestino] = useState('');
+  const [conviteNome, setConviteNome] = useState('Diego');
+  const [enviandoConvite, setEnviandoConvite] = useState(false);
   const [porEmpresa, setPorEmpresa] = useState<
     Record<TenantSlug, FeatureFlagsHomologacao>
   >({
@@ -125,6 +131,27 @@ export default function FeatureFlagsHomologacaoPanel({
         setAuditoriaPorEmpresa(data.auditoriaPorEmpresa);
       }
       if (data.catalogo) setCatalogo(data.catalogo);
+
+      // Carrega contatos para envio rápido de convite do PWA /ponto
+      try {
+        const resConv = await fetch('/api/ponto-campo/convite', {
+          cache: 'no-store',
+        });
+        const dConv = (await resConv.json()) as {
+          contatos?: Array<{ id: string; nome: string; telefone: string }>;
+        };
+        if (resConv.ok && Array.isArray(dConv.contatos)) {
+          setContatosPwa(dConv.contatos);
+          const diego = dConv.contatos.find((c) =>
+            c.nome.toLowerCase().includes('diego')
+          );
+          if (diego && diego.telefone) {
+            setConviteDestino((prev) => prev || diego.telefone);
+          }
+        }
+      } catch {
+        // opcional
+      }
     } catch {
       setFeedback({
         tipo: 'erro',
@@ -190,6 +217,58 @@ export default function FeatureFlagsHomologacaoPanel({
       });
     } finally {
       setSalvandoChave(null);
+    }
+  }
+
+  async function enviarConvitePwa() {
+    if (!conviteDestino.trim()) {
+      setFeedback({
+        tipo: 'erro',
+        texto: 'Selecione um contato ou digite o WhatsApp/e-mail para enviar o link.',
+      });
+      return;
+    }
+    setEnviandoConvite(true);
+    setFeedback(null);
+    try {
+      const res = await fetch('/api/ponto-campo/convite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destino: conviteDestino.trim(),
+          nomeResponsavel: conviteNome.trim() || 'Diego',
+        }),
+      });
+      const data = (await res.json()) as {
+        success?: boolean;
+        enviadoWhatsapp?: boolean;
+        mensagemPronta?: string;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.success) {
+        setFeedback({
+          tipo: 'erro',
+          texto: data.error || 'Falha ao enviar convite.',
+        });
+        return;
+      }
+      if (data.mensagemPronta && typeof navigator !== 'undefined' && navigator.clipboard) {
+        void navigator.clipboard.writeText(data.mensagemPronta).catch(() => {});
+      }
+      setFeedback({
+        tipo: 'sucesso',
+        texto:
+          data.message ||
+          'Convite enviado! Texto também copiado para a área de transferência.',
+      });
+    } catch {
+      setFeedback({
+        tipo: 'erro',
+        texto: 'Erro de conexão ao enviar convite do App de Campo.',
+      });
+    } finally {
+      setEnviandoConvite(false);
     }
   }
 
@@ -422,6 +501,63 @@ export default function FeatureFlagsHomologacaoPanel({
                   })}
                 </div>
               </div>
+
+              {item.key === 'FF_PWA_PONTO_CAMPO' &&
+                porEmpresa.jhoston.FF_PWA_PONTO_CAMPO && (
+                  <div className="pt-3 border-t border-slate-200/80 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-slate-700">
+                        Enviar link do PWA (<code>/ponto</code>) + regras de acesso — PIN atual:{' '}
+                        <strong className="text-emerald-700">
+                          {estadosPorEmpresa.jhoston.FF_PWA_PONTO_CAMPO ===
+                          'HOMOLOGACAO'
+                            ? '0000 (Homologação)'
+                            : '1234 (Produção)'}
+                        </strong>
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const c = contatosPwa.find(
+                            (x) => x.id === e.target.value
+                          );
+                          if (c) {
+                            setConviteNome(c.nome);
+                            if (c.telefone) setConviteDestino(c.telefone);
+                          }
+                        }}
+                        className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 sm:w-48"
+                      >
+                        <option value="">Buscar contato...</option>
+                        {contatosPwa.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.nome} {c.telefone ? `(${c.telefone})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="WhatsApp (ex: 11999998888) ou e-mail..."
+                        value={conviteDestino}
+                        onChange={(e) => setConviteDestino(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium text-slate-900"
+                      />
+                      <button
+                        type="button"
+                        disabled={enviandoConvite}
+                        onClick={() => void enviarConvitePwa()}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>
+                          {enviandoConvite ? 'Enviando...' : 'Enviar Link + PIN'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
               {item.key === 'FF_RESUMO_DIARIO_19H' &&
                 (porEmpresa.jhoston.FF_RESUMO_DIARIO_19H ||

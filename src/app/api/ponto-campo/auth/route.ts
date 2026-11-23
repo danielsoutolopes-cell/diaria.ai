@@ -124,7 +124,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const flags = await lerFeatureFlagsTenant(JHOSTON_TENANT_ID);
+    const [flags, estados] = await Promise.all([
+      lerFeatureFlagsTenant(JHOSTON_TENANT_ID),
+      lerEstadosFeatureFlagsTenant(JHOSTON_TENANT_ID),
+    ]);
     if (!flags.FF_PWA_PONTO_CAMPO) {
       return NextResponse.json(
         { error: 'App de Campo em homologação (desligado em /config-geral).' },
@@ -151,9 +154,17 @@ export async function POST(req: NextRequest) {
       (e) => e.id === encarregadoId && e.ativo !== false
     );
 
-    if (!enc || enc.pin !== pin) {
+    // Regra de PIN por fase: em HOMOLOGAÇÃO = '0000'; quando 100% ATIVO = PIN oficial ('1234')
+    const emHomologacao = estados.FF_PWA_PONTO_CAMPO === 'HOMOLOGACAO';
+    const pinEsperado = emHomologacao ? '0000' : enc?.pin || '1234';
+
+    if (!enc || pin !== pinEsperado) {
       return NextResponse.json(
-        { error: 'PIN incorreto. Confira com a administração.' },
+        {
+          error: emHomologacao
+            ? 'PIN incorreto. No período de homologação o PIN é 0000.'
+            : 'PIN incorreto. Confira com a administração.',
+        },
         { status: 401 }
       );
     }
