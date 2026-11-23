@@ -100,10 +100,29 @@ try {
     })
   );
 
-  execFileSync('npx', ['tsc', '-p', tsCfgPath], {
+  const isWin = process.platform === 'win32';
+  const localTscBin = path.join(
+    repoRoot,
+    'node_modules',
+    '.bin',
+    isWin ? 'tsc.cmd' : 'tsc'
+  );
+  const useLocalTsc = fs.existsSync(localTscBin);
+  const tscCommand = useLocalTsc ? localTscBin : isWin ? 'npx.cmd' : 'npx';
+  const tscArgs = useLocalTsc ? ['-p', tsCfgPath] : ['tsc', '-p', tsCfgPath];
+
+  const tscResult = spawnSync(tscCommand, tscArgs, {
     cwd: repoRoot,
     stdio: 'inherit',
+    shell: isWin,
   });
+
+  if (tscResult.error) {
+    throw tscResult.error;
+  }
+  if (tscResult.status !== 0) {
+    process.exit(tscResult.status || 1);
+  }
 
   rewriteAliasImports(outDir);
 
