@@ -1,4 +1,11 @@
-import type { DiarioObraRegistro } from '@/app/api/diario-obra/route';
+import {
+  agruparEfetivoPorEmpreiteiro,
+  formatarNomeFuncionarioComMetadados,
+  isSubempreitaHabilitada,
+  montarTextoOcorrencia,
+  sanitizarStatusCondominio,
+  type DiarioObraRegistro,
+} from '@/lib/diarioObraRelatorio';
 
 function sanitizePdfText(text: string): string {
   return text
@@ -34,64 +41,134 @@ function wrapLines(text: string, maxChars: number): string[] {
 }
 
 /**
- * Gera um PDF válido em Base64 do Diário de Obra (sem dependências nativas pesadas),
- * pronto para envio direto via WhatsApp (Baileys / Evolution API) ou download.
+ * Gera um PDF válido em Base64 do Diário de Obra:
+ * - Intermack: agrupa por Empreiteiro / Encarregado exibindo Etapa executada
+ *   e relação de funcionários (com apelidos e documento) + filtro opcional.
+ * - Jhoston: preserva o formato direto de efetivo sem estrutura de subempreita.
  */
-export function gerarPdfDiarioBase64(diario: DiarioObraRegistro): {
+export function gerarPdfDiarioBase64(
+  diario: DiarioObraRegistro,
+  filtroEmpreiteiro?: string | null
+): {
   base64: string;
   fileName: string;
 } {
+  const subempreitaAtiva = isSubempreitaHabilitada(diario.tenantSlug);
+  const ocorrenciaFinal = montarTextoOcorrencia(
+    diario.ocorrenciaTipo,
+    diario.ocorrencias
+  );
+
   const lines: Array<{ text: string; size: number; bold?: boolean }> = [];
 
   lines.push({
     text: `${diario.empresaNome.toUpperCase()} - RELATORIO DIARIO DE OBRA (RDO)`,
-    size: 14,
+    size: 13,
     bold: true,
   });
-  lines.push({ text: '--------------------------------------------------------------------', size: 10 });
+  lines.push({
+    text: '-------------------------------------------------------------------------',
+    size: 10,
+  });
   lines.push({ text: `Obra: ${diario.obraNome}`, size: 11, bold: true });
   lines.push({
     text: `Data: ${diario.data}  |  ${
       diario.ambiente === 'INTERNO'
-        ? `Condominio/Acesso: ${diario.statusCondominio || 'Acesso Normal'}`
-        : `Clima: ${diario.clima}`
+        ? `Condominio / Acesso: ${sanitizarStatusCondominio(diario.statusCondominio)}`
+        : `Clima: ${diario.clima || 'Ensolarado'}`
     }`,
     size: 10,
   });
-  if (diario.empreiteiro) {
-    lines.push({ text: `Empreiteiro / Equipe: ${diario.empreiteiro}`, size: 10 });
-  }
-  lines.push({ text: '', size: 8 });
-  lines.push({
-    text: `EFETIVO PRESENTE (${diario.efetivo.length} profissional(is)):`,
-    size: 11,
-    bold: true,
-  });
 
-  if (diario.efetivo.length === 0) {
-    lines.push({ text: '- Nenhum profissional registrado.', size: 10 });
-  } else {
-    for (const e of diario.efetivo) {
-      const p = e.periodo === 'INTEGRAL' ? 'Dia Inteiro' : 'Meio Dia';
-      lines.push({ text: `- ${e.nome} (${p})`, size: 10 });
+  if (subempreitaAtiva) {
+    const grupos = agruparEfetivoPorEmpreiteiro(diario, filtroEmpreiteiro);
+    const totalPresentes = grupos.reduce((acc, g) => acc + g.totalProfissionais, 0);
+
+    if (filtroEmpreiteiro) {
+      lines.push({
+        text: `Filtro por Empreiteiro / Encarregado: ${filtroEmpreiteiro}`,
+        size: 10,
+        bold: true,
+      });
     }
+
+    lines.push({ text: '', size: 7 });
+    lines.push({
+      text: `EQUIPES E EFETIVO PRESENTE (${totalPresentes} profissional(is)):`,
+      size: 11,
+      bold: true,
+    });
+
+    if (grupos.length === 0) {
+      lines.push({
+        text: '- Nenhum profissional encontrado para o filtro selecionado.',
+        size: 10,
+      });
+    } else {
+      for (const grupo of grupos) {
+        const etapasTxt =
+          grupo.etapas.length > 0 ? grupo.etapas.join(', ') : 'Servico geral';
+        lines.push({
+          text: `Empreiteiro / Encarregado: ${grupo.empreiteiroNome} (${grupo.totalProfissionais} prof. | ${grupo.totalHomensDia.toFixed(1)} H/D)`,
+          size: 10,
+          bold: true,
+        });
+        lines.push({
+          text: `  Etapa / Frente de Servico: ${etapasTxt}`,
+          size: 9,
+        });
+        if (grupo.funcionarios.length === 0) {
+          lines.push({ text: '  - Sem funcionarios listados.', size: 9 });
+        } else {
+          for (const func of grupo.funcionarios) {
+            const periodoTxt =
+              func.periodo === 'INTEGRAL' ? 'Dia Inteiro' : 'Meio Dia';
+            const etapaDet =
+              func.etapaNome && grupo.etapas.length > 1
+                ? ` | ${func.etapaNome}`
+                : '';
+            const linhaFunc = `  - ${formatarNomeFuncionarioComMetadados(func)}${etapaDet} (${periodoTxt})`;
+            for (const wrapped of wrapLines(linhaFunc, 86)) {
+              lines.push({ text: wrapped, size: 9 });
+            }
+          }
+        }
+        lines.push({ text: '', size: 5 });
+      }
+    }
+  } else {
+    // Fluxo direto Jhoston (sem subempreita)
+    lines.push({ text: '', size: 7 });
+    lines.push({
+      text: `EFETIVO PRESENTE (${diario.efetivo.length} profissional(is)):`,
+      size: 11,
+      bold: true,
+    });
+    if (diario.efetivo.length === 0) {
+      lines.push({ text: '- Nenhum profissional registrado.', size: 10 });
+    } else {
+      for (const e of diario.efetivo) {
+        const p = e.periodo === 'INTEGRAL' ? 'Dia Inteiro' : 'Meio Dia';
+        lines.push({ text: `- ${e.nome} (${p})`, size: 10 });
+      }
+    }
+    lines.push({ text: '', size: 7 });
   }
 
-  lines.push({ text: '', size: 8 });
   lines.push({ text: 'RESUMO DAS ATIVIDADES:', size: 11, bold: true });
-  for (const l of wrapLines(diario.resumo || 'Sem resumo informado.', 82)) {
+  for (const l of wrapLines(diario.resumo || 'Sem resumo informado.', 84)) {
     lines.push({ text: l, size: 10 });
   }
 
-  if (diario.ocorrencias) {
-    lines.push({ text: '', size: 8 });
-    lines.push({ text: 'OCORRENCIAS / PENDENCIAS:', size: 11, bold: true });
-    for (const l of wrapLines(diario.ocorrencias, 82)) {
+  if (ocorrenciaFinal) {
+    lines.push({ text: '', size: 7 });
+    lines.push({ text: 'OCORRENCIA / IMPEDIMENTO:', size: 11, bold: true });
+    for (const l of wrapLines(ocorrenciaFinal, 84)) {
       lines.push({ text: l, size: 10 });
     }
   }
 
-  lines.push({ text: '', size: 8 });
+  lines.push({ text: '', size: 7 });
   lines.push({
     text: `Registro Fotografico: ${diario.fotos.length} foto(s) arquivada(s) no sistema.`,
     size: 10,
@@ -108,9 +185,9 @@ export function gerarPdfDiarioBase64(diario: DiarioObraRegistro): {
     if (y < 55) break;
     const font = line.bold ? '/F2' : '/F1';
     streamOps.push(`${font} ${line.size} Tf`);
-    streamOps.push(`1 0 0 1 45 ${y} Tm`);
+    streamOps.push(`1 0 0 1 42 ${y} Tm`);
     streamOps.push(`(${sanitizePdfText(line.text)}) Tj`);
-    y -= line.size + 6;
+    y -= line.size + 5;
   }
   streamOps.push('ET');
   const streamContent = streamOps.join('\n');
@@ -143,9 +220,16 @@ export function gerarPdfDiarioBase64(diario: DiarioObraRegistro): {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+  const safeEmp =
+    subempreitaAtiva && filtroEmpreiteiro
+      ? `-${filtroEmpreiteiro
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')}`
+      : '';
 
   return {
     base64: Buffer.from(pdf, 'utf8').toString('base64'),
-    fileName: `RDO-${diario.tenantSlug}-${safeObra}-${diario.data}.pdf`,
+    fileName: `RDO-${diario.tenantSlug}-${safeObra}${safeEmp}-${diario.data}.pdf`,
   };
 }

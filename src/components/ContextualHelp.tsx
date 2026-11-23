@@ -201,23 +201,28 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       'Selecione o período desejado (Semanal, Quinzenal ou Mensal) e clique em "Excel V6 (5 Abas)" para auditoria contábil ou em "Disparar PDF Quinzenal Agora" para gerar o fechamento em PDF Paisagem.',
   },
   '/diario-obra': {
-    titulo: 'Diário de Obra (2 a 3 Fotos)',
+    titulo: 'Diário de Obra & Relatório Fotográfico',
     resumo:
-      'Registro rápido de evolução diária da obra com efetivo presente, fotos e relatório pronto para o cliente.',
+      'Registro mobile enxuto de evolução diária com Obra em dropdown, separação entre Condomínio/Acesso e Ocorrências, e gestão de subempreita (Empreiteiro × Funcionário + Etapa) para empresas em Modo Empreita.',
     funcoes: [
       {
-        nome: 'Ambiente Interno vs Externo',
+        nome: 'Obra em Dropdown & Acesso Separado de Ocorrências',
         descricao:
-          'Obras internas destacam Condomínio/Acesso; obras externas destacam Clima.',
+          'Selecione a obra ativa no menu suspenso. Em obras internas, Condomínio/Acesso traz apenas condições de portaria e horário; ocorrências/impedimentos (ex.: Falta de Material do Cliente) ficam em bloco separado e só aparecem no relatório quando aplicável.',
       },
       {
-        nome: 'Refinar com IA & PDF Zap',
+        nome: 'Empreiteiro × Funcionário, Apelidos, Documento & Etapa (Modo Empreita)',
         descricao:
-          'Transforma anotações curtas em texto executivo limpo e envia o PDF timbrado direto no WhatsApp.',
+          'Cadastre separadamente Empreiteiros/Encarregados e seus Funcionários (com apelidos para busca e CPF/RG), selecione a Etapa/Serviço compatível com a obra (ex.: Hidráulica, Gesso) e gere relatórios em WhatsApp, PDF ou CSV filtrados por encarregado.',
+      },
+      {
+        nome: 'Fluxo Direto (Modo Diarista) & Refinar IA',
+        descricao:
+          'Empresas em Modo Diarista mantêm o apontamento direto sem etapas de subempreita. Use "Refinar IA" para deixar o texto pronto para o cliente.',
       },
     ],
     exemplo:
-      'Puxe o efetivo do dia, anexe 2 ou 3 fotos, escreva 2 linhas de resumo, clique em "Refinar com IA" e salve o relatório.',
+      'Em uma Empresa Modo Empreita, escolha a Obra Residencial no dropdown, selecione o Empreiteiro e a Etapa "Hidráulica", busque os funcionários pelo nome ou apelido, anexe 2–3 fotos e filtre o relatório por Encarregado para enviar no WhatsApp ou exportar CSV/PDF.',
   },
   '/medicoes': {
     titulo: 'Propostas, Etapas & Medição IA',

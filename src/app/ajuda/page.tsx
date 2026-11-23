@@ -114,6 +114,12 @@ export default function AjudaPage() {
                 <strong>Exemplo:</strong> Suba extratos <strong>.OFX / .CSV</strong> para cruzar saídas PIX em 1 clique. No <strong>/setup</strong>, o Super Usuário ativa/desativa recursos <strong>EM HOMOLOGAÇÃO</strong> (Resumo 19h &quot;OK&quot; e Portal <code>/extrato/[token]</code>) independentemente por empresa.
               </p>
             </div>
+            <div className="p-3.5 rounded-2xl bg-slate-100/90 border border-slate-200 space-y-1 md:col-span-2">
+              <span className="font-black text-slate-950 block">7. Diário de Obra por Empreiteiro &amp; Etapa (/diario-obra — Modo Empreita)</span>
+              <p className="text-[11px] text-slate-700">
+                <strong>Exemplo:</strong> Em uma <em>Empresa Modo Empreita</em>, selecione a <strong>Obra</strong> no dropdown, mantenha <strong>Condomínio / Acesso</strong> separado de <strong>Ocorrência / Impedimento</strong> (ex.: Falta de Material do Cliente só aparece quando marcada), escolha o <strong>Empreiteiro / Encarregado</strong> e a <strong>Etapa</strong> (ex.: Hidráulica, Gesso), adicione os <strong>Funcionários</strong> da equipe buscando por nome oficial ou apelido (com CPF/RG) e filtre o relatório (WhatsApp, PDF ou CSV) por encarregado. Empresas em <em>Modo Diarista</em> preservam o fluxo direto sem subempreita.
+              </p>
+            </div>
           </div>
         </div>
       ),

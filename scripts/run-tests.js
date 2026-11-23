@@ -75,6 +75,7 @@ try {
     path.join(repoRoot, 'tests/bordero_selecao_obra.test.ts'),
     path.join(repoRoot, 'tests/extracao_diarias_domingo_pontos.test.ts'),
     path.join(repoRoot, 'tests/motor_aprendizado_campo.test.ts'),
+    path.join(repoRoot, 'tests/diario_obra_empreiteiros.test.ts'),
     path.join(repoRoot, 'tests/reporters/pdfTestReportGenerator.ts'),
   ];
 
@@ -115,6 +116,7 @@ try {
     path.join(outDir, 'tests/bordero_selecao_obra.test.js'),
     path.join(outDir, 'tests/extracao_diarias_domingo_pontos.test.js'),
     path.join(outDir, 'tests/motor_aprendizado_campo.test.js'),
+    path.join(outDir, 'tests/diario_obra_empreiteiros.test.js'),
   ];
 
   const startedAt = Date.now();

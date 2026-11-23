@@ -15,8 +15,8 @@ O **Diária.AI** opera em arquitetura **Multi-Empresa (`tenant_id`)** com isolam
    - *Exemplo:* Chegaram mensagens às `06:37` e às `08:40`. Cada uma aparece em seu próprio card com o texto original expansível. Se um nome veio errado, clique na lixeira (Soft Delete `DESCARTADO`) e aprove apenas os registros corretos.
 3. **Caixa de Campo & Reembolsos (Separado do Salário):**
    - *Exemplo:* A empresa envia R$ 400,00 via PIX para o encarregado comprar materiais; ele sobe 4 notinhas somando R$ 289,18 (lidas automaticamente pela IA). O sistema calcula **Troco em Mãos: R$ 110,82** sem descontar da diária dele. Na hora de encerrar, você escolhe **Devolver Troco**, **Pagar Reembolso** ou **Levar p/ Fechamento**.
-4. **Diário de Obra (2 a 3 Fotos) & Medição IA:**
-   - *Exemplo:* Suba o PDF da proposta da reforma em `/medicoes` para a IA extrair as etapas. No fim do dia, registre o Diário de Obra com 2–3 fotos e um resumo rápido (refinado pela IA). Depois, clique em **Estimar Avanço com IA** para acompanhar o `% concluído` em linguagem simples.
+4. **Diário de Obra (`/diario-obra`) & Medição IA (`/medicoes`):**
+   - *Exemplo (Empresa Modo Empreita):* Suba o PDF da proposta da reforma em `/medicoes` para a IA extrair as etapas. No `/diario-obra`, selecione a **Obra** no dropdown, mantenha **Condomínio / Acesso** separado de **Ocorrência / Impedimento** (ex.: *Falta de Material do Cliente* só aparece se aplicável), escolha o **Empreiteiro / Encarregado** e a **Etapa / Serviço** (*Hidráulica*, *Gesso*, etc.), adicione os **Funcionários** da equipe buscando por nome oficial ou apelido (com CPF/RG) e gere o relatório filtrado por encarregado em WhatsApp, PDF ou CSV. Empresas em *Modo Diarista* mantêm o fluxo direto sem subempreita.
 5. **Relatórios 4, 5 e 6 com Envio Direto no WhatsApp (`PDF Zap`):**
    - *Exemplo:* No Espelho do Ponto (Relatório 4) ou no Calendário Visual (Relatório 5), escolha o destinatário no seletor do banco e clique em **PDF Zap**. Administradores recebem com valores em `R$`; encarregados e equipe recebem versão operacional **sem valores**.
 
