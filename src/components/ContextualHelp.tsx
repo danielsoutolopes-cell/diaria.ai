@@ -337,7 +337,7 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
   '/ponto': {
     titulo: 'App de Campo Instalável (PWA — Ponto & 3 Fotos)',
     resumo:
-      'Aplicativo mobile isolado (acesso por PIN de 4 dígitos) para encarregados fora do grupo de WhatsApp marcarem o ponto diário da equipe (sem valores em R$) e enviarem o relatório semanal com 3 fotos até quinta-feira.',
+      'Aplicativo mobile isolado (acesso por PIN de 4 dígitos ou Biometria — Digital / Face ID) para encarregados fora do grupo de WhatsApp marcarem o ponto diário da equipe (sem valores em R$) e enviarem o relatório semanal com 3 fotos até quinta-feira.',
     funcoes: [
       {
         nome: 'Marcação de Ponto Diária (Offline-First)',

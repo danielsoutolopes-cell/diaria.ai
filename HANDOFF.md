@@ -348,3 +348,4 @@
   - **Aba 2 — Relatório Semanal (3 Fotos até Quinta-feira)**: Upload de até 3 fotos + relato do andamento gravado em `diarios_obra` (R2 + fallback seguro) e indicador visual de prazo semanal até quinta-feira por obra.
 - **APIs criadas**: `/api/ponto-campo/auth`, `/api/ponto-campo/ponto`, `/api/ponto-campo/relatorio`.
 - **Documentação atualizada**: `src/components/ContextualHelp.tsx` (`/ponto`) e `HANDOFF.md`.
+- **Biometria Nativa WebAuthn (Digital / Face ID)** (`/api/ponto-campo/biometria` + `/ponto`): Após o primeiro login com PIN, o encarregado pode ativar a biometria do próprio celular (Android / iPhone) em 1 toque e passar a entrar com Digital ou Face ID nas próximas sessões (mantendo o PIN como fallback).

@@ -17,6 +17,7 @@ import {
   Clock,
   Trash2,
   RefreshCw,
+  Fingerprint,
 } from 'lucide-react';
 import {
   OPCOES_TIPO_DIARIA_CAMPO,
@@ -51,6 +52,31 @@ interface ItemFilaOfflinePonto {
 }
 
 const OFFLINE_QUEUE_KEY = 'diaria_ponto_campo_outbox_v1';
+const BIOMETRIA_CRED_KEY = 'diaria_ponto_bio_cred_v1';
+
+function base64UrlToUint8Array(base64url: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64url.length % 4)) % 4);
+  const base64 = (base64url + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = window.atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) {
+    arr[i] = raw.charCodeAt(i);
+  }
+  return arr;
+}
+
+function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window
+    .btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
 
 type AbaPonto = 'PONTO' | 'RELATORIO';
 
@@ -69,10 +95,13 @@ export default function PontoCampoPage() {
     StatusRelatorioSemanalObra[]
   >([]);
 
-  // Login PIN
+  // Login PIN & Biometria
   const [selectedEncId, setSelectedEncId] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [entrando, setEntrando] = useState(false);
+  const [biometriaSuportada, setBiometriaSuportada] = useState(false);
+  const [biometriaCredId, setBiometriaCredId] = useState<string | null>(null);
+  const [processandoBiometria, setProcessandoBiometria] = useState(false);
 
   // Navegação e feedback
   const [aba, setAba] = useState<AbaPonto>('PONTO');
@@ -226,6 +255,24 @@ export default function PontoCampoPage() {
     carregarFilaOffline();
     void carregarSessao();
 
+    // Detecta suporte a biometria nativa (Digital / Face ID / Touch ID)
+    try {
+      const savedCred = localStorage.getItem(BIOMETRIA_CRED_KEY);
+      if (savedCred) setBiometriaCredId(savedCred);
+      if (
+        typeof window !== 'undefined' &&
+        'PublicKeyCredential' in window &&
+        typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable ===
+          'function'
+      ) {
+        void PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(
+          (available) => setBiometriaSuportada(available)
+        );
+      }
+    } catch {
+      // ignora se navegador bloquear storage/WebAuthn
+    }
+
     const handleOnline = () => {
       setOnline(true);
       void sincronizarFilaOffline();
@@ -286,6 +333,162 @@ export default function PontoCampoPage() {
     setAutenticado(false);
     setEncarregado(null);
     setSelecionados({});
+  }
+
+  async function handleAtivarBiometria() {
+    if (!encarregado || !biometriaSuportada) return;
+    setProcessandoBiometria(true);
+    try {
+      const resChallenge = await fetch('/api/ponto-campo/biometria', {
+        cache: 'no-store',
+      });
+      const dCh = (await resChallenge.json()) as {
+        challenge?: string;
+        error?: string;
+      };
+      if (!resChallenge.ok || !dCh.challenge) {
+        mostrarFeedback(
+          'erro',
+          dCh.error || 'Não foi possível iniciar o cadastro biométrico.'
+        );
+        return;
+      }
+
+      const challengeBytes = base64UrlToUint8Array(dCh.challenge);
+      const userIdBytes = new TextEncoder().encode(encarregado.id);
+
+      const cred = (await navigator.credentials.create({
+        publicKey: {
+          challenge: challengeBytes.buffer as ArrayBuffer,
+          rp: { name: 'Ponto de Campo • Jhoston' },
+          user: {
+            id: userIdBytes.buffer as ArrayBuffer,
+            name: encarregado.nome,
+            displayName: encarregado.nome,
+          },
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7 },
+            { type: 'public-key', alg: -257 },
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'required',
+          },
+          timeout: 60000,
+        },
+      })) as PublicKeyCredential | null;
+
+      if (!cred) {
+        mostrarFeedback('erro', 'Cadastro biométrico cancelado.');
+        return;
+      }
+
+      const credentialId = arrayBufferToBase64Url(cred.rawId);
+      const resSave = await fetch('/api/ponto-campo/biometria', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credentialId,
+          dispositivo: navigator.userAgent.slice(0, 60),
+        }),
+      });
+      const dSave = (await resSave.json()) as {
+        success?: boolean;
+        message?: string;
+        error?: string;
+      };
+      if (!resSave.ok || !dSave.success) {
+        mostrarFeedback('erro', dSave.error || 'Falha ao ativar biometria.');
+        return;
+      }
+
+      localStorage.setItem(BIOMETRIA_CRED_KEY, credentialId);
+      setBiometriaCredId(credentialId);
+      mostrarFeedback(
+        'sucesso',
+        dSave.message || 'Biometria ativada neste celular!'
+      );
+    } catch {
+      mostrarFeedback(
+        'erro',
+        'Não foi possível ativar a biometria. Verifique se o celular tem Digital ou Face ID configurado.'
+      );
+    } finally {
+      setProcessandoBiometria(false);
+    }
+  }
+
+  async function handleLoginBiometria() {
+    if (!biometriaCredId) return;
+    setProcessandoBiometria(true);
+    try {
+      const resChallenge = await fetch('/api/ponto-campo/biometria', {
+        cache: 'no-store',
+      });
+      const dCh = (await resChallenge.json()) as {
+        challenge?: string;
+        error?: string;
+      };
+      if (!resChallenge.ok || !dCh.challenge) {
+        mostrarFeedback('erro', dCh.error || 'Falha ao iniciar biometria.');
+        return;
+      }
+
+      const challengeBytes = base64UrlToUint8Array(dCh.challenge);
+      const credIdBytes = base64UrlToUint8Array(biometriaCredId);
+
+      const assertion = (await navigator.credentials.get({
+        publicKey: {
+          challenge: challengeBytes.buffer as ArrayBuffer,
+          allowCredentials: [
+            {
+              id: credIdBytes.buffer as ArrayBuffer,
+              type: 'public-key',
+              transports: ['internal'],
+            },
+          ],
+          userVerification: 'required',
+          timeout: 60000,
+        },
+      })) as PublicKeyCredential | null;
+
+      if (!assertion) {
+        mostrarFeedback('erro', 'Leitura biométrica cancelada.');
+        return;
+      }
+
+      const response = assertion.response as AuthenticatorAssertionResponse;
+      const clientDataJSON = arrayBufferToBase64Url(response.clientDataJSON);
+
+      const resAuth = await fetch('/api/ponto-campo/biometria', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credentialId: arrayBufferToBase64Url(assertion.rawId),
+          clientDataJSON,
+        }),
+      });
+      const dAuth = (await resAuth.json()) as {
+        success?: boolean;
+        error?: string;
+      };
+      if (!resAuth.ok || !dAuth.success) {
+        mostrarFeedback(
+          'erro',
+          dAuth.error || 'Biometria não reconhecida. Use seu PIN.'
+        );
+        return;
+      }
+
+      await carregarSessao();
+    } catch {
+      mostrarFeedback(
+        'erro',
+        'Biometria cancelada ou indisponível. Você pode entrar usando seu PIN.'
+      );
+    } finally {
+      setProcessandoBiometria(false);
+    }
   }
 
   function toggleColaborador(id: string) {
@@ -551,6 +754,22 @@ export default function PontoCampoPage() {
           >
             {entrando ? 'Entrando...' : 'Acessar Ponto de Campo'}
           </button>
+
+          {biometriaSuportada && biometriaCredId && (
+            <button
+              type="button"
+              disabled={processandoBiometria}
+              onClick={() => void handleLoginBiometria()}
+              className="w-full py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            >
+              <Fingerprint className="w-4 h-4 text-emerald-400" />
+              <span>
+                {processandoBiometria
+                  ? 'Validando biometria...'
+                  : 'Entrar com Biometria (Digital / Face ID)'}
+              </span>
+            </button>
+          )}
         </form>
       </div>
     );
@@ -586,6 +805,26 @@ export default function PontoCampoPage() {
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
+        {/* Banner discreto para ativar Biometria (Digital / Face ID) */}
+        {biometriaSuportada && !biometriaCredId && (
+          <div className="p-3 rounded-2xl bg-slate-900 text-white flex items-center justify-between gap-2 shadow-sm">
+            <div className="flex items-center gap-2 text-xs">
+              <Fingerprint className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="font-semibold">
+                Ative a Digital / Face ID para entrar sem digitar PIN
+              </span>
+            </div>
+            <button
+              type="button"
+              disabled={processandoBiometria}
+              onClick={() => void handleAtivarBiometria()}
+              className="shrink-0 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[11px] font-black disabled:opacity-50"
+            >
+              {processandoBiometria ? 'Ativando...' : 'Ativar'}
+            </button>
+          </div>
+        )}
+
         {/* Status Offline / Fila */}
         {(!online || filaOffline.length > 0) && (
           <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center justify-between gap-2">
