@@ -311,10 +311,15 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       'Antes de fechar a quinzena, abra a aba "Saúde & IA" em Relatórios: o último laudo salvo aparece na hora (com data/hora, lançamentos, vales e lotes auditados). Se desejar nova checagem imediata, clique em "Executar Varredura" ou consulte o Histórico Auditável.',
   },
   '/config-geral': {
-    titulo: 'Configuração Geral (Hub Multi-Empresa)',
+    titulo: 'Configuração Geral (Hub Multi-Empresa & Homologação)',
     resumo:
-      'Painel exclusivo da administração para dados compartilhados e roteamento de grupos do WhatsApp.',
+      'Ponto único da administração para chaves de liberação (Feature Flags) em homologação/implantação, dados compartilhados e roteamento de grupos do WhatsApp.',
     funcoes: [
+      {
+        nome: 'Chaves de Liberação (Feature Flags por Empresa)',
+        descricao:
+          'Ligue ou desligue recursos em homologação ou implantação independentemente por empresa. Quando ativa, exibe o selo EM HOMOLOGAÇÃO; quando desligada, oculta e bloqueia 100% da UI, APIs e agendamentos.',
+      },
       {
         nome: '1 Conta WhatsApp → N Obras/Empresas',
         descricao:
@@ -322,7 +327,7 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       },
     ],
     exemplo:
-      'Vincule o grupo de cada obra uma única vez: toda mensagem enviada ali já cai automaticamente na empresa e obra corretas.',
+      'Ative "FF_EXTRATO_COLABORADOR_LINK" apenas para uma empresa piloto em homologação: o botão Link Extrato (EM HOMOLOGAÇÃO) aparece somente nela, enquanto a outra empresa permanece 100% intacta.',
   },
   '/setup': {
     titulo: 'Cadastro de Obras, Empreiteiros & Equipes (Setup)',
@@ -338,11 +343,6 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
         nome: 'Cadastro Expresso & Logística de Entrega',
         descricao:
           'No Modo Diarista, apenas Nome e Chave PIX são obrigatórios. Nas empresas com módulo de compras, Alias do Cliente e Endereço (CEP) saem automaticamente nos pedidos.',
-      },
-      {
-        nome: 'Governança de Homologação (Feature Flags)',
-        descricao:
-          'No rodapé da tela, a administração controla independentemente por empresa os recursos em homologação.',
       },
     ],
     exemplo:

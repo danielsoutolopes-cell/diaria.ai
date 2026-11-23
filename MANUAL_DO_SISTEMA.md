@@ -333,7 +333,7 @@ Na tela **Fechamento & Pagamentos** (`/bordero`):
 
 ---
 
-## 🏦 16. Conciliação Bancária Automática (`/conciliacao`) & Governança de Homologação (Feature Flags no `/setup`)
+## 🏦 16. Conciliação Bancária Automática (`/conciliacao`) & Central Única de Homologação (Feature Flags no `/config-geral`)
 
 ### 16.1 Conciliação Bancária OFX / CSV + Matching Inteligente PIX (`/conciliacao`)
 - **Upload Multibanco**: Suporta arquivos `.OFX` e `.CSV` exportados de bancos digitais e tradicionais (detecção automática de delimitador, data e saídas PIX).
@@ -341,9 +341,9 @@ Na tela **Fechamento & Pagamentos** (`/bordero`):
 - **Aprovação Human-in-the-Loop em 1 Clique**: A administração revisa e aprova a conciliação sem risco de baixas automáticas indevidas.
 - **Exemplo Prático**: Baixe o extrato `.OFX` da semana no internet banking, suba em `/conciliacao` e aprove em 1 clique os vales PIX já pareados; saídas sem lançamento aparecem destacadas em vermelho para conferência.
 
-### 16.2 Governança de Homologação por Empresa (`/setup` — Super Usuário)
-No rodapé da tela `/setup`, o Super Usuário controla independentemente por empresa as **Feature Flags de Homologação** (sem necessidade de novo deploy):
-1. **`FF_RESUMO_DIARIO_19H` (Resumo Diário Automático às 19h — `EM HOMOLOGAÇÃO`)**: Envia às 19:00 (Horário de Brasília, **24/7 — todos os dias da semana, inclusive domingos e feriados** sempre que houver trabalho registrado) o espelho de presenças do dia no grupo da obra (sem valores em R$) e captura automaticamente a resposta **"OK"** do encarregado para homologar o dia.
+### 16.2 Central Única de Homologação & Implantação (`/config-geral` — Administração)
+A rota `/config-geral` (Hub Multi-Empresa) é o **ponto único** para ativar ou desativar independentemente por empresa todas as **Feature Flags de Homologação e Implantação** (sem controles duplicados em telas operacionais como `/setup` e sem necessidade de novo deploy):
+1. **`FF_RESUMO_DIARIO_19H` (Resumo Diário Automático às 19h — `EM HOMOLOGAÇÃO`)**: Envia às 19:00 (Horário de Brasília, **24/7 — todos os dias da semana, inclusive domingos e feriados** sempre que houver trabalho registrado) o espelho de presenças do dia no grupo da obra (sem valores em R$) e captura automaticamente a resposta **"OK"** do encarregado para homologar o dia. Quando ativa, exibe o selo **`EM HOMOLOGAÇÃO`** no `/whatsapp` e no resumo enviado.
 2. **`FF_EXTRATO_COLABORADOR_LINK` (Portal / Extrato Simplificado do Colaborador — `EM HOMOLOGAÇÃO`)**: Libera no Borderô o botão **Link Extrato (`EM HOMOLOGAÇÃO`)**, gerando um link temporário assinado (`/extrato/[token]`, sem login) para o colaborador consultar suas diárias, dias de chuva (`R$ 120,00`), rateios (`½+½`) e vales no celular.
-- **Isolamento Seguro**: Quando uma flag está desligada para uma empresa, os botões, rotas e agendamentos ficam 100% ocultos e bloqueados para aquela empresa.
+- **Isolamento Seguro**: Quando uma flag está desligada para uma empresa, os botões, selos, rotas e agendamentos ficam 100% ocultos e bloqueados para aquela empresa.
 

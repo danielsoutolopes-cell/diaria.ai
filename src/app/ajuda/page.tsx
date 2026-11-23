@@ -109,9 +109,9 @@ export default function AjudaPage() {
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200/80 space-y-1">
-              <span className="font-black text-teal-950 block">6. Conciliação Bancária (/conciliacao) &amp; Feature Flags (/setup)</span>
+              <span className="font-black text-teal-950 block">6. Conciliação Bancária (/conciliacao) &amp; Feature Flags (/config-geral)</span>
               <p className="text-[11px] text-teal-900">
-                <strong>Exemplo:</strong> Suba extratos <strong>.OFX / .CSV</strong> para cruzar saídas PIX em 1 clique. No <strong>/setup</strong>, o Super Usuário ativa/desativa recursos <strong>EM HOMOLOGAÇÃO</strong> (Resumo 19h &quot;OK&quot; e Portal <code>/extrato/[token]</code>) independentemente por empresa.
+                <strong>Exemplo:</strong> Suba extratos <strong>.OFX / .CSV</strong> para cruzar saídas PIX em 1 clique. No Hub <strong>/config-geral</strong> (ponto único de homologação), a administração ativa ou desativa recursos <strong>EM HOMOLOGAÇÃO</strong> (Resumo 19h &quot;OK&quot; e Portal <code>/extrato/[token]</code>) independentemente por empresa.
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-slate-100/90 border border-slate-200 space-y-1 md:col-span-2">

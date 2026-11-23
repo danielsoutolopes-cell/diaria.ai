@@ -17,6 +17,7 @@ import {
   KeyRound,
   Copy,
   Check,
+  FlaskConical,
 } from 'lucide-react';
 
 interface GroupItem {
@@ -53,6 +54,7 @@ export default function WhatsAppConfigPage() {
   const [aparelhoDestino, setAparelhoDestino] = useState<'ANDROID' | 'IOS'>('ANDROID');
   const [celularInput, setCelularInput] = useState('11988139833');
   const [codigoCopiado, setCodigoCopiado] = useState(false);
+  const [ffResumo19hAtivo, setFfResumo19hAtivo] = useState(false);
 
   // Modal de vínculo rápido: Grupo -> Empresa + Obra + Ambiente
   const [modalVinculo, setModalVinculo] = useState<{
@@ -64,6 +66,15 @@ export default function WhatsAppConfigPage() {
   } | null>(null);
   const [salvandoVinculo, setSalvandoVinculo] = useState(false);
   const [avisoVinculo, setAvisoVinculo] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/feature-flags', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d: { flags?: { FF_RESUMO_DIARIO_19H?: boolean } }) => {
+        setFfResumo19hAtivo(d?.flags?.FF_RESUMO_DIARIO_19H === true);
+      })
+      .catch(() => setFfResumo19hAtivo(false));
+  }, []);
 
   async function carregarStatus(silencioso = false) {
     if (!silencioso) setLoading(true);
@@ -315,9 +326,20 @@ export default function WhatsAppConfigPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full w-fit mb-2 border border-emerald-200/80 shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Motor Oficial • Baileys Open-Source</span>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full w-fit border border-emerald-200/80 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Motor Oficial • Baileys Open-Source</span>
+            </div>
+            {ffResumo19hAtivo && (
+              <div className="flex items-center gap-1.5 text-[11px] font-black text-amber-900 bg-amber-50 px-3 py-1 rounded-full border border-amber-300 shadow-sm">
+                <FlaskConical className="w-3.5 h-3.5 text-amber-600" />
+                <span>Resumo Diário 19h (&quot;OK&quot;)</span>
+                <span className="text-[9px] uppercase px-1.5 py-0.5 rounded-full bg-amber-600 text-white">
+                  EM HOMOLOGAÇÃO
+                </span>
+              </div>
+            )}
           </div>
           <h1 className="text-3xl font-black text-slate-950 tracking-tight">
             Conexão WhatsApp & Grupos de Obra

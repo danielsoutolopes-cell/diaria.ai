@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getActiveTenantFromRequest, TENANTS, type TenantSlug } from '@/lib/tenant';
+import {
+  getActiveTenantFromRequest,
+  isDanielOuPatricia,
+  TENANTS,
+  type TenantSlug,
+} from '@/lib/tenant';
 import {
   FEATURE_FLAGS_CATALOGO,
+  lerAuditoriaFeatureFlagsPorEmpresa,
   lerFeatureFlagsTenant,
   lerTodasFeatureFlagsPorEmpresa,
   salvarFeatureFlagsTenant,
@@ -16,6 +22,19 @@ interface FeatureFlagsPostBody {
   atualizadoPor?: string;
 }
 
+function verificarAdminHub(req: NextRequest): {
+  permitido: boolean;
+  usuario: string;
+} {
+  const rawUser = req.cookies.get('diaria_user')?.value
+    ? decodeURIComponent(req.cookies.get('diaria_user')?.value || '')
+    : 'Patrícia Grubel';
+  return {
+    permitido: isDanielOuPatricia(rawUser),
+    usuario: rawUser,
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const activeTenant = getActiveTenantFromRequest(req);
@@ -25,7 +44,22 @@ export async function GET(req: NextRequest) {
     const flagsAtivas = await lerFeatureFlagsTenant(activeTenant.id);
 
     if (incluirTodas) {
-      const porEmpresa = await lerTodasFeatureFlagsPorEmpresa();
+      const auth = verificarAdminHub(req);
+      if (!auth.permitido) {
+        return NextResponse.json(
+          {
+            error:
+              'Consulta multi-empresa de Feature Flags é exclusiva de Patrícia Grubel e Daniel Lopes (/config-geral).',
+          },
+          { status: 403 }
+        );
+      }
+
+      const [porEmpresa, auditoriaPorEmpresa] = await Promise.all([
+        lerTodasFeatureFlagsPorEmpresa(),
+        lerAuditoriaFeatureFlagsPorEmpresa(),
+      ]);
+
       return NextResponse.json({
         success: true,
         tenant: {
@@ -35,6 +69,7 @@ export async function GET(req: NextRequest) {
         },
         flags: flagsAtivas,
         porEmpresa,
+        auditoriaPorEmpresa,
         catalogo: FEATURE_FLAGS_CATALOGO,
       });
     }
@@ -58,6 +93,17 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = verificarAdminHub(req);
+    if (!auth.permitido) {
+      return NextResponse.json(
+        {
+          error:
+            'Alteração de Feature Flags de homologação é exclusiva de Patrícia Grubel e Daniel Lopes no /config-geral.',
+        },
+        { status: 403 }
+      );
+    }
+
     const activeTenant = getActiveTenantFromRequest(req);
     const body = (await req.json()) as FeatureFlagsPostBody;
 
@@ -79,10 +125,13 @@ export async function POST(req: NextRequest) {
     const atualizadas = await salvarFeatureFlagsTenant(
       alvoTenant.id,
       body.flags,
-      body.atualizadoPor || 'Super Usuário (/setup)'
+      body.atualizadoPor || `${auth.usuario} (/config-geral)`
     );
 
-    const porEmpresa = await lerTodasFeatureFlagsPorEmpresa();
+    const [porEmpresa, auditoriaPorEmpresa] = await Promise.all([
+      lerTodasFeatureFlagsPorEmpresa(),
+      lerAuditoriaFeatureFlagsPorEmpresa(),
+    ]);
 
     return NextResponse.json({
       success: true,
@@ -93,7 +142,8 @@ export async function POST(req: NextRequest) {
       },
       flags: atualizadas,
       porEmpresa,
-      message: `Feature Flags de homologação atualizadas para ${alvoTenant.nome}.`,
+      auditoriaPorEmpresa,
+      message: `Feature Flags de homologação atualizadas para ${alvoTenant.nome} via /config-geral.`,
     });
   } catch (err: unknown) {
     const msg =

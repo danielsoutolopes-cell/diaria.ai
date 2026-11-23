@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'Recurso em homologação (FF_EXTRATO_COLABORADOR_LINK) está desativado para esta empresa no /setup.',
+            'Recurso em homologação (FF_EXTRATO_COLABORADOR_LINK) está desativado para esta empresa no /config-geral.',
         },
         { status: 403 }
       );

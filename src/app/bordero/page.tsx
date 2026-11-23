@@ -1405,7 +1405,7 @@ export default function BorderoPage() {
                             : 'Link Extrato'}
                         </span>
                         <span className="text-[9px] uppercase px-1.5 py-0.5 rounded-full bg-amber-600 text-white">
-                          HOMOLOGAÇÃO
+                          EM HOMOLOGAÇÃO
                         </span>
                       </button>
                     )}

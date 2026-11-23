@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getActiveTenantFromRequest } from '@/lib/tenant';
+import {
+  getActiveTenantFromRequest,
+  isDanielOuPatricia,
+  TENANTS,
+  type TenantConfig,
+  type TenantSlug,
+} from '@/lib/tenant';
 import {
   normalizarNomeObraCanonica,
   normalizarNomeTrabalhadorCanonico,
@@ -34,15 +40,55 @@ interface GrupoRoteamentoItem {
   ativo?: boolean;
 }
 
+interface Resumo19hPostBody {
+  force?: boolean;
+  tenantSlug?: TenantSlug;
+}
+
 function extrairObra(rel: ObraRel | ObraRel[] | null | undefined): string {
   if (!rel) return 'GERAL';
   const item = Array.isArray(rel) ? rel[0] : rel;
   return normalizarNomeObraCanonica(item?.nome, item?.tipo_obra);
 }
 
+function resolverTenantResumo19h(
+  req: NextRequest,
+  bodyTenantSlug?: TenantSlug
+): TenantConfig {
+  const headerSlug = (
+    req.headers.get('x-tenant-slug') ||
+    req.headers.get('x-diaria-tenant') ||
+    ''
+  )
+    .trim()
+    .toLowerCase();
+  const slugExplicito =
+    bodyTenantSlug === 'intermack' || headerSlug === 'intermack'
+      ? 'intermack'
+      : bodyTenantSlug === 'jhoston' || headerSlug === 'jhoston'
+        ? 'jhoston'
+        : null;
+
+  if (slugExplicito === 'intermack') {
+    const rawUser = req.cookies.get('diaria_user')?.value
+      ? decodeURIComponent(req.cookies.get('diaria_user')?.value || '')
+      : '';
+    const host = (req.headers.get('host') || '').toLowerCase();
+    const isCronLocal =
+      !rawUser && (host.startsWith('127.0.0.1') || host.startsWith('localhost'));
+    if (isCronLocal || isDanielOuPatricia(rawUser || 'Patrícia Grubel')) {
+      return TENANTS.intermack;
+    }
+  } else if (slugExplicito === 'jhoston') {
+    return TENANTS.jhoston;
+  }
+
+  return getActiveTenantFromRequest(req);
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const activeTenant = getActiveTenantFromRequest(req);
+    const activeTenant = resolverTenantResumo19h(req);
     const flags = await lerFeatureFlagsTenant(activeTenant.id);
 
     if (!flags.FF_RESUMO_DIARIO_19H) {
@@ -82,7 +128,19 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const activeTenant = getActiveTenantFromRequest(req);
+    let force = false;
+    let bodyTenantSlug: TenantSlug | undefined;
+    try {
+      const body = (await req.json()) as Resumo19hPostBody;
+      force = body.force === true;
+      if (body.tenantSlug === 'jhoston' || body.tenantSlug === 'intermack') {
+        bodyTenantSlug = body.tenantSlug;
+      }
+    } catch {
+      force = false;
+    }
+
+    const activeTenant = resolverTenantResumo19h(req, bodyTenantSlug);
     const tenantId = activeTenant.id;
 
     // Guarda rígida de Feature Flag por tenant_id
@@ -93,18 +151,10 @@ export async function POST(req: NextRequest) {
           success: false,
           skipped: true,
           reason:
-            'Feature Flag FF_RESUMO_DIARIO_19H desativada para esta empresa.',
+            `Feature Flag FF_RESUMO_DIARIO_19H desativada para ${activeTenant.nome} no /config-geral.`,
         },
         { status: 403 }
       );
-    }
-
-    let force = false;
-    try {
-      const body = (await req.json()) as { force?: boolean };
-      force = body.force === true;
-    } catch {
-      force = false;
     }
 
     if (!force && !isJanelaResumoDiario19h()) {

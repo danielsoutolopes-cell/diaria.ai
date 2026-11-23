@@ -13,11 +13,20 @@ export const FEATURE_FLAGS_DEFAULT: FeatureFlagsHomologacao = {
   FF_EXTRATO_COLABORADOR_LINK: false,
 };
 
+export type FeatureFlagFase = 'HOMOLOGAÇÃO' | 'IMPLANTAÇÃO';
+
 export interface FeatureFlagMetadata {
   key: FeatureFlagKey;
   titulo: string;
   descricao: string;
   statusLabel: 'EM HOMOLOGAÇÃO';
+  fase: FeatureFlagFase;
+  fluxosAfetados: readonly string[];
+}
+
+export interface FeatureFlagsAuditoriaTenant {
+  atualizadoPor: string | null;
+  atualizadoEm: string | null;
 }
 
 export const FEATURE_FLAGS_CATALOGO: readonly FeatureFlagMetadata[] = [
@@ -25,15 +34,27 @@ export const FEATURE_FLAGS_CATALOGO: readonly FeatureFlagMetadata[] = [
     key: 'FF_RESUMO_DIARIO_19H',
     titulo: 'Resumo Diário Automático às 19h (Confirmação "OK")',
     descricao:
-      'Envia às 19:00 (America/Sao_Paulo) o espelho diário de presenças no grupo da obra para o encarregado homologar respondendo "OK" no WhatsApp.',
+      'Envia às 19:00 (America/Sao_Paulo, 24/7) o espelho diário de presenças no grupo da obra (sem valores em R$) para o encarregado homologar respondendo "OK" no WhatsApp.',
     statusLabel: 'EM HOMOLOGAÇÃO',
+    fase: 'HOMOLOGAÇÃO',
+    fluxosAfetados: [
+      'Agendador 19h (/api/cron/resumo-diario-19h)',
+      'Webhook WhatsApp ("OK")',
+      'Tela /whatsapp',
+    ],
   },
   {
     key: 'FF_EXTRATO_COLABORADOR_LINK',
     titulo: 'Portal / Extrato Simplificado do Colaborador (Link Seguro)',
     descricao:
-      'Libera a geração de link temporário assinado (/extrato/[token], sem login) enviado junto ao comprovante PIX para o prestador consultar diárias, chuvas, rateios e vales.',
+      'Libera no Borderô a geração de link temporário assinado (/extrato/[token], sem login) enviado junto ao comprovante PIX para o prestador consultar diárias, chuvas, rateios e vales.',
     statusLabel: 'EM HOMOLOGAÇÃO',
+    fase: 'HOMOLOGAÇÃO',
+    fluxosAfetados: [
+      'Borderô (/bordero)',
+      'Portal Público (/extrato/[token])',
+      'API /api/extrato-colaborador',
+    ],
   },
 ];
 
@@ -92,12 +113,45 @@ export async function lerFeatureFlagsTenant(
 }
 
 /**
+ * Lê metadados de auditoria (quem/quando alterou) das Feature Flags de um tenant_id.
+ */
+export async function lerAuditoriaFeatureFlagsTenant(
+  tenantId: string
+): Promise<FeatureFlagsAuditoriaTenant> {
+  try {
+    const { data: paramRow } = await supabaseAdmin
+      .from('parametros_sistema')
+      .select('configuracoes')
+      .eq('tenant_id', tenantId)
+      .limit(1)
+      .maybeSingle();
+
+    const configs = (paramRow?.configuracoes || null) as Record<
+      string,
+      unknown
+    > | null;
+    return {
+      atualizadoPor:
+        typeof configs?.feature_flags_atualizado_por === 'string'
+          ? configs.feature_flags_atualizado_por
+          : null,
+      atualizadoEm:
+        typeof configs?.feature_flags_atualizado_em === 'string'
+          ? configs.feature_flags_atualizado_em
+          : null,
+    };
+  } catch {
+    return { atualizadoPor: null, atualizadoEm: null };
+  }
+}
+
+/**
  * Salva as Feature Flags de homologação isoladas por tenant_id.
  */
 export async function salvarFeatureFlagsTenant(
   tenantId: string,
   partial: Partial<FeatureFlagsHomologacao>,
-  atualizadoPor = 'Super Usuário'
+  atualizadoPor = 'Patrícia & Daniel (/config-geral)'
 ): Promise<FeatureFlagsHomologacao> {
   const atuais = await lerFeatureFlagsTenant(tenantId);
   const proximas: FeatureFlagsHomologacao = {
@@ -156,6 +210,16 @@ export async function lerTodasFeatureFlagsPorEmpresa(): Promise<
   const [jhoston, intermack] = await Promise.all([
     lerFeatureFlagsTenant(TENANTS.jhoston.id),
     lerFeatureFlagsTenant(TENANTS.intermack.id),
+  ]);
+  return { jhoston, intermack };
+}
+
+export async function lerAuditoriaFeatureFlagsPorEmpresa(): Promise<
+  Record<TenantSlug, FeatureFlagsAuditoriaTenant>
+> {
+  const [jhoston, intermack] = await Promise.all([
+    lerAuditoriaFeatureFlagsTenant(TENANTS.jhoston.id),
+    lerAuditoriaFeatureFlagsTenant(TENANTS.intermack.id),
   ]);
   return { jhoston, intermack };
 }

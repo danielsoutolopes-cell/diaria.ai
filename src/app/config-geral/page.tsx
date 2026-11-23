@@ -15,6 +15,7 @@ import {
   Home,
 } from 'lucide-react';
 import { isDanielOuPatricia } from '@/lib/tenant';
+import FeatureFlagsHomologacaoPanel from '@/components/FeatureFlagsHomologacaoPanel';
 
 interface GrupoWhatsAppMapeado {
   id: string;
@@ -166,7 +167,7 @@ export default function ConfigGeralPage() {
             Configuração Geral (Jhoston & Intermack)
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Gerencie os dados compartilhados e vincule cada grupo do WhatsApp à empresa, obra e ambiente (Interno vs Externo).
+            Ponto único para chaves de liberação (Feature Flags) em homologação/implantação, dados compartilhados e roteamento de grupos do WhatsApp.
           </p>
         </div>
 
@@ -189,6 +190,9 @@ export default function ConfigGeralPage() {
           )}
         </button>
       </div>
+
+      {/* Central Única de Homologação & Implantação (Feature Flags por Empresa) */}
+      <FeatureFlagsHomologacaoPanel usuarioAtual={usuarioAtual} />
 
       {/* Dados Básicos Compartilhados */}
       <section className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-5">

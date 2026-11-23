@@ -326,4 +326,88 @@ describe('10. Correção Extrato Analítico 5 Abas (Custo por Obra + Caixinha) &
     );
     assert.equal(expirado.valido, false);
   });
+
+  it('V23 Centralização Única em /config-geral: FeatureFlagsHomologacaoPanel existe apenas em /config-geral, /setup sem duplicidade, RBAC ativo e badges EM HOMOLOGAÇÃO', () => {
+    const configGeralPage = fs.readFileSync(
+      path.join(REPO_ROOT, 'src/app/config-geral/page.tsx'),
+      'utf8'
+    );
+    const setupPage = fs.readFileSync(
+      path.join(REPO_ROOT, 'src/app/setup/page.tsx'),
+      'utf8'
+    );
+    const featureFlagsApi = fs.readFileSync(
+      path.join(REPO_ROOT, 'src/app/api/feature-flags/route.ts'),
+      'utf8'
+    );
+    const cron19hApi = fs.readFileSync(
+      path.join(REPO_ROOT, 'src/app/api/cron/resumo-diario-19h/route.ts'),
+      'utf8'
+    );
+    const extratoApi = fs.readFileSync(
+      path.join(REPO_ROOT, 'src/app/api/extrato-colaborador/route.ts'),
+      'utf8'
+    );
+    const borderoPage = fs.readFileSync(
+      path.join(REPO_ROOT, 'src/app/bordero/page.tsx'),
+      'utf8'
+    );
+    const whatsappPage = fs.readFileSync(
+      path.join(REPO_ROOT, 'src/app/whatsapp/page.tsx'),
+      'utf8'
+    );
+    const extratoPage = fs.readFileSync(
+      path.join(REPO_ROOT, 'src/app/extrato/[token]/page.tsx'),
+      'utf8'
+    );
+
+    // 1. /config-geral é o ponto único (e /setup não possui duplicidade)
+    assert.ok(
+      configGeralPage.includes('FeatureFlagsHomologacaoPanel'),
+      '/config-geral deve renderizar FeatureFlagsHomologacaoPanel'
+    );
+    assert.ok(
+      !setupPage.includes('FeatureFlagsHomologacaoPanel'),
+      '/setup não deve duplicar o controle de FeatureFlagsHomologacaoPanel'
+    );
+
+    // 2. Segurança RBAC (Exclusivo Patrícia & Daniel) em /api/feature-flags
+    assert.ok(
+      featureFlagsApi.includes('isDanielOuPatricia') &&
+        featureFlagsApi.includes('status: 403') &&
+        featureFlagsApi.includes('/config-geral'),
+      '/api/feature-flags deve exigir isDanielOuPatricia para consulta all=1 e alterações POST'
+    );
+
+    // 3. Bloqueio rígido por tenant_id nas rotas/agendamentos e referência ao /config-geral
+    assert.ok(
+      cron19hApi.includes('FF_RESUMO_DIARIO_19H') &&
+        cron19hApi.includes('x-tenant-slug') &&
+        cron19hApi.includes('/config-geral') &&
+        extratoApi.includes('FF_EXTRATO_COLABORADOR_LINK') &&
+        extratoApi.includes('/config-geral'),
+      'APIs e agendamentos devem respeitar tenant_id, bloquear com 403 quando OFF e referenciar /config-geral'
+    );
+
+    // 4. Badge visual EM HOMOLOGAÇÃO presente nos fluxos quando ativos
+    assert.ok(
+      borderoPage.includes('EM HOMOLOGAÇÃO') &&
+        whatsappPage.includes('EM HOMOLOGAÇÃO') &&
+        extratoPage.includes('EM HOMOLOGAÇÃO'),
+      'Telas de fluxos controlados por flag devem exibir o badge EM HOMOLOGAÇÃO quando ativas'
+    );
+
+    // 5. Catálogo tipado com fase e fluxosAfetados
+    for (const item of FEATURE_FLAGS_CATALOGO) {
+      assert.equal(item.statusLabel, 'EM HOMOLOGAÇÃO');
+      assert.ok(
+        item.fase === 'HOMOLOGAÇÃO' || item.fase === 'IMPLANTAÇÃO',
+        `Flag ${item.key} deve ter fase válida`
+      );
+      assert.ok(
+        item.fluxosAfetados.length > 0,
+        `Flag ${item.key} deve listar fluxos afetados`
+      );
+    }
+  });
 });

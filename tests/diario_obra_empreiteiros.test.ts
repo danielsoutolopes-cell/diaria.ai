@@ -293,7 +293,7 @@ describe('Diário de Obra V20 — Subempreita exclusiva Intermack vs Fluxo Diret
     );
   });
 
-  it('6. /setup condicional: Intermack exibe 3 abas de subempreita + FeatureFlags intacta e Jhoston preserva cadastro diarista', () => {
+  it('6. /setup condicional: Intermack exibe 3 abas de subempreita sem duplicar FeatureFlags (centralizadas em /config-geral) e Jhoston preserva cadastro diarista', () => {
     const repoRoot = process.cwd();
     const setupPage = fs.readFileSync(
       path.join(repoRoot, 'src/app/setup/page.tsx'),
@@ -316,13 +316,13 @@ describe('Diário de Obra V20 — Subempreita exclusiva Intermack vs Fluxo Diret
       'utf8'
     );
 
-    // /setup condicional + FeatureFlags preservada nos dois fluxos + Jhoston intacta
+    // /setup condicional + SEM FeatureFlags duplicada (centralizadas em /config-geral) + Jhoston intacta
     assert.ok(
       setupPage.includes('if (isIntermack)') &&
         setupPage.includes('<SetupIntermackPanel />') &&
-        setupPage.includes('<FeatureFlagsHomologacaoPanel />') &&
+        !setupPage.includes('FeatureFlagsHomologacaoPanel') &&
         setupPage.includes('Chave PIX para Pagamento *'),
-      '/setup deve renderizar SetupIntermackPanel só para Intermack, preservar FeatureFlags e manter cadastro Jhoston intacto'
+      '/setup deve renderizar SetupIntermackPanel só para Intermack, não duplicar FeatureFlagsHomologacaoPanel e manter cadastro Jhoston intacto'
     );
 
     // 3 abas obrigatórias no SetupIntermackPanel + PIX individual não obrigatório
