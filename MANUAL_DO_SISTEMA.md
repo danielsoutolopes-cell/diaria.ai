@@ -251,11 +251,11 @@ Na aba **Mensageria & Pedidos IA** (`/mensageria`):
 
 ## 💼 12. Caixinha de Campo Unificado (`/caixinha`) & Reinício Pós-Quitação
 
-### 12.1 Caixinha de Campo Unificado (`/caixinha`)
-- **Unificação de Apelidos**: Caso um mesmo encarregado envie comprovantes usando apelidos diferentes no WhatsApp, o sistema consolida automaticamente todas as movimentações em um único card canônico.
-- **Preservação de Pré-Implantação**: Saldos anteriores à entrada do sistema permanecem identificados com selo de *Pré-implantação*, sem perda de histórico.
+### 12.1 Caixinha de Campo & Reembolsos Integrados (`/caixinha`)
+- **Entrada Única no Menu**: O módulo **Caixinha de Campo** reúne em uma única tela a conta corrente de verbas de obra e a seção integrada de **Reembolsos & Adiantamentos** (alternável entre *Visão Completa*, *Caixinha* e *Reembolsos*).
+- **Unificação de Apelidos & Proteção Anti-Duplicidade**: Caso um mesmo encarregado envie comprovantes usando apelidos diferentes no WhatsApp, o sistema consolida automaticamente em um único card canônico e impede sobreposição entre consolidados pré-implantação e notas detalhadas.
 - **Separação da Folha de Pagamento**: O saldo de troco em mãos fica em coluna própria e **nunca é descontado automaticamente** das diárias. A administração decide manualmente quando registrar devolução ou transferir para o fechamento.
-- **Exemplo Prático**: A empresa envia R$ 700,00 em suprimentos PIX para compras de canteiro e o encarregado presta contas de R$ 546,94 em notas fiscais. O card unificado exibe automaticamente **Troco em Mãos: R$ 153,06**.
+- **Exemplo Prático**: A empresa envia R$ 700,00 em suprimentos PIX para compras de canteiro e o encarregado presta contas de R$ 544,62 em notas fiscais itemizadas. O card unificado exibe automaticamente **Troco em Mãos: R$ 155,38** (com o mesmo saldo refletido nos relatórios Excel e PDF).
 
 ### 12.2 Reinício de Contagem Pós-Quitação & Separação de Obras no Mesmo Dia
 - **Isolamento de Ciclos**: Ao liquidar um fechamento via PIX, apenas os lançamentos selecionados até aquele corte são marcados como `LIQUIDADO`.

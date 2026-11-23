@@ -519,7 +519,7 @@ export async function POST(req: NextRequest) {
         `📝 *Descrição:* ${messageText}\n` +
         (comprovanteUrl ? `📎 *Comprovante:* ${comprovanteUrl}\n` : '') +
         `\n💬 *Orientações:* Patrícia, alinhe diretamente com o ${nomeSolicitante.split(' ')[0]} para validação.\n` +
-        `🔗 *Painel de Reembolsos:* ${process.env.APP_URL || 'https://diaria-ai.fly.dev'}/reembolsos\n` +
+        `🔗 *Painel de Reembolsos:* ${process.env.APP_URL || 'https://diaria-ai.fly.dev'}/caixinha?secao=reembolsos\n` +
         `\n_Nota: O remetente NÃO recebeu confirmação por WhatsApp para sigilo de valores._`;
 
       return NextResponse.json({

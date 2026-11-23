@@ -40,7 +40,13 @@ interface ContaEncarregado {
   movimentos: MovimentoCaixaCampo[];
 }
 
-export default function CaixaCampoPanel() {
+interface CaixaCampoPanelProps {
+  onDadosAtualizados?: () => void;
+}
+
+export default function CaixaCampoPanel({
+  onDadosAtualizados,
+}: CaixaCampoPanelProps) {
   const [contas, setContas] = useState<ContaEncarregado[]>([]);
   const [funcionarios, setFuncionarios] = useState<string[]>([]);
   const [obras, setObras] = useState<string[]>([]);
@@ -173,7 +179,8 @@ export default function CaixaCampoPanel() {
     setDescricao('');
     setValor('');
     mostrarAviso('Movimento registrado na Conta Corrente de Caixa de Campo.');
-    void carregar();
+    await carregar();
+    onDadosAtualizados?.();
   }
 
   async function handleLiquidarDireto(c: ContaEncarregado) {
@@ -199,7 +206,8 @@ export default function CaixaCampoPanel() {
         ? `Devolução de troco de R$ ${Math.abs(c.saldoEmMaos).toFixed(2)} registrada!`
         : `Reembolso de R$ ${Math.abs(c.saldoEmMaos).toFixed(2)} quitado via PIX!`
     );
-    void carregar();
+    await carregar();
+    onDadosAtualizados?.();
   }
 
   async function handleLevarParaFechamento(c: ContaEncarregado) {
@@ -216,7 +224,8 @@ export default function CaixaCampoPanel() {
     });
     const d = (await res.json()) as { message?: string };
     if (d.message) mostrarAviso(d.message);
-    void carregar();
+    await carregar();
+    onDadosAtualizados?.();
   }
 
   function handleCopiarExtratoZap(c: ContaEncarregado) {
@@ -246,7 +255,8 @@ export default function CaixaCampoPanel() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'aprovar', id }),
     });
-    void carregar();
+    await carregar();
+    onDadosAtualizados?.();
   }
 
   async function handleExcluir(id: string) {
@@ -255,7 +265,8 @@ export default function CaixaCampoPanel() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'excluir', id }),
     });
-    void carregar();
+    await carregar();
+    onDadosAtualizados?.();
   }
 
   return (

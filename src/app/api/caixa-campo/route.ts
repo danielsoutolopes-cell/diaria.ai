@@ -5,29 +5,16 @@ import { normalizarNomeTrabalhadorCanonico } from '@/lib/normalizarObra';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import crypto from 'crypto';
 
+import {
+  consolidarContasCaixinha,
+  deduplicarMovimentosCaixinha,
+  type MovimentoCaixaCampo,
+  type TipoMovimentoCaixa,
+} from '@/lib/caixinhaDeduplicacao';
+
 export const dynamic = 'force-dynamic';
 
-export type TipoMovimentoCaixa =
-  | 'ENTRADA_PIX'
-  | 'NOTA_DESPESA'
-  | 'DEVOLUCAO_TROCO';
-
-export interface MovimentoCaixaCampo {
-  id: string;
-  encarregado: string;
-  encarregadoOrigem?: string;
-  obra: string;
-  data: string;
-  hora: string;
-  tipo: TipoMovimentoCaixa;
-  categoria: string;
-  descricao: string;
-  valor: number;
-  status: 'PENDENTE' | 'APROVADO';
-  isPreImplantacao?: boolean;
-  enviadoPor: string;
-  criadoEm: string;
-}
+export type { MovimentoCaixaCampo, TipoMovimentoCaixa };
 
 interface CaixinhaDbRow {
   id: string;
@@ -52,8 +39,8 @@ interface AliasDbRow {
 }
 
 /**
- * Lançamentos pré-implantação oficiais de 13/11/2026 (Gil + Gilvan + Gil335Revest -> Gil):
- * Entradas PIX: R$ 700,00 | Saídas/Notas: R$ 546,94 | Troco em Mãos: R$ 153,06
+ * Fallback pré-implantação (usado apenas se tanto SQL quanto JSONB estiverem
+ * 100% vazios para o Gil no tenant Jhoston — nunca sobreposto a lançamentos itemizados).
  */
 const MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON: MovimentoCaixaCampo[] = [
   {
@@ -117,7 +104,10 @@ async function carregarAliasesTenant(
   return mapa;
 }
 
-async function lerCaixaCampo(tenantId: string): Promise<{
+async function lerCaixaCampo(
+  tenantId: string,
+  aliasesExtras?: Record<string, string>
+): Promise<{
   paramId: string | null;
   configs: Record<string, unknown>;
   movimentos: MovimentoCaixaCampo[];
@@ -172,41 +162,30 @@ async function lerCaixaCampo(tenantId: string): Promise<{
     // Tabela caixinha_movimentacoes ainda não criada no banco remoto — fallback JSONB
   }
 
-  // Mesclar SQL + JSONB evitando duplicatas por ID ou assinatura (data + tipo + valor + descricao)
-  const porId = new Map<string, MovimentoCaixaCampo>();
-  const assinaturas = new Set<string>();
+  let movimentos = deduplicarMovimentosCaixinha(
+    movimentosSql,
+    movimentosJsonb,
+    aliasesExtras
+  );
 
-  const adicionarUnico = (m: MovimentoCaixaCampo) => {
-    if (porId.has(m.id)) return;
-    const assinatura = `${m.data}|${m.tipo}|${Number(m.valor).toFixed(2)}|${m.descricao.trim().toLowerCase()}`;
-    if (assinaturas.has(assinatura)) return;
-    porId.set(m.id, m);
-    assinaturas.add(assinatura);
-  };
-
-  movimentosSql.forEach(adicionarUnico);
-  movimentosJsonb.forEach(adicionarUnico);
-
-  // Para o tenant Jhoston, garante preservação dos lançamentos pré-implantação de 13/11/2026
-  // caso o banco ainda não tenha registros consolidados de Gil em 13/11/2026
+  // Fallback seguro apenas quando não houver nenhum lançamento do Gil em SQL nem JSONB
   if (tenantId === TENANTS.jhoston.id) {
-    const listaAtual = Array.from(porId.values());
-    const jaTemPreImpGil = listaAtual.some((m) => {
-      const canon = normalizarNomeTrabalhadorCanonico(m.encarregado);
-      return (
-        canon === 'Gil' &&
-        (m.isPreImplantacao || m.data === '2026-11-13')
+    const jaTemGil = movimentos.some(
+      (m) => normalizarNomeTrabalhadorCanonico(m.encarregado, aliasesExtras) === 'Gil'
+    );
+    if (!jaTemGil) {
+      movimentos = deduplicarMovimentosCaixinha(
+        MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON,
+        movimentos,
+        aliasesExtras
       );
-    });
-    if (!jaTemPreImpGil) {
-      MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON.forEach(adicionarUnico);
     }
   }
 
   return {
     paramId: (paramData?.id as string | undefined) || null,
     configs,
-    movimentos: Array.from(porId.values()),
+    movimentos,
     tabelaSqlAtiva,
   };
 }
@@ -222,7 +201,8 @@ async function salvarCaixaCampo(
     await supabaseAdmin
       .from('parametros_sistema')
       .update({ configuracoes: novasConfigs })
-      .eq('id', paramId);
+      .eq('id', paramId)
+      .eq('tenant_id', tenantId);
   } else {
     await supabaseAdmin.from('parametros_sistema').insert({
       tenant_id: tenantId,
@@ -234,93 +214,9 @@ async function salvarCaixaCampo(
 export async function GET(req: NextRequest) {
   try {
     const activeTenant = getActiveTenantFromRequest(req);
-    const [{ movimentos }, aliasesExtras] = await Promise.all([
-      lerCaixaCampo(activeTenant.id),
-      carregarAliasesTenant(activeTenant.id),
-    ]);
-
-    // Consolidar Conta Corrente por Encarregado Canônico (unificando Gil + Gilvan + Gil335Revest -> Gil)
-    const contasMap = new Map<
-      string,
-      {
-        encarregado: string;
-        aliasesUnificados: Set<string>;
-        possuiPreImplantacao: boolean;
-        totalRecebido: number;
-        totalComprovado: number;
-        totalDevolvido: number;
-        saldoEmMaos: number;
-        movimentos: MovimentoCaixaCampo[];
-      }
-    >();
-
-    for (const m of movimentos) {
-      const nomeCanonico = normalizarNomeTrabalhadorCanonico(
-        m.encarregado,
-        aliasesExtras
-      );
-      const chave = nomeCanonico.toUpperCase();
-      if (!contasMap.has(chave)) {
-        contasMap.set(chave, {
-          encarregado: nomeCanonico,
-          aliasesUnificados: new Set<string>(),
-          possuiPreImplantacao: false,
-          totalRecebido: 0,
-          totalComprovado: 0,
-          totalDevolvido: 0,
-          saldoEmMaos: 0,
-          movimentos: [],
-        });
-      }
-      const c = contasMap.get(chave)!;
-      if (m.encarregadoOrigem) {
-        m.encarregadoOrigem
-          .split('/')
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .forEach((alias) => c.aliasesUnificados.add(alias));
-      } else if (m.encarregado.trim() !== nomeCanonico) {
-        c.aliasesUnificados.add(m.encarregado.trim());
-      }
-      if (nomeCanonico === 'Gil') {
-        c.aliasesUnificados.add('Gil');
-        c.aliasesUnificados.add('Gilvan');
-        c.aliasesUnificados.add('Gil335Revest');
-      }
-      if (m.isPreImplantacao || m.data === '2026-11-13') {
-        c.possuiPreImplantacao = true;
-      }
-
-      c.movimentos.push({
-        ...m,
-        encarregado: nomeCanonico,
-      });
-
-      if (m.tipo === 'ENTRADA_PIX') c.totalRecebido += Number(m.valor || 0);
-      if (m.tipo === 'NOTA_DESPESA') c.totalComprovado += Number(m.valor || 0);
-      if (m.tipo === 'DEVOLUCAO_TROCO')
-        c.totalDevolvido += Number(m.valor || 0);
-
-      c.totalRecebido = Number(c.totalRecebido.toFixed(2));
-      c.totalComprovado = Number(c.totalComprovado.toFixed(2));
-      c.totalDevolvido = Number(c.totalDevolvido.toFixed(2));
-      c.saldoEmMaos = Number(
-        (c.totalRecebido - c.totalComprovado - c.totalDevolvido).toFixed(2)
-      );
-    }
-
-    const contas = Array.from(contasMap.values()).map((c) => ({
-      encarregado: c.encarregado,
-      aliasesUnificados: Array.from(c.aliasesUnificados),
-      possuiPreImplantacao: c.possuiPreImplantacao,
-      totalRecebido: c.totalRecebido,
-      totalComprovado: c.totalComprovado,
-      totalDevolvido: c.totalDevolvido,
-      saldoEmMaos: c.saldoEmMaos,
-      movimentos: [...c.movimentos].sort((a, b) =>
-        `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`)
-      ),
-    }));
+    const aliasesExtras = await carregarAliasesTenant(activeTenant.id);
+    const { movimentos } = await lerCaixaCampo(activeTenant.id, aliasesExtras);
+    const contas = consolidarContasCaixinha(movimentos, aliasesExtras);
 
     return NextResponse.json({
       tenant: activeTenant.slug,

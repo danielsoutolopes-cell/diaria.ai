@@ -105,28 +105,28 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       'Quando o encarregado pedir "Um vale para o João" no grupo, o pedido aparece na Etapa 1. Ao subir o comprovante PIX, ele muda para Etapa 2 (Confirmado) e fica disponível no Borderô.',
   },
   '/caixinha': {
-    titulo: 'Caixinha de Campo (Unificado)',
+    titulo: 'Caixinha de Campo & Reembolsos',
     resumo:
-      'Conta corrente unificada de verbas operacionais em mãos dos encarregados, com consolidação automática de apelidos e preservação de saldos pré-implantação.',
+      'Tela única que reúne a conta corrente de verbas operacionais em mãos dos encarregados (com proteção anti-duplicidade) e a seção integrada de Reembolsos & Adiantamentos.',
     funcoes: [
       {
-        nome: 'Unificação de Perfis & Apelidos',
+        nome: 'Unificação de Perfis & Anti-Duplicidade',
         descricao:
-          'Lançamentos enviados por diferentes apelidos ou números do mesmo encarregado são agrupados automaticamente em um único card consolidado.',
+          'Lançamentos enviados por diferentes apelidos do mesmo encarregado são agrupados em um único card consolidado, sem dupla contagem entre saldos pré-implantação e notas detalhadas.',
       },
       {
         nome: 'Coluna Própria (Sem Desconto Automático)',
         descricao:
-          'O troco em mãos nunca é abatido automaticamente da folha de diárias. A administração decide manualmente quando devolver troco ou transferir para o fechamento.',
+          'O troco em mãos nunca é abatido automaticamente da folha de diárias. A administração decide manualmente quando registrar devolução ou transferir para o fechamento.',
       },
       {
-        nome: 'Leitura de Notas & PIX com IA',
+        nome: 'Reembolsos & Adiantamentos Integrados + Leitura IA',
         descricao:
-          'Envie a foto de um cupom fiscal ou comprovante PIX para preencher tipo, valor e descrição automaticamente.',
+          'Alterne entre "Visão Completa", "Caixinha" e "Reembolsos" na mesma tela, ou suba a foto de um cupom fiscal/PIX para preenchimento automático.',
       },
     ],
     exemplo:
-      'Se o encarregado recebeu R$ 700,00 em suprimentos PIX e comprovou R$ 546,94 em notas de material, o card unificado exibirá Troco em Mãos: R$ 153,06 separado da folha salarial.',
+      'Se o encarregado recebeu R$ 700,00 em suprimentos PIX e comprovou R$ 544,62 em notas detalhadas de material, o card exibe Troco em Mãos: R$ 155,38. Na mesma tela, gerencie também pedidos avulsos de reembolso.',
   },
   '/reembolsos': {
     titulo: 'Caixa de Campo & Reembolsos',

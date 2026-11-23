@@ -90,14 +90,8 @@ export default function MobileHeader() {
       onlyComprasAtivo: true,
     },
     {
-      name: 'Caixinha de Campo (Unificado)',
+      name: 'Caixinha de Campo',
       href: '/caixinha',
-      icon: Receipt,
-      onlyDiarista: true,
-    },
-    {
-      name: 'Caixa de Campo & Reembolsos',
-      href: '/reembolsos',
       icon: Receipt,
       onlyDiarista: true,
     },

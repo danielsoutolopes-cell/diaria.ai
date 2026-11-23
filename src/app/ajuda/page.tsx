@@ -85,9 +85,9 @@ export default function AjudaPage() {
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 space-y-1">
-              <span className="font-black text-indigo-950 block">2. Caixinha de Campo Unificado (/caixinha)</span>
+              <span className="font-black text-indigo-950 block">2. Caixinha de Campo &amp; Reembolsos (/caixinha)</span>
               <p className="text-[11px] text-indigo-900">
-                <strong>Exemplo:</strong> A empresa envia R$ 700,00 em PIX para materiais; o encarregado lança R$ 546,94 em notinhas (mesmo com apelidos diferentes, tudo unifica no mesmo card). Fica <strong>Troco em Mãos: R$ 153,06</strong> — sem desconto automático da folha.
+                <strong>Exemplo:</strong> Em uma única tela (sem menus duplicados), a empresa acompanha o caixinha (ex.: R$ 700,00 recebidos − R$ 544,62 em notas = <strong>Troco em Mãos: R$ 155,38</strong>, sem desconto automático da folha) e a seção integrada de <strong>Reembolsos &amp; Adiantamentos</strong>.
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200/80 space-y-1">

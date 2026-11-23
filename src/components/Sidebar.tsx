@@ -86,19 +86,11 @@ const navItems = [
     onlyComprasAtivo: true,
   },
   {
-    name: 'Caixinha de Campo (Unificado)',
+    name: 'Caixinha de Campo',
     href: '/caixinha',
     icon: Receipt,
     badge: 'Campo',
     badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-    onlyDiarista: true,
-  },
-  {
-    name: 'Caixa de Campo & Reembolsos',
-    href: '/reembolsos',
-    icon: Receipt,
-    badge: 'Despesas',
-    badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
     onlyDiarista: true,
   },
   {
