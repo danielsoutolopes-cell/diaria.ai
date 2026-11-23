@@ -913,7 +913,7 @@ export default function PontoCampoPage() {
             }`}
           >
             <Camera className="w-4 h-4" />
-            <span>Relatório (3 Fotos)</span>
+            <span>Relatório (2–3 Fotos)</span>
           </button>
         </div>
 
@@ -1126,12 +1126,12 @@ export default function PontoCampoPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">
-                  Fotos da Obra (até 3 fotos) *
+                  Fotos da Obra (2 a 3 fotos) *
                 </label>
                 <label className="flex flex-col items-center justify-center gap-1.5 p-5 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/40 cursor-pointer hover:bg-emerald-50">
                   <Camera className="w-6 h-6 text-emerald-700" />
                   <span className="text-xs font-bold text-emerald-900">
-                    Tirar ou selecionar até 3 fotos
+                    Tirar ou selecionar 2 a 3 fotos
                   </span>
                   <input
                     type="file"

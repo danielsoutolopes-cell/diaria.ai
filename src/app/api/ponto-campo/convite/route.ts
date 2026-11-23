@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       '1. Abra o link no celular e toque em *Adicionar à tela inicial* para instalar como app.',
       '2. Entre com seu nome + PIN e ative a *Digital / Face ID* para entrar em 1 toque.',
       '3. Marque o ponto diário da obra (funciona mesmo sem sinal).',
-      '4. Envie o *Relatório Semanal com 3 fotos* até toda *quinta-feira*.',
+      '4. Envie o *Relatório Semanal com 2 a 3 fotos* (para acompanhamento e envio ao cliente) até toda *quinta-feira*.',
     ].join('\n');
 
     let enviadoWhatsapp = false;
