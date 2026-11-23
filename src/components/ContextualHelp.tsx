@@ -325,23 +325,28 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       'Vincule o grupo de cada obra uma única vez: toda mensagem enviada ali já cai automaticamente na empresa e obra corretas.',
   },
   '/setup': {
-    titulo: 'Cadastro de Obras & Equipes (Setup)',
+    titulo: 'Cadastro de Obras, Empreiteiros & Equipes (Setup)',
     resumo:
-      'Cadastro expresso de obras (com Alias de Cliente p/ Fornecedores, CEP/Endereço, Complemento/Obs. de Entrega e Contato de Recebimento) e colaboradores.',
+      'Adapta automaticamente o cadastro ao perfil da empresa: Modo Empreita exibe Empreiteiros, Funcionários vinculados e Obras & Etapas; Modo Diarista mantém o cadastro expresso com Nome, Chave PIX e Diária.',
     funcoes: [
       {
-        nome: 'Logística de Entrega & Alias do Cliente p/ Fornecedores',
+        nome: 'Empreiteiros, Funcionários & Etapas (Modo Empreita)',
         descricao:
-          'Nas empresas com módulo de compras ativo, o Endereço de Entrega (com busca automática por CEP) e o Alias do Cliente são obrigatórios para sair automaticamente nos pedidos.',
+          'Cadastre Empreiteiros/Encarregados (com apelidos, documento e etapa padrão), vincule Funcionários da equipe (com apelidos e CPF/RG, sem exigir PIX individual) e personalize as Etapas de cada obra para alimentar automaticamente o Diário de Obra.',
       },
       {
-        nome: 'Apelidos para IA',
+        nome: 'Cadastro Expresso & Logística de Entrega',
         descricao:
-          'Cadastre apelidos usuais de campo para que a IA reconheça automaticamente obras e profissionais nas mensagens.',
+          'No Modo Diarista, apenas Nome e Chave PIX são obrigatórios. Nas empresas com módulo de compras, Alias do Cliente e Endereço (CEP) saem automaticamente nos pedidos.',
+      },
+      {
+        nome: 'Governança de Homologação (Feature Flags)',
+        descricao:
+          'No rodapé da tela, a administração controla independentemente por empresa os recursos em homologação.',
       },
     ],
     exemplo:
-      'Cadastre a obra com o Alias do Cliente (como o fornecedor identifica), digite o CEP para preencher o endereço e informe no Complemento "Portaria de serviço • Descarga 08h–17h".',
+      'Em uma Empresa Modo Empreita, cadastre o Empreiteiro na aba 1, vincule os funcionários dele na aba 2 com apelidos/CPF e marque "Hidráulica" e "Gesso" na obra pela aba 3 — tudo já aparece pronto nos dropdowns do Diário de Obra.',
   },
   '/whatsapp': {
     titulo: 'Conexão do Bot & Vínculo de Grupos',

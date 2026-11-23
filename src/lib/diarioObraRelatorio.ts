@@ -11,6 +11,7 @@ export interface EmpreiteiroDiarioRecord {
   apelidos: string[];
   documento: string | null;
   telefone?: string | null;
+  chavePix?: string | null;
   etapaPadrao?: string | null;
   ativo: boolean;
   createdAt?: string;

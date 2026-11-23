@@ -54,6 +54,7 @@ interface EquipesPostBody {
   apelidos?: string | string[];
   documento?: string | null;
   telefone?: string | null;
+  chavePix?: string | null;
   etapaPadrao?: string | null;
   funcao?: string | null;
 }
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
         apelidos: body.apelidos,
         documento: body.documento,
         telefone: body.telefone,
+        chavePix: body.chavePix,
         etapaPadrao: body.etapaPadrao,
       });
       const atualizado = await listarEquipesDiarioTenant(activeTenant.id);
@@ -143,6 +145,7 @@ interface EquipesPatchBody {
   apelidos?: string | string[];
   documento?: string | null;
   telefone?: string | null;
+  chavePix?: string | null;
   etapaPadrao?: string | null;
   funcao?: string | null;
 }
@@ -171,6 +174,7 @@ export async function PATCH(req: NextRequest) {
         apelidos: body.apelidos,
         documento: body.documento,
         telefone: body.telefone,
+        chavePix: body.chavePix,
         etapaPadrao: body.etapaPadrao,
       });
     } else if (body.tipo === 'funcionario') {

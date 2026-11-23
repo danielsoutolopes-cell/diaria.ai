@@ -29,6 +29,7 @@ import {
   type TenantConfig,
 } from '@/lib/tenant';
 import FeatureFlagsHomologacaoPanel from '@/components/FeatureFlagsHomologacaoPanel';
+import SetupIntermackPanel from '@/components/SetupIntermackPanel';
 
 interface ObraItem {
   id: string;
@@ -664,6 +665,18 @@ export default function SetupPage() {
     } finally {
       setSalvandoEdicaoObra(false);
     }
+  }
+
+  if (isIntermack) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 sm:space-y-8">
+        <SetupIntermackPanel />
+        {/* Governança de Homologação (Feature Flags por Empresa — Sprint V16) */}
+        <div className="pt-2">
+          <FeatureFlagsHomologacaoPanel />
+        </div>
+      </div>
+    );
   }
 
   return (

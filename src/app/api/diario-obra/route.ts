@@ -57,6 +57,28 @@ async function lerDiariosEEtapesDoTenant(tenantId: string): Promise<{
     }
   }
 
+  // Etapas gerenciadas em /setup -> Obras & Etapas (Intermack)
+  const rawSetupEtapas = configs.etapas_por_obra_v22 as
+    | Record<string, unknown>
+    | undefined;
+  if (rawSetupEtapas && typeof rawSetupEtapas === 'object') {
+    for (const [chaveBruta, lista] of Object.entries(rawSetupEtapas)) {
+      const chaveObra = normalizarTextoBusca(chaveBruta);
+      if (!chaveObra || !Array.isArray(lista)) continue;
+      const existentes = etapasPorObra[chaveObra] || [];
+      const vistos = new Set(existentes.map((e) => normalizarTextoBusca(e.nome)));
+      const combinadas = [...existentes];
+      for (const item of lista) {
+        const nomeLimpo = String(item || '').trim();
+        const chaveEt = normalizarTextoBusca(nomeLimpo);
+        if (!chaveEt || vistos.has(chaveEt)) continue;
+        vistos.add(chaveEt);
+        combinadas.push({ id: null, nome: nomeLimpo });
+      }
+      etapasPorObra[chaveObra] = combinadas;
+    }
+  }
+
   return {
     paramId: (paramData?.id as string | undefined) || null,
     configs,

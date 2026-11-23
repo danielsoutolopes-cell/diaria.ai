@@ -357,8 +357,9 @@ export default function AjudaPage() {
             Para agilidade de campo na tela de <Link href="/setup" className="text-emerald-600 font-bold underline">Setup</Link>:
           </p>
           <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-slate-500">
-            <li><strong>Obrigatório</strong>: Apenas <strong>Nome do Trabalhador</strong> e <strong>Chave PIX</strong>.</li>
-            <li><strong>Múltiplos Apelidos</strong>: Você pode cadastrar apelidos alternativos (ex: &quot;Wender 22&quot;, &quot;Zé baiano&quot;, &quot;Mauro obra&quot;) e apelidos para obras (ex: &quot;Piscina porto seguro&quot; mapeado para a obra oficial &quot;Bahia&quot;). A IA reconhece esses apelidos automaticamente nas mensagens do WhatsApp.</li>
+            <li><strong>Obrigatório (Modo Diarista)</strong>: Apenas <strong>Nome do Trabalhador</strong> e <strong>Chave PIX</strong>.</li>
+            <li><strong>Subempreita em 3 Abas (Modo Empreita)</strong>: Exibe automaticamente as abas <strong>Empreiteiros / Encarregados</strong> (com apelidos, documento, etapa padrão e PIX opcional), <strong>Funcionários / Equipe</strong> (vinculados ao empreiteiro com apelidos, CPF/RG e etapa, sem exigir PIX individual) e <strong>Obras &amp; Etapas</strong> (alimentando direto os dropdowns do Diário de Obra).</li>
+            <li><strong>Múltiplos Apelidos</strong>: Você pode cadastrar apelidos alternativos para profissionais e obras. A IA e a busca do Diário de Obra reconhecem esses apelidos automaticamente.</li>
             <li><strong>Opcional</strong>: Telefone, Canteiro de Obra e Valor da Diária. Se deixar a diária em branco, o sistema assume automaticamente a diária padrão da obra.</li>
           </ul>
         </div>

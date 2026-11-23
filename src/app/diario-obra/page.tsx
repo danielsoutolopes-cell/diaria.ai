@@ -356,11 +356,14 @@ export default function DiarioObraPage() {
       empreiteiros.find((e) => e.id === func.empreiteiroId) ||
       null;
 
+    const etapaFinalNome =
+      etapaAtiva.nome || func.funcao || empVinculado?.etapaPadrao || null;
+
     const jaExiste = efetivo.some(
       (item) =>
         item.funcionarioId === func.id &&
         normalizarTextoBusca(item.etapaNome) ===
-          normalizarTextoBusca(etapaAtiva.nome)
+          normalizarTextoBusca(etapaFinalNome)
     );
     if (jaExiste) return;
 
@@ -374,7 +377,7 @@ export default function DiarioObraPage() {
         empreiteiroId: empVinculado?.id || func.empreiteiroId || null,
         empreiteiroNome: empVinculado?.nome || func.empreiteiroNome || null,
         etapaId: etapaAtiva.id,
-        etapaNome: etapaAtiva.nome,
+        etapaNome: etapaFinalNome,
         periodo: novoPeriodo,
       },
     ]);

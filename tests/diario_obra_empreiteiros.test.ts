@@ -292,4 +292,61 @@ describe('Diário de Obra V20 — Subempreita exclusiva Intermack vs Fluxo Diret
       'Migration V20 deve criar tabelas com RLS multi-tenant'
     );
   });
+
+  it('6. /setup condicional: Intermack exibe 3 abas de subempreita + FeatureFlags intacta e Jhoston preserva cadastro diarista', () => {
+    const repoRoot = process.cwd();
+    const setupPage = fs.readFileSync(
+      path.join(repoRoot, 'src/app/setup/page.tsx'),
+      'utf8'
+    );
+    const setupIntermack = fs.readFileSync(
+      path.join(repoRoot, 'src/components/SetupIntermackPanel.tsx'),
+      'utf8'
+    );
+    const etapasApi = fs.readFileSync(
+      path.join(repoRoot, 'src/app/api/diario-obra/etapas/route.ts'),
+      'utf8'
+    );
+    const diarioApi = fs.readFileSync(
+      path.join(repoRoot, 'src/app/api/diario-obra/route.ts'),
+      'utf8'
+    );
+    const migrationV22 = fs.readFileSync(
+      path.join(repoRoot, 'supabase/migration_v22_intermack_setup_subempreita.sql'),
+      'utf8'
+    );
+
+    // /setup condicional + FeatureFlags preservada nos dois fluxos + Jhoston intacta
+    assert.ok(
+      setupPage.includes('if (isIntermack)') &&
+        setupPage.includes('<SetupIntermackPanel />') &&
+        setupPage.includes('<FeatureFlagsHomologacaoPanel />') &&
+        setupPage.includes('Chave PIX para Pagamento *'),
+      '/setup deve renderizar SetupIntermackPanel só para Intermack, preservar FeatureFlags e manter cadastro Jhoston intacto'
+    );
+
+    // 3 abas obrigatórias no SetupIntermackPanel + PIX individual não obrigatório
+    assert.ok(
+      setupIntermack.includes('Empreiteiros / Encarregados') &&
+        setupIntermack.includes('Funcionários / Equipe') &&
+        setupIntermack.includes('Obras &amp; Etapas') &&
+        setupIntermack.includes('Chave PIX (opcional)') &&
+        setupIntermack.includes('Chave PIX individual não é obrigatória'),
+      'SetupIntermackPanel deve conter as 3 abas exigidas e não exigir PIX individual para funcionários de subempreita'
+    );
+
+    // Etapas da obra integradas com /api/diario-obra e isoladas por tenant_id
+    assert.ok(
+      etapasApi.includes('isSubempreitaHabilitada') &&
+        etapasApi.includes(".eq('tenant_id', activeTenant.id)") &&
+        etapasApi.includes('status: 403') &&
+        diarioApi.includes('etapas_por_obra_v22'),
+      '/api/diario-obra/etapas deve ser exclusivo Intermack com tenant_id e alimentar /api/diario-obra'
+    );
+    assert.ok(
+      migrationV22.includes('ALTER TABLE public.empreiteiros_diario') &&
+        migrationV22.includes('chave_pix'),
+      'Migration V22 deve adicionar chave_pix opcional em empreiteiros_diario'
+    );
+  });
 });

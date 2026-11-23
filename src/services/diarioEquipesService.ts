@@ -14,6 +14,7 @@ interface EmpreiteiroDbRow {
   apelidos: string[] | null;
   documento: string | null;
   telefone: string | null;
+  chave_pix?: string | null;
   etapa_padrao: string | null;
   ativo: boolean;
   created_at?: string;
@@ -104,6 +105,7 @@ function mapEmpreiteiroRow(row: EmpreiteiroDbRow): EmpreiteiroDiarioRecord {
     apelidos: Array.isArray(row.apelidos) ? row.apelidos : [],
     documento: row.documento || null,
     telefone: row.telefone || null,
+    chavePix: row.chave_pix || null,
     etapaPadrao: row.etapa_padrao || null,
     ativo: row.ativo !== false,
     createdAt: row.created_at,
@@ -133,7 +135,7 @@ export async function listarEquipesDiarioTenant(tenantId: string): Promise<{
     supabaseAdmin
       .from('empreiteiros_diario')
       .select(
-        'id, tenant_id, nome, apelidos, documento, telefone, etapa_padrao, ativo, created_at'
+        'id, tenant_id, nome, apelidos, documento, telefone, chave_pix, etapa_padrao, ativo, created_at'
       )
       .eq('tenant_id', tenantId)
       .eq('ativo', true)
@@ -200,6 +202,7 @@ export interface CriarEmpreiteiroInput {
   apelidos?: string | string[];
   documento?: string | null;
   telefone?: string | null;
+  chavePix?: string | null;
   etapaPadrao?: string | null;
 }
 
@@ -211,6 +214,7 @@ export async function criarEmpreiteiroDiario(
   const apelidos = parsearApelidosLista(input.apelidos);
   const documento = input.documento?.trim() || null;
   const telefone = input.telefone?.trim() || null;
+  const chavePix = input.chavePix?.trim() || null;
   const etapaPadrao = input.etapaPadrao?.trim() || null;
 
   const { data, error } = await supabaseAdmin
@@ -221,11 +225,12 @@ export async function criarEmpreiteiroDiario(
       apelidos,
       documento,
       telefone,
+      chave_pix: chavePix,
       etapa_padrao: etapaPadrao,
       ativo: true,
     })
     .select(
-      'id, tenant_id, nome, apelidos, documento, telefone, etapa_padrao, ativo, created_at'
+      'id, tenant_id, nome, apelidos, documento, telefone, chave_pix, etapa_padrao, ativo, created_at'
     )
     .single();
 
@@ -248,6 +253,7 @@ export async function criarEmpreiteiroDiario(
       ]);
       if (documento) existente.documento = documento;
       if (telefone) existente.telefone = telefone;
+      if (chavePix) existente.chavePix = chavePix;
       if (etapaPadrao) existente.etapaPadrao = etapaPadrao;
       await salvarFallbackTenant(tenantId, paramId, configs, payload);
       return existente;
@@ -260,6 +266,7 @@ export async function criarEmpreiteiroDiario(
       apelidos,
       documento,
       telefone,
+      chavePix,
       etapaPadrao,
       ativo: true,
       createdAt: new Date().toISOString(),
@@ -299,6 +306,9 @@ export async function atualizarEmpreiteiroDiario(
   if (input.telefone !== undefined) {
     updates.telefone = input.telefone?.trim() || null;
   }
+  if (input.chavePix !== undefined) {
+    updates.chave_pix = input.chavePix?.trim() || null;
+  }
   if (input.etapaPadrao !== undefined) {
     updates.etapa_padrao = input.etapaPadrao?.trim() || null;
   }
@@ -309,7 +319,7 @@ export async function atualizarEmpreiteiroDiario(
     .eq('id', id)
     .eq('tenant_id', tenantId)
     .select(
-      'id, tenant_id, nome, apelidos, documento, telefone, etapa_padrao, ativo, created_at'
+      'id, tenant_id, nome, apelidos, documento, telefone, chave_pix, etapa_padrao, ativo, created_at'
     )
     .maybeSingle();
 
@@ -332,6 +342,9 @@ export async function atualizarEmpreiteiroDiario(
     }
     if (input.telefone !== undefined) {
       item.telefone = input.telefone?.trim() || null;
+    }
+    if (input.chavePix !== undefined) {
+      item.chavePix = input.chavePix?.trim() || null;
     }
     if (input.etapaPadrao !== undefined) {
       item.etapaPadrao = input.etapaPadrao?.trim() || null;
