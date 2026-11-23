@@ -94,12 +94,85 @@ export async function POST(req: NextRequest) {
         };
       });
 
+    // Verifica se algum colaborador marcado hoje já foi lançado em outra obra no mesmo dia (rateio automático 0.5 / 0.5)
+    const { data: lotesMesmoDia } = await supabaseAdmin
+      .from('ponto_lote')
+      .select('id, obra_nome, itens_extraidos')
+      .eq('tenant_id', JHOSTON_TENANT_ID)
+      .eq('data_referencia', dataIso)
+      .eq('status', 'PENDENTE');
+
+    const avisosRateio: string[] = [];
+    if (Array.isArray(lotesMesmoDia) && lotesMesmoDia.length > 0) {
+      for (const itemAtual of itensEstruturados) {
+        if (itemAtual.tipo !== 'DIARIA' || itemAtual.fracao !== 1.0) continue;
+        const nomeNorm = itemAtual.nome.trim().toLowerCase();
+
+        const lotesConflitantes = lotesMesmoDia.filter((lote) => {
+          if (
+            normalizarChaveObra(String(lote.obra_nome || '')) ===
+            normalizarChaveObra(obraNome)
+          ) {
+            return false;
+          }
+          const itensLote = Array.isArray(lote.itens_extraidos)
+            ? (lote.itens_extraidos as Array<{ nome?: string; tipo?: string }>)
+            : [];
+          return itensLote.some(
+            (x) =>
+              String(x.nome || '')
+                .trim()
+                .toLowerCase() === nomeNorm && x.tipo === 'DIARIA'
+          );
+        });
+
+        if (lotesConflitantes.length > 0) {
+          const totalObras = lotesConflitantes.length + 1;
+          const fracaoRateada = Number((1 / totalObras).toFixed(2));
+          itemAtual.fracao = fracaoRateada;
+          itemAtual.tipo_campo = 'MEIO_DIA';
+          avisosRateio.push(
+            `${itemAtual.nome} marcado em ${totalObras} obras hoje → rateado automaticamente (${fracaoRateada} por obra)`
+          );
+
+          // Ajusta também nos lotes anteriores pendentes do mesmo dia
+          for (const loteAnt of lotesConflitantes) {
+            const itensAnt = Array.isArray(loteAnt.itens_extraidos)
+              ? (loteAnt.itens_extraidos as Array<Record<string, unknown>>)
+              : [];
+            const itensAtualizados = itensAnt.map((x) => {
+              if (
+                String(x.nome || '')
+                  .trim()
+                  .toLowerCase() === nomeNorm &&
+                x.tipo === 'DIARIA'
+              ) {
+                return {
+                  ...x,
+                  fracao: fracaoRateada,
+                  rateio_automatico: true,
+                };
+              }
+              return x;
+            });
+            await supabaseAdmin
+              .from('ponto_lote')
+              .update({ itens_extraidos: itensAtualizados })
+              .eq('id', loteAnt.id);
+          }
+        }
+      }
+    }
+
     const linhasTexto = itensEstruturados.map(
       (it) => `- ${it.nome} (${it.tipo === 'DIARIA' ? `${it.fracao} dia` : it.tipo})`
     );
     const mensagemOriginal = [
       `[APP CAMPO • ${sessao.encarregadoNome}] Obra: ${obraNome} | Data: ${dataIso}`,
       ...linhasTexto,
+      avisosRateio.length > 0
+        ? `Rateio IA automático: ${avisosRateio.join(' | ')}`
+        : null,
       observacao ? `Obs: ${observacao}` : null,
     ]
       .filter(Boolean)

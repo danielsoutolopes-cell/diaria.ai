@@ -355,3 +355,4 @@
   - Atualizado `parametros_sistema.configuracoes` (`dia_chuva_padrao = 150`, `dia_viagem_padrao = 150`, `vigencia_chuva_viagem_150 = '2026-11-18'`).
   - Recalculados retroativamente no Supabase (`lancamentos_financeiros`) os lançamentos em aberto de Chuva/Viagem com `data_referencia >= '2026-11-18'` (14 registros de `18/11` e `19/11`: de `R$ 120,00` para `R$ 150,00`).
 - **Ciclo de 3 Estados nas Feature Flags (`/config-geral`)**: Cada flag agora alterna por empresa entre **`OFF`** (cinza) → **`EM HOMOLOGAÇÃO`** (amarelo, exibe selo *EM HOMOLOGAÇÃO*) → **`100% ATIVO`** (verde, produção oficial sem o selo de homologação).
+- **Ajustes UX & Rateio IA no `/ponto`**: Termo alterado de *Encarregado* para ***Responsável***, pré-marcação automática do próprio responsável (ex.: **Diego**) na lista de equipe e rateio automático `0.5 / 0.5` (`1/N` obras) quando o mesmo colaborador for marcado em mais de uma obra no mesmo dia.

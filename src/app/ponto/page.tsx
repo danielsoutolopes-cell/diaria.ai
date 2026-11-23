@@ -189,12 +189,25 @@ export default function PontoCampoPage() {
       }
       if (data.autenticado && data.encarregado) {
         setEncarregado(data.encarregado);
-        setColaboradores(data.colaboradores || []);
+        const listaColabs = data.colaboradores || [];
+        setColaboradores(listaColabs);
         setStatusRelatorios(data.statusRelatorios || []);
         if (data.encarregado.obrasVinculadas.length > 0) {
           setObraPonto((prev) => prev || data.encarregado!.obrasVinculadas[0]);
           setObraRelatorio(
             (prev) => prev || data.encarregado!.obrasVinculadas[0]
+          );
+        }
+        // Pré-marca automaticamente o próprio Responsável (ex.: Diego) na equipe
+        const nomeRespNorm = data.encarregado.nome.trim().toLowerCase();
+        const proprioColab = listaColabs.find(
+          (c) => c.nome.trim().toLowerCase() === nomeRespNorm
+        );
+        if (proprioColab) {
+          setSelecionados((prev) =>
+            Object.keys(prev).length === 0
+              ? { [proprioColab.id]: 'NORMAL' }
+              : prev
           );
         }
       } else {
@@ -706,7 +719,7 @@ export default function PontoCampoPage() {
               Ponto de Campo
             </h1>
             <p className="text-xs text-slate-500">
-              Acesso exclusivo para encarregados em obra
+              Acesso exclusivo para responsáveis de obra
             </p>
           </div>
 
@@ -719,7 +732,7 @@ export default function PontoCampoPage() {
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700">
-              Encarregado
+              Responsável
             </label>
             <select
               value={selectedEncId}
@@ -797,7 +810,8 @@ export default function PontoCampoPage() {
               )}
             </div>
             <p className="text-[11px] text-emerald-200 font-medium">
-              Encarregado: <strong className="text-white">{encarregado.nome}</strong>
+              Responsável:{' '}
+              <strong className="text-white">{encarregado.nome}</strong>
             </p>
           </div>
           <button
