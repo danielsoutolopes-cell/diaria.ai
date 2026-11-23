@@ -53,6 +53,14 @@
 - **Padrão UX/UI SaaS**: Todas as telas, dashboards, tabelas e fluxos devem seguir obrigatoriamente `UX_UI_SAAS_GUIDELINES.md`.
 - **Padrão White-Label / Genérico**: Os manuais, guias e ajudas voltados ao usuário final devem usar linguagem **genérica** (ex.: *Empresa Modo Diarista*, *Empresa Modo Empreita*, *Obra Residencial*, *Encarregado*), **sem citar nomes reais de empresas ou clientes específicos**, e sempre incluir **pequenos exemplos práticos de uso**.
 
+## Conferência Rápida no Ar (Pós-Deploy — 23/11/2026)
+- **Status Geral:** **100% APROVADO (`PASS`)** em produção (`https://diaria-ai.fly.dev`) + suíte local `node scripts/run-tests.js` (**68/68 testes PASS**, multiplataforma Windows/Linux/macOS).
+- **1. Governança `/config-geral`:** HTTP `200` para Daniel/Patrícia, HTTP `403` para não-admin; Feature Flags centralizadas sem duplicidade em `/setup`.
+- **2. Tenant `Jhoston` (`DIÁRIAS`):** Caixinha unificada exibindo **`Gil`** limpo (`Recebido: R$ 800,00 | Comprovado: R$ 625,62 | Saldo: R$ 174,38`), Emissores PIX (`Patrícia`, `Joabson`, `Administração`), separação estrita Vales × Diárias (V26) validada.
+- **3. Tenant `Intermack` (`EMPREITA`):** Isolamento estrito confirmado (`1` obra ativa: `OBRA RUA JANUÁRIO MIRAGLIA, 131/61`, `0` vazamento da Jhoston), `/setup` e `/diario-obra` validados (V20/V22).
+- **4. WhatsApp & Webhook Pós-Restart:** Baileys **`CONNECTED`** (`5511988139833`, `17` grupos) e `POST /api/webhook/whatsapp` respondendo HTTP `200` saudável (`933ms`).
+- **5. Saneamento de Base (23/11/2026):** Unificação definitiva de `PISCINA PORTO SEGURO`, `OBRA BAHIA (PORTO SEGURO)` e `GERAL` → obra única **`PORTO SEGURO`** (`PISCINA`, 56 lançamentos e 10 lotes reapontados) e ajuste da diária do **Lucas J.** para **`R$ 250,00`** propagado retroativamente em `20/11`, `21/11` e `22/11` (preservando dias de chuva).
+
 ## Últimas Ações (Ciclo Atual)
 - **Separação Estrita de Pedidos Exclusivos de Vales (0 Diárias) + Valor por Linha + Motor de Aprendizado por Remetente (V26)**:
   - **Causa Raiz Corrigida em [`src/lib/extracaoDiariasParser.ts`](src/lib/extracaoDiariasParser.ts)**: mensagens longas exclusivas de pedido de vale (ex.: `"Bom dia Patrícia 6 vale por favor."` seguido por 6 linhas de beneficiários) excediam o antigo limite `linhasNaoVazias.length <= 2` e acabavam gerando apontamentos de diária (`1.0` / `NORMAL`) indevidos e mantendo `"José baiano 50 reais"` como nome do trabalhador.
