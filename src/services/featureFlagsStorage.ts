@@ -9,6 +9,10 @@ export interface FeatureFlagsHomologacao {
 
 export type FeatureFlagKey = keyof FeatureFlagsHomologacao;
 
+export type FeatureFlagEstado = 'OFF' | 'HOMOLOGACAO' | 'ATIVO';
+
+export type FeatureFlagsEstados = Record<FeatureFlagKey, FeatureFlagEstado>;
+
 export const FEATURE_FLAGS_DEFAULT: FeatureFlagsHomologacao = {
   FF_RESUMO_DIARIO_19H: false,
   FF_EXTRATO_COLABORADOR_LINK: false,
@@ -162,23 +166,15 @@ export async function lerAuditoriaFeatureFlagsTenant(
 }
 
 /**
- * Salva as Feature Flags de homologação isoladas por tenant_id.
+ * Salva as Feature Flags de homologação/produção isoladas por tenant_id.
  */
 export async function salvarFeatureFlagsTenant(
   tenantId: string,
   partial: Partial<FeatureFlagsHomologacao>,
-  atualizadoPor = 'Patrícia & Daniel (/config-geral)'
+  atualizadoPor = 'Patrícia & Daniel (/config-geral)',
+  estadosPartial?: Partial<FeatureFlagsEstados>
 ): Promise<FeatureFlagsHomologacao> {
   const atuais = await lerFeatureFlagsTenant(tenantId);
-  const proximas: FeatureFlagsHomologacao = {
-    FF_RESUMO_DIARIO_19H:
-      partial.FF_RESUMO_DIARIO_19H ?? atuais.FF_RESUMO_DIARIO_19H,
-    FF_EXTRATO_COLABORADOR_LINK:
-      partial.FF_EXTRATO_COLABORADOR_LINK ?? atuais.FF_EXTRATO_COLABORADOR_LINK,
-    FF_PWA_PONTO_CAMPO:
-      partial.FF_PWA_PONTO_CAMPO ?? atuais.FF_PWA_PONTO_CAMPO,
-  };
-
   const { data: paramRow } = await supabaseAdmin
     .from('parametros_sistema')
     .select('id, configuracoes')
@@ -190,9 +186,46 @@ export async function salvarFeatureFlagsTenant(
     string,
     unknown
   >;
+  const producaoAtual = normalizarFeatureFlags(
+    configsAtuais.feature_flags_producao
+  );
+
+  const proximas: FeatureFlagsHomologacao = {
+    FF_RESUMO_DIARIO_19H:
+      estadosPartial?.FF_RESUMO_DIARIO_19H !== undefined
+        ? estadosPartial.FF_RESUMO_DIARIO_19H !== 'OFF'
+        : (partial.FF_RESUMO_DIARIO_19H ?? atuais.FF_RESUMO_DIARIO_19H),
+    FF_EXTRATO_COLABORADOR_LINK:
+      estadosPartial?.FF_EXTRATO_COLABORADOR_LINK !== undefined
+        ? estadosPartial.FF_EXTRATO_COLABORADOR_LINK !== 'OFF'
+        : (partial.FF_EXTRATO_COLABORADOR_LINK ??
+          atuais.FF_EXTRATO_COLABORADOR_LINK),
+    FF_PWA_PONTO_CAMPO:
+      estadosPartial?.FF_PWA_PONTO_CAMPO !== undefined
+        ? estadosPartial.FF_PWA_PONTO_CAMPO !== 'OFF'
+        : (partial.FF_PWA_PONTO_CAMPO ?? atuais.FF_PWA_PONTO_CAMPO),
+  };
+
+  const proximaProducao: FeatureFlagsHomologacao = {
+    FF_RESUMO_DIARIO_19H:
+      estadosPartial?.FF_RESUMO_DIARIO_19H !== undefined
+        ? estadosPartial.FF_RESUMO_DIARIO_19H === 'ATIVO'
+        : proximas.FF_RESUMO_DIARIO_19H && producaoAtual.FF_RESUMO_DIARIO_19H,
+    FF_EXTRATO_COLABORADOR_LINK:
+      estadosPartial?.FF_EXTRATO_COLABORADOR_LINK !== undefined
+        ? estadosPartial.FF_EXTRATO_COLABORADOR_LINK === 'ATIVO'
+        : proximas.FF_EXTRATO_COLABORADOR_LINK &&
+          producaoAtual.FF_EXTRATO_COLABORADOR_LINK,
+    FF_PWA_PONTO_CAMPO:
+      estadosPartial?.FF_PWA_PONTO_CAMPO !== undefined
+        ? estadosPartial.FF_PWA_PONTO_CAMPO === 'ATIVO'
+        : proximas.FF_PWA_PONTO_CAMPO && producaoAtual.FF_PWA_PONTO_CAMPO,
+  };
+
   const novasConfigs: Record<string, unknown> = {
     ...configsAtuais,
     feature_flags_homologacao: proximas,
+    feature_flags_producao: proximaProducao,
     feature_flags_atualizado_por: atualizadoPor,
     feature_flags_atualizado_em: new Date().toISOString(),
   };
@@ -228,6 +261,51 @@ export async function lerTodasFeatureFlagsPorEmpresa(): Promise<
   const [jhoston, intermack] = await Promise.all([
     lerFeatureFlagsTenant(TENANTS.jhoston.id),
     lerFeatureFlagsTenant(TENANTS.intermack.id),
+  ]);
+  return { jhoston, intermack };
+}
+
+export async function lerEstadosFeatureFlagsTenant(
+  tenantId: string
+): Promise<FeatureFlagsEstados> {
+  const flags = await lerFeatureFlagsTenant(tenantId);
+  let producao: FeatureFlagsHomologacao = { ...FEATURE_FLAGS_DEFAULT };
+  try {
+    const { data: paramRow } = await supabaseAdmin
+      .from('parametros_sistema')
+      .select('configuracoes')
+      .eq('tenant_id', tenantId)
+      .limit(1)
+      .maybeSingle();
+    const configs = (paramRow?.configuracoes || null) as Record<
+      string,
+      unknown
+    > | null;
+    if (configs && configs.feature_flags_producao) {
+      producao = normalizarFeatureFlags(configs.feature_flags_producao);
+    }
+  } catch {
+    // fallback seguro: em homologação
+  }
+
+  const resolver = (k: FeatureFlagKey): FeatureFlagEstado => {
+    if (!flags[k]) return 'OFF';
+    return producao[k] ? 'ATIVO' : 'HOMOLOGACAO';
+  };
+
+  return {
+    FF_RESUMO_DIARIO_19H: resolver('FF_RESUMO_DIARIO_19H'),
+    FF_EXTRATO_COLABORADOR_LINK: resolver('FF_EXTRATO_COLABORADOR_LINK'),
+    FF_PWA_PONTO_CAMPO: resolver('FF_PWA_PONTO_CAMPO'),
+  };
+}
+
+export async function lerTodosEstadosFeatureFlagsPorEmpresa(): Promise<
+  Record<TenantSlug, FeatureFlagsEstados>
+> {
+  const [jhoston, intermack] = await Promise.all([
+    lerEstadosFeatureFlagsTenant(TENANTS.jhoston.id),
+    lerEstadosFeatureFlagsTenant(TENANTS.intermack.id),
   ]);
   return { jhoston, intermack };
 }

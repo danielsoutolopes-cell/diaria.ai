@@ -12,9 +12,11 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import type {
+  FeatureFlagEstado,
   FeatureFlagKey,
   FeatureFlagMetadata,
   FeatureFlagsAuditoriaTenant,
+  FeatureFlagsEstados,
   FeatureFlagsHomologacao,
 } from '@/services/featureFlagsStorage';
 import type { TenantSlug } from '@/lib/tenant';
@@ -22,9 +24,16 @@ import type { TenantSlug } from '@/lib/tenant';
 interface FeatureFlagsApiResponse {
   success?: boolean;
   porEmpresa?: Record<TenantSlug, FeatureFlagsHomologacao>;
+  estadosPorEmpresa?: Record<TenantSlug, FeatureFlagsEstados>;
   auditoriaPorEmpresa?: Record<TenantSlug, FeatureFlagsAuditoriaTenant>;
   catalogo?: FeatureFlagMetadata[];
   error?: string;
+}
+
+function proximoEstadoFlag(atual: FeatureFlagEstado): FeatureFlagEstado {
+  if (atual === 'OFF') return 'HOMOLOGACAO';
+  if (atual === 'HOMOLOGACAO') return 'ATIVO';
+  return 'OFF';
 }
 
 interface FeatureFlagsHomologacaoPanelProps {
@@ -68,6 +77,20 @@ export default function FeatureFlagsHomologacaoPanel({
       FF_PWA_PONTO_CAMPO: false,
     },
   });
+  const [estadosPorEmpresa, setEstadosPorEmpresa] = useState<
+    Record<TenantSlug, FeatureFlagsEstados>
+  >({
+    jhoston: {
+      FF_RESUMO_DIARIO_19H: 'OFF',
+      FF_EXTRATO_COLABORADOR_LINK: 'OFF',
+      FF_PWA_PONTO_CAMPO: 'OFF',
+    },
+    intermack: {
+      FF_RESUMO_DIARIO_19H: 'OFF',
+      FF_EXTRATO_COLABORADOR_LINK: 'OFF',
+      FF_PWA_PONTO_CAMPO: 'OFF',
+    },
+  });
   const [auditoriaPorEmpresa, setAuditoriaPorEmpresa] = useState<
     Record<TenantSlug, FeatureFlagsAuditoriaTenant>
   >({
@@ -97,6 +120,7 @@ export default function FeatureFlagsHomologacaoPanel({
         return;
       }
       if (data.porEmpresa) setPorEmpresa(data.porEmpresa);
+      if (data.estadosPorEmpresa) setEstadosPorEmpresa(data.estadosPorEmpresa);
       if (data.auditoriaPorEmpresa) {
         setAuditoriaPorEmpresa(data.auditoriaPorEmpresa);
       }
@@ -115,10 +139,10 @@ export default function FeatureFlagsHomologacaoPanel({
     void carregar();
   }, [carregar]);
 
-  async function alternarFlag(
+  async function alternarEstadoFlag(
     tenantSlug: TenantSlug,
     flagKey: FeatureFlagKey,
-    novoValor: boolean
+    novoEstado: FeatureFlagEstado
   ) {
     const lockId = `${tenantSlug}:${flagKey}`;
     setSalvandoChave(lockId);
@@ -129,7 +153,7 @@ export default function FeatureFlagsHomologacaoPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantSlug,
-          flags: { [flagKey]: novoValor },
+          estados: { [flagKey]: novoEstado },
           atualizadoPor: `${usuarioAtual} (/config-geral)`,
         }),
       });
@@ -139,18 +163,25 @@ export default function FeatureFlagsHomologacaoPanel({
       if (!res.ok) {
         setFeedback({
           tipo: 'erro',
-          texto: data.error || 'Erro ao atualizar flag de homologação.',
+          texto: data.error || 'Erro ao atualizar flag.',
         });
         return;
       }
       if (data.porEmpresa) setPorEmpresa(data.porEmpresa);
+      if (data.estadosPorEmpresa) setEstadosPorEmpresa(data.estadosPorEmpresa);
       if (data.auditoriaPorEmpresa) {
         setAuditoriaPorEmpresa(data.auditoriaPorEmpresa);
       }
       const nomeEmp = tenantSlug === 'jhoston' ? 'Jhoston' : 'Intermack';
+      const labelEstado =
+        novoEstado === 'ATIVO'
+          ? '100% ATIVO (PRODUÇÃO OFICIAL)'
+          : novoEstado === 'HOMOLOGACAO'
+            ? 'EM HOMOLOGAÇÃO'
+            : 'DESATIVADA (OFF)';
       setFeedback({
         tipo: 'sucesso',
-        texto: `${flagKey} ${novoValor ? 'ATIVADA (EM HOMOLOGAÇÃO)' : 'DESATIVADA (100% OCULTA/BLOQUEADA)'} para ${nomeEmp}.`,
+        texto: `${flagKey} → ${labelEstado} para ${nomeEmp}.`,
       });
     } catch {
       setFeedback({
@@ -330,29 +361,50 @@ export default function FeatureFlagsHomologacaoPanel({
 
                 <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                   {empresas.map((emp) => {
-                    const ativo = porEmpresa[emp.slug][item.key];
+                    const estadoAtual: FeatureFlagEstado =
+                      estadosPorEmpresa[emp.slug]?.[item.key] ||
+                      (porEmpresa[emp.slug][item.key] ? 'HOMOLOGACAO' : 'OFF');
+                    const proximo = proximoEstadoFlag(estadoAtual);
                     const lockId = `${emp.slug}:${item.key}`;
                     const busy = salvandoChave === lockId;
+                    const estiloBtn =
+                      estadoAtual === 'ATIVO'
+                        ? 'bg-emerald-50 border-emerald-300 text-emerald-950 shadow-sm'
+                        : estadoAtual === 'HOMOLOGACAO'
+                          ? 'bg-amber-50 border-amber-300 text-amber-950 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100';
+                    const estiloDot =
+                      estadoAtual === 'ATIVO'
+                        ? 'bg-emerald-500'
+                        : estadoAtual === 'HOMOLOGACAO'
+                          ? 'bg-amber-500 animate-pulse'
+                          : 'bg-slate-300';
+                    const estiloBadge =
+                      estadoAtual === 'ATIVO'
+                        ? 'bg-emerald-600 text-white'
+                        : estadoAtual === 'HOMOLOGACAO'
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-slate-200 text-slate-600';
+                    const textoBadge = busy
+                      ? '...'
+                      : estadoAtual === 'ATIVO'
+                        ? '100% ATIVO'
+                        : estadoAtual === 'HOMOLOGACAO'
+                          ? 'EM HOMOLOGAÇÃO'
+                          : 'OFF';
                     return (
                       <button
                         key={emp.slug}
                         type="button"
                         disabled={busy}
+                        title="Clique para alternar: OFF → EM HOMOLOGAÇÃO → 100% ATIVO"
                         onClick={() =>
-                          void alternarFlag(emp.slug, item.key, !ativo)
+                          void alternarEstadoFlag(emp.slug, item.key, proximo)
                         }
-                        className={`px-3.5 py-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2.5 transition-all ${
-                          ativo
-                            ? 'bg-amber-50 border-amber-300 text-amber-950 shadow-sm'
-                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                        }`}
+                        className={`px-3.5 py-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2.5 transition-all ${estiloBtn}`}
                       >
                         <span
-                          className={`w-2.5 h-2.5 rounded-full ${
-                            ativo
-                              ? 'bg-amber-500 animate-pulse'
-                              : 'bg-slate-300'
-                          }`}
+                          className={`w-2.5 h-2.5 rounded-full ${estiloDot}`}
                         />
                         <span>
                           {emp.nome}{' '}
@@ -361,13 +413,9 @@ export default function FeatureFlagsHomologacaoPanel({
                           </span>
                         </span>
                         <span
-                          className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                            ativo
-                              ? 'bg-amber-600 text-white'
-                              : 'bg-slate-200 text-slate-600'
-                          }`}
+                          className={`text-[10px] font-black px-2 py-0.5 rounded-full ${estiloBadge}`}
                         >
-                          {busy ? '...' : ativo ? 'EM HOMOLOGAÇÃO' : 'OFF'}
+                          {textoBadge}
                         </span>
                       </button>
                     );

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { lerFeatureFlagsTenant } from '@/services/featureFlagsStorage';
+import {
+  lerEstadosFeatureFlagsTenant,
+  lerFeatureFlagsTenant,
+} from '@/services/featureFlagsStorage';
 import {
   assinarSessaoPontoCampo,
   calcularStatusRelatorioSemanal,
@@ -30,8 +33,8 @@ async function carregarConfigCampoJhoston(): Promise<{
   const encarregados: EncarregadoCampoConfig[] =
     Array.isArray(rawEncarregados) && rawEncarregados.length > 0
       ? (rawEncarregados as EncarregadoCampoConfig[]).filter(
-          (e) => e && e.ativo !== false && e.id && e.nome && e.pin
-        )
+        (e) => e && e.ativo !== false && e.id && e.nome && e.pin
+      )
       : [...ENCARREGADOS_CAMPO_DEFAULT_JHOSTON];
 
   const diarios = Array.isArray(configs.diarios_obra)
@@ -43,7 +46,11 @@ async function carregarConfigCampoJhoston(): Promise<{
 
 export async function GET(req: NextRequest) {
   try {
-    const flags = await lerFeatureFlagsTenant(JHOSTON_TENANT_ID);
+    const [flags, estados] = await Promise.all([
+      lerFeatureFlagsTenant(JHOSTON_TENANT_ID),
+      lerEstadosFeatureFlagsTenant(JHOSTON_TENANT_ID),
+    ]);
+    const emHomologacao = estados.FF_PWA_PONTO_CAMPO === 'HOMOLOGACAO';
     if (!flags.FF_PWA_PONTO_CAMPO) {
       return NextResponse.json({
         enabled: false,
@@ -65,7 +72,7 @@ export async function GET(req: NextRequest) {
     if (!sessao || sessao.tenantId !== JHOSTON_TENANT_ID) {
       return NextResponse.json({
         enabled: true,
-        homologacao: true,
+        homologacao: emHomologacao,
         autenticado: false,
         encarregados: encarregadosPublicos,
       });
@@ -96,7 +103,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       enabled: true,
-      homologacao: true,
+      homologacao: emHomologacao,
       autenticado: true,
       encarregado: {
         id: sessao.encarregadoId,

@@ -8,9 +8,12 @@ import {
 import {
   FEATURE_FLAGS_CATALOGO,
   lerAuditoriaFeatureFlagsPorEmpresa,
+  lerEstadosFeatureFlagsTenant,
   lerFeatureFlagsTenant,
   lerTodasFeatureFlagsPorEmpresa,
+  lerTodosEstadosFeatureFlagsPorEmpresa,
   salvarFeatureFlagsTenant,
+  type FeatureFlagsEstados,
   type FeatureFlagsHomologacao,
 } from '@/services/featureFlagsStorage';
 
@@ -19,6 +22,7 @@ export const dynamic = 'force-dynamic';
 interface FeatureFlagsPostBody {
   tenantSlug?: TenantSlug;
   flags?: Partial<FeatureFlagsHomologacao>;
+  estados?: Partial<FeatureFlagsEstados>;
   atualizadoPor?: string;
 }
 
@@ -41,7 +45,10 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const incluirTodas = searchParams.get('all') === '1';
 
-    const flagsAtivas = await lerFeatureFlagsTenant(activeTenant.id);
+    const [flagsAtivas, estadosAtivos] = await Promise.all([
+      lerFeatureFlagsTenant(activeTenant.id),
+      lerEstadosFeatureFlagsTenant(activeTenant.id),
+    ]);
 
     if (incluirTodas) {
       const auth = verificarAdminHub(req);
@@ -55,10 +62,12 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      const [porEmpresa, auditoriaPorEmpresa] = await Promise.all([
-        lerTodasFeatureFlagsPorEmpresa(),
-        lerAuditoriaFeatureFlagsPorEmpresa(),
-      ]);
+      const [porEmpresa, estadosPorEmpresa, auditoriaPorEmpresa] =
+        await Promise.all([
+          lerTodasFeatureFlagsPorEmpresa(),
+          lerTodosEstadosFeatureFlagsPorEmpresa(),
+          lerAuditoriaFeatureFlagsPorEmpresa(),
+        ]);
 
       return NextResponse.json({
         success: true,
@@ -68,7 +77,9 @@ export async function GET(req: NextRequest) {
           nome: activeTenant.nome,
         },
         flags: flagsAtivas,
+        estados: estadosAtivos,
         porEmpresa,
+        estadosPorEmpresa,
         auditoriaPorEmpresa,
         catalogo: FEATURE_FLAGS_CATALOGO,
       });
@@ -82,6 +93,7 @@ export async function GET(req: NextRequest) {
         nome: activeTenant.nome,
       },
       flags: flagsAtivas,
+      estados: estadosAtivos,
       catalogo: FEATURE_FLAGS_CATALOGO,
     });
   } catch (err: unknown) {
@@ -107,7 +119,10 @@ export async function POST(req: NextRequest) {
     const activeTenant = getActiveTenantFromRequest(req);
     const body = (await req.json()) as FeatureFlagsPostBody;
 
-    if (!body.flags || typeof body.flags !== 'object') {
+    if (
+      (!body.flags || typeof body.flags !== 'object') &&
+      (!body.estados || typeof body.estados !== 'object')
+    ) {
       return NextResponse.json(
         { error: 'Payload de flags inválido.' },
         { status: 400 }
@@ -124,14 +139,17 @@ export async function POST(req: NextRequest) {
     const alvoTenant = TENANTS[alvoSlug];
     const atualizadas = await salvarFeatureFlagsTenant(
       alvoTenant.id,
-      body.flags,
-      body.atualizadoPor || `${auth.usuario} (/config-geral)`
+      body.flags || {},
+      body.atualizadoPor || `${auth.usuario} (/config-geral)`,
+      body.estados
     );
 
-    const [porEmpresa, auditoriaPorEmpresa] = await Promise.all([
-      lerTodasFeatureFlagsPorEmpresa(),
-      lerAuditoriaFeatureFlagsPorEmpresa(),
-    ]);
+    const [porEmpresa, estadosPorEmpresa, auditoriaPorEmpresa] =
+      await Promise.all([
+        lerTodasFeatureFlagsPorEmpresa(),
+        lerTodosEstadosFeatureFlagsPorEmpresa(),
+        lerAuditoriaFeatureFlagsPorEmpresa(),
+      ]);
 
     return NextResponse.json({
       success: true,
@@ -142,8 +160,9 @@ export async function POST(req: NextRequest) {
       },
       flags: atualizadas,
       porEmpresa,
+      estadosPorEmpresa,
       auditoriaPorEmpresa,
-      message: `Feature Flags de homologação atualizadas para ${alvoTenant.nome} via /config-geral.`,
+      message: `Feature Flags atualizadas para ${alvoTenant.nome} via /config-geral.`,
     });
   } catch (err: unknown) {
     const msg =

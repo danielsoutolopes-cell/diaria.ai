@@ -83,6 +83,7 @@ type AbaPonto = 'PONTO' | 'RELATORIO';
 export default function PontoCampoPage() {
   const [loading, setLoading] = useState(true);
   const [enabled, setEnabled] = useState(false);
+  const [emHomologacao, setEmHomologacao] = useState(true);
   const [autenticado, setAutenticado] = useState(false);
   const [encarregadosLista, setEncarregadosLista] = useState<
     EncarregadoPublico[]
@@ -169,6 +170,7 @@ export default function PontoCampoPage() {
       const res = await fetch('/api/ponto-campo/auth', { cache: 'no-store' });
       const data = (await res.json()) as {
         enabled?: boolean;
+        homologacao?: boolean;
         autenticado?: boolean;
         encarregados?: EncarregadoPublico[];
         encarregado?: EncarregadoSessao;
@@ -177,6 +179,7 @@ export default function PontoCampoPage() {
       };
 
       setEnabled(data.enabled === true);
+      setEmHomologacao(data.homologacao !== false);
       setAutenticado(data.autenticado === true);
       if (data.encarregados) {
         setEncarregadosLista(data.encarregados);
@@ -694,9 +697,11 @@ export default function PontoCampoPage() {
           className="max-w-sm w-full bg-white rounded-3xl p-6 shadow-2xl space-y-5"
         >
           <div className="text-center space-y-1.5">
-            <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
-              EM HOMOLOGAÇÃO
-            </span>
+            {emHomologacao && (
+              <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                EM HOMOLOGAÇÃO
+              </span>
+            )}
             <h1 className="text-xl font-black text-slate-950">
               Ponto de Campo
             </h1>
@@ -785,9 +790,11 @@ export default function PontoCampoPage() {
               <h1 className="text-sm font-black tracking-tight">
                 Ponto de Campo
               </h1>
-              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-400 text-amber-950">
-                HOMOLOGAÇÃO
-              </span>
+              {emHomologacao && (
+                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-400 text-amber-950">
+                  HOMOLOGAÇÃO
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-emerald-200 font-medium">
               Encarregado: <strong className="text-white">{encarregado.nome}</strong>
