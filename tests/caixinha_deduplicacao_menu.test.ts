@@ -8,6 +8,8 @@ import {
   isLancamentoSinteticoConsolidado,
   type MovimentoCaixaCampo,
 } from '@/lib/caixinhaDeduplicacao';
+import { formatarNomeExibicaoTrabalhador } from '@/lib/normalizarObra';
+import { formatarTicketPontoWhatsApp } from '@/services/ticketPonto';
 
 describe('Caixinha de Campo V21 — Anti-Duplicidade do Gil & Unificação no Menu', () => {
   it('1. Elimina dupla contagem entre consolidado sintético pré-implantação (SQL) e os 12 lançamentos itemizados reais (JSONB)', () => {
@@ -160,6 +162,61 @@ describe('Caixinha de Campo V21 — Anti-Duplicidade do Gil & Unificação no Me
       migrationV21.includes("tenant_id = '00000000-0000-0000-0000-000000000001'") &&
         migrationV21.includes('ON CONFLICT (id) DO NOTHING'),
       'Migration V21 deve ser isolada ao tenant Jhoston e idempotente'
+    );
+  });
+
+  it('4. Exibição limpa do Gil: sempre "Gil" na UI, Caixinha e Tickets sem vazar Gilvan/Gil335Revest', () => {
+    const variacoesGil = [
+      'Gil',
+      'GIL',
+      'Gilvan',
+      'Gilvan - Gil',
+      'Gil (Gilvan)',
+      'Gil335Revest',
+      'Gil + Gil335Revest',
+      'Gil / Gilvan / Gil335Revest',
+      'Gilvan Batista dos Santos',
+      '24993212989',
+      '5524993212989@s.whatsapp.net',
+    ];
+
+    for (const variacao of variacoesGil) {
+      assert.equal(
+        formatarNomeExibicaoTrabalhador(variacao),
+        'Gil',
+        `Esperava "Gil" limpo para "${variacao}"`
+      );
+    }
+
+    // Ticket WhatsApp nunca exibe Gilvan - Gil ou Gil335Revest
+    const ticket = formatarTicketPontoWhatsApp({
+      loteId: 'abcdef12-3456-7890-abcd-ef1234567890',
+      obraNome: 'PISCINA PORTO SEGURO',
+      dataReferencia: '2026-11-23',
+      apontadoPorTelefone: '5524993212989',
+      dataHoraEnvioOriginal: '18:00',
+      homologadoPor: 'Patrícia Grubel',
+      dataHoraHomologacao: '23/11/2026 18:10',
+      apontamentos: [
+        { nome: 'Gilvan - Gil', fracao: 1, motivo: 'NORMAL' },
+        { nome: 'Gil335Revest', fracao: 0.5, motivo: 'MEIO' },
+      ],
+      totalColaboradores: 2,
+    });
+    assert.ok(ticket.includes('• Gil.......................'));
+    assert.ok(!ticket.includes('Gilvan'));
+    assert.ok(!ticket.includes('Gil335Revest'));
+
+    // CaixaCampoPanel não renderiza badge concatenado "Unificado: ..."
+    const repoRoot = process.cwd();
+    const caixaPanel = fs.readFileSync(
+      path.join(repoRoot, 'src/components/CaixaCampoPanel.tsx'),
+      'utf8'
+    );
+    assert.ok(
+      !caixaPanel.includes("aliasesUnificados.join(' + ')") &&
+        !caixaPanel.includes('Unificado:'),
+      'CaixaCampoPanel não deve exibir badge concatenado de apelidos no card'
     );
   });
 });

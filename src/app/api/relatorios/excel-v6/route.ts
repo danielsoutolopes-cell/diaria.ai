@@ -79,7 +79,7 @@ const PRE_IMPLANTACAO_GIL_13_11: ExcelV6CaixinhaMovimento[] = [
     data: '2026-11-13',
     hora: '09:00',
     encarregado: 'Gil',
-    perfisUnificados: 'Gil / Gilvan / Gil335Revest',
+    perfisUnificados: 'Gil',
     obra: 'PISCINA PORTO SEGURO',
     tipo: 'ENTRADA_PIX',
     categoria: 'Suprimento PIX',
@@ -92,7 +92,7 @@ const PRE_IMPLANTACAO_GIL_13_11: ExcelV6CaixinhaMovimento[] = [
     data: '2026-11-13',
     hora: '17:30',
     encarregado: 'Gil',
-    perfisUnificados: 'Gil / Gilvan / Gil335Revest',
+    perfisUnificados: 'Gil',
     obra: 'PISCINA PORTO SEGURO',
     tipo: 'NOTA_DESPESA',
     categoria: 'Material / Despesas de Campo',
@@ -273,7 +273,7 @@ export async function GET(req: NextRequest) {
             data: row.data_movimentacao,
             hora: row.hora_movimentacao || '12:00',
             encarregado,
-            perfisUnificados: row.encarregado_origem || encarregado,
+            perfisUnificados: encarregado,
             obra: row.obra_nome,
             tipo: row.tipo,
             categoria: row.categoria || 'Geral',
@@ -309,7 +309,7 @@ export async function GET(req: NextRequest) {
           data: m.data,
           hora: m.hora || '12:00',
           encarregado,
-          perfisUnificados: m.encarregadoOrigem || encarregado,
+          perfisUnificados: encarregado,
           obra: m.obra || 'Obra Geral',
           tipo: m.tipo,
           categoria: m.categoria || 'Geral',
@@ -491,7 +491,9 @@ export async function GET(req: NextRequest) {
           etapa:
             l.vale_etapa ||
             (l.comprovante_url ? 'CONCILIADO' : 'SOLICITADO'),
-          solicitadoPor: l.solicitado_por || 'Gil',
+          solicitadoPor: normalizarNomeTrabalhadorCanonico(
+            l.solicitado_por || 'Gil'
+          ),
           dataHoraSolicitacao:
             l.data_hora_solicitacao ||
             `${l.data_referencia}T${/^\d{2}:\d{2}$/.test(horaOrigem) ? horaOrigem : '12:00'}:00-03:00`,

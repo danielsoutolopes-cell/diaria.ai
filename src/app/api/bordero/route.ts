@@ -221,7 +221,9 @@ export async function GET(req: NextRequest) {
             Number(l.fracao_dia) || (l.tipo_lancamento === 'PONTO' ? 1.0 : 0),
           valor: Number(l.valor_monetario) || 0,
           comprovanteUrl: l.comprovante_url || null,
-          solicitado_por: isVale ? l.solicitado_por || 'Gil' : null,
+          solicitado_por: isVale
+            ? normalizarNomeTrabalhadorCanonico(l.solicitado_por || 'Gil')
+            : null,
           data_hora_solicitacao: isVale
             ? l.data_hora_solicitacao ||
               `${l.data_referencia}T${horaFallback}:00-03:00`

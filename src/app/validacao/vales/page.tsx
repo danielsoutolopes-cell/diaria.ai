@@ -81,7 +81,7 @@ export default function ValidacaoValesPage() {
   const [trabalhadores, setTrabalhadores] = useState<string[]>([]);
   const [obras, setObras] = useState<ObraOption[]>([]);
   const [solicitantes, setSolicitantes] = useState<string[]>([
-    'Gilvan - Gil',
+    'Gil',
     'Patrícia',
     'Daniel',
     'Joabson',
@@ -99,7 +99,7 @@ export default function ValidacaoValesPage() {
   const [dataInput, setDataInput] = useState<string>(() =>
     new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
   );
-  const [solicitanteInput, setSolicitanteInput] = useState<string>('Gilvan - Gil');
+  const [solicitanteInput, setSolicitanteInput] = useState<string>('Gil');
   const [obsInput, setObsInput] = useState<string>('');
   const [salvando, setSalvando] = useState<boolean>(false);
 
@@ -133,7 +133,7 @@ export default function ValidacaoValesPage() {
         setSolicitanteInput((atual) =>
           atual && d.solicitantes?.includes(atual)
             ? atual
-            : d.solicitantePadrao || d.solicitantes?.[0] || 'Gilvan - Gil'
+            : d.solicitantePadrao || d.solicitantes?.[0] || 'Gil'
         );
       }
       if (!trabalhadorSel && listaTrabs.length > 0) {

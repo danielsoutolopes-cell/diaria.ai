@@ -135,8 +135,13 @@ function normalizarOpcaoSolicitante(raw: string): string | null {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
   if (lower === 'whatsapp log' || lower === 'registros de origem') return null;
-  if (lower === 'gil' || lower === 'gilvan' || lower.includes('gilvan')) {
-    return 'Gilvan - Gil';
+  if (
+    lower === 'gil' ||
+    lower === 'gilvan' ||
+    lower.includes('gilvan') ||
+    lower.includes('gil335')
+  ) {
+    return 'Gil';
   }
   if (lower === 'patricia' || lower.startsWith('patricia ')) {
     return 'Patrícia';
@@ -155,7 +160,7 @@ function montarSolicitantesPorTenant(
   const basePrioritaria =
     tenantSlug === 'intermack'
       ? ['Daniel', 'Patrícia']
-      : ['Gilvan - Gil', 'Patrícia', 'Daniel', 'Joabson', 'Manoel'];
+      : ['Gil', 'Patrícia', 'Daniel', 'Joabson', 'Manoel'];
 
   const vistos = new Set<string>();
   const lista: string[] = [];
@@ -182,7 +187,7 @@ function montarSolicitantesPorTenant(
   return {
     solicitantes: lista,
     solicitantePadrao:
-      tenantSlug === 'intermack' ? lista[0] || 'Daniel' : 'Gilvan - Gil',
+      tenantSlug === 'intermack' ? lista[0] || 'Daniel' : 'Gil',
   };
 }
 
@@ -314,7 +319,8 @@ export async function GET(req: NextRequest) {
           minute: '2-digit',
         });
 
-      const solicitadoPor = row.solicitado_por || 'Gilvan - Gil';
+      const solicitadoPor =
+        normalizarOpcaoSolicitante(row.solicitado_por || 'Gil') || 'Gil';
       const dataHoraSolicitacao =
         row.data_hora_solicitacao ||
         montarTimestampBrasiliaISO(row.data_referencia, hora);
@@ -514,7 +520,8 @@ export async function POST(req: NextRequest) {
       const horaRef = body.horario || getHoraBrasilia();
       const dataHoraSol =
         body.dataHoraSolicitacao || montarTimestampBrasiliaISO(dataRef, horaRef);
-      const solicitanteFinal = body.solicitadoPor?.trim() || 'Gilvan - Gil';
+      const solicitanteFinal =
+        normalizarOpcaoSolicitante(body.solicitadoPor || 'Gil') || 'Gil';
 
       const chaveIdempotencia = gerarChaveIdempotenciaVale({
         tenantId,
@@ -710,7 +717,8 @@ export async function POST(req: NextRequest) {
       );
       const dataRef = body.data || getHojeBrasilia();
       const horaRef = body.horario || getHoraBrasilia();
-      const solicitanteFinal = body.solicitadoPor?.trim() || 'Gilvan - Gil';
+      const solicitanteFinal =
+        normalizarOpcaoSolicitante(body.solicitadoPor || 'Gil') || 'Gil';
       const dataHoraSol =
         body.dataHoraSolicitacao || montarTimestampBrasiliaISO(dataRef, horaRef);
       const chaveIdempotencia = gerarChaveIdempotenciaVale({

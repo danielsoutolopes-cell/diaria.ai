@@ -114,7 +114,7 @@ describe('12. Deduplicação de Vales (31 -> 27 = R$ 2.700,00), Idempotência & 
 
     const pageCode = fs.readFileSync(pagePath, 'utf8');
     assert.match(pageCode, /aria-label="Solicitado por"/);
-    assert.match(pageCode, /useState<string>\('Gilvan - Gil'\)/);
+    assert.match(pageCode, /useState<string>\('Gil'\)/);
     assert.doesNotMatch(pageCode, /placeholder="Solicitado por\.\.\."/);
 
     const routeCode = fs.readFileSync(routePath, 'utf8');

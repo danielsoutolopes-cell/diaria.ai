@@ -13,6 +13,8 @@ import {
   ArrowRightCircle,
 } from 'lucide-react';
 
+import { formatarNomeExibicaoTrabalhador } from '@/lib/normalizarObra';
+
 interface MovimentoCaixaCampo {
   id: string;
   encarregado: string;
@@ -87,7 +89,11 @@ export default function CaixaCampoPanel({
       const listaFuncs = Array.from(
         new Set(
           (dFuncs.funcionarios || [])
-            .map((f) => f.nome_trabalhador?.trim())
+            .map((f) =>
+              f.nome_trabalhador?.trim()
+                ? formatarNomeExibicaoTrabalhador(f.nome_trabalhador)
+                : ''
+            )
             .filter(Boolean)
         )
       );
@@ -448,13 +454,8 @@ export default function CaixaCampoPanel({
                 <div className="flex flex-wrap items-center gap-2">
                   <Sparkles className="w-4 h-4 text-emerald-600" />
                   <span className="text-sm font-black text-slate-950">
-                    {c.encarregado}
+                    {formatarNomeExibicaoTrabalhador(c.encarregado)}
                   </span>
-                  {c.aliasesUnificados && c.aliasesUnificados.length > 0 && (
-                    <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200">
-                      Unificado: {c.aliasesUnificados.join(' + ')}
-                    </span>
-                  )}
                   {c.possuiPreImplantacao && (
                     <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                       Pré-implantação preservada

@@ -145,12 +145,14 @@ export function normalizarNomeTrabalhadorCanonico(
 
   if (
     chave.includes('GIL335') ||
-    chave === 'GILVAN GIL' ||
-    chave.startsWith('GILVAN ') ||
-    chave.startsWith('GILVAN(') ||
-    chave.startsWith('GIL (') ||
+    chave.includes('GILVAN') ||
+    chave === 'GIL' ||
+    chave.startsWith('GIL ') ||
     chave.startsWith('GIL(') ||
-    chave.startsWith('GIL -')
+    chave.startsWith('GIL-') ||
+    chave.startsWith('GIL/') ||
+    chave.startsWith('GIL+') ||
+    chave.replace(/\D/g, '').endsWith('24993212989')
   ) {
     return 'Gil';
   }
@@ -165,6 +167,23 @@ export function normalizarNomeTrabalhadorCanonico(
   }
 
   return original.replace(/\.+$/, '').trim();
+}
+
+/**
+ * Formata o nome de exibição limpo para UI, cards, extratos, caixinha, borderôs e tickets.
+ * Para qualquer variação/apelido/concatenação ou identificador bruto vinculado ao Gil
+ * (Gil, GIL, Gilvan, Gilvan - Gil, Gil335Revest, Gil + Gil335Revest, telefone 24993212989),
+ * retorna SEMPRE exatamente "Gil", mantendo os apelidos apenas para reconhecimento interno.
+ */
+export function formatarNomeExibicaoTrabalhador(
+  nomeBruto: string | null | undefined,
+  aliasesExtras?: Record<string, string>
+): string {
+  const canonico = normalizarNomeTrabalhadorCanonico(nomeBruto, aliasesExtras);
+  if (limparChaveNome(canonico) === 'GIL') {
+    return 'Gil';
+  }
+  return canonico;
 }
 
 /**

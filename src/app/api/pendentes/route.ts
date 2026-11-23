@@ -105,7 +105,9 @@ function extrairMetadadosMensagem(
     const matchHash = texto.match(/SHA256:\s*([^\n]+)/);
     const idxMsg = texto.indexOf('[MENSAGEM_ORIGINAL]');
 
-    if (matchRem) origem = `Zap: ${matchRem[1].trim()}`;
+    if (matchRem) {
+      origem = `Zap: ${normalizarNomeTrabalhadorCanonico(matchRem[1].trim())}`;
+    }
     if (matchTime) timestampOriginal = matchTime[1].trim();
     if (matchHash) sha256Hash = matchHash[1].trim();
     if (idxMsg !== -1) {
@@ -371,7 +373,7 @@ export async function GET(req: NextRequest) {
           loteId: lote.id,
           obra: obraNome,
           data: lote.data_referencia,
-          trabalhador: d.nome_trabalhador,
+          trabalhador: normalizarNomeTrabalhadorCanonico(d.nome_trabalhador),
           fracao: Number(d.fracao_dia) || 1.0,
           tipo: 'PONTO',
           motivo: d.motivo_excecao || 'Apontamento via WhatsApp',
@@ -429,7 +431,9 @@ export async function GET(req: NextRequest) {
         loteId: targetLoteId,
         obra: existingMsg?.obra || v.obras_config?.nome || 'PORTO SEGURO',
         data: v.data_referencia || new Date().toISOString().split('T')[0],
-        trabalhador: v.nome_trabalhador || 'Colaborador',
+        trabalhador: normalizarNomeTrabalhadorCanonico(
+          v.nome_trabalhador || 'Colaborador'
+        ),
         fracao: 0,
         tipo: 'VALE',
         motivo: v.observacao || 'Pedido de Vale via WhatsApp',

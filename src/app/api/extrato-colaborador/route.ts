@@ -207,7 +207,7 @@ export async function GET(req: NextRequest) {
         obra: extrairObra(r.obras_config),
         valor: Number(r.valor_monetario || 0),
         status: r.status,
-        solicitadoPor: r.solicitado_por || 'Gil',
+        solicitadoPor: normalizarNomeTrabalhadorCanonico(r.solicitado_por || 'Gil'),
         observacao: r.observacao || 'Vale adiantamento',
       }));
 

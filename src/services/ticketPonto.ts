@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { formatarNomeExibicaoTrabalhador } from '@/lib/normalizarObra';
 
 export interface TicketPontoData {
   loteId: string;
@@ -60,7 +61,8 @@ export function formatarTicketPontoWhatsApp(data: TicketPontoData): string {
       rotulo = '[❌ Falta]';
     }
 
-    ticket += `• ${ap.nome.padEnd(26, '.')} ${rotulo}\n`;
+    const nomeExibicao = formatarNomeExibicaoTrabalhador(ap.nome);
+    ticket += `• ${nomeExibicao.padEnd(26, '.')} ${rotulo}\n`;
   });
 
   ticket += `────────────────────────────────────────\n`;

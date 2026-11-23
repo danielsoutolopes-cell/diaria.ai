@@ -46,14 +46,13 @@ const MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON: MovimentoCaixaCampo[] = [
   {
     id: 'v11-preimp-2026-11-13-gil-entradas-700',
     encarregado: 'Gil',
-    encarregadoOrigem: 'Gil / Gilvan / Gil335Revest',
+    encarregadoOrigem: 'Gil',
     obra: 'PISCINA PORTO SEGURO',
     data: '2026-11-13',
     hora: '09:00',
     tipo: 'ENTRADA_PIX',
     categoria: 'Suprimento PIX',
-    descricao:
-      'Entradas PIX consolidadas (Pré-implantação 13/11 — Gil + Gil335Revest)',
+    descricao: 'Entradas PIX consolidadas (Pré-implantação 13/11)',
     valor: 700.0,
     status: 'APROVADO',
     isPreImplantacao: true,
@@ -63,14 +62,13 @@ const MOVIMENTOS_PRE_IMPLANTACAO_JHOSTON: MovimentoCaixaCampo[] = [
   {
     id: 'v11-preimp-2026-11-13-gil-saidas-54694',
     encarregado: 'Gil',
-    encarregadoOrigem: 'Gil / Gilvan / Gil335Revest',
+    encarregadoOrigem: 'Gil',
     obra: 'PISCINA PORTO SEGURO',
     data: '2026-11-13',
     hora: '17:30',
     tipo: 'NOTA_DESPESA',
     categoria: 'Material / Despesas de Campo',
-    descricao:
-      'Saídas e notas comprovadas (Pré-implantação 13/11 — Gil + Gil335Revest)',
+    descricao: 'Saídas e notas comprovadas (Pré-implantação 13/11)',
     valor: 546.94,
     status: 'APROVADO',
     isPreImplantacao: true,
