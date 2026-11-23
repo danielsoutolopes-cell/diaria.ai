@@ -268,10 +268,11 @@ Na aba **Mensageria & Pedidos IA** (`/mensageria`):
 
 ## ⚡ 13. Vales em 2 Etapas, Rateio Multi-Obra (`½ + ½`) & Quitação PIX por Foto
 
-### 13.1 Vales em 2 Etapas (`/validacao/vales`)
-- **Etapa 1 (Solicitação)**: Pedidos enviados no WhatsApp em linguagem natural (inclusive mensagens complementares em sequência) ou cadastrados com os dropdowns de Trabalhador e Obra entram com padrão **R$ 100,00** quando o valor é omitido.
+### 13.1 Vales em 2 Etapas (`/validacao/vales`) & Separação Estrita (0 Diárias)
+- **Etapa 1 (Solicitação Exclusiva de Vales — 0 Diárias)**: Mensagens no WhatsApp que indiquem apenas pedido de vale (ex.: *"Bom dia, 6 vale por favor"* seguido por lista vertical de nomes) são classificadas **exclusivamente como vales**, nunca gerando diárias nem lotes de ponto fantasmas.
+- **Valor Explícito por Linha + Fallback R$ 100,00 + Aprendizado por Remetente**: Linhas com valor específico (ex.: *"Colaborador B 50 reais."*) têm o valor extraído (`R$ 50,00`) e o nome limpo/canonizado automaticamente; linhas sem valor recebem o padrão **R$ 100,00**. O padrão de escrita e os apelidos ficam salvos no perfil do remetente na **Memória de Campo (IA)** para aplicação automática nos envios seguintes.
 - **Etapa 2 (Confirmação PIX + OCR)**: Ao anexar o comprovante PIX (manualmente ou pelo WhatsApp), a IA lê favorecido, valor e data, salva o arquivo na nuvem e pareia automaticamente com a solicitação pendente, liberando o vale no Borderô e no extrato.
-- **Exemplo Prático**: O encarregado escreve *"Um vale para o João"* e logo depois *"Para o Pedro também, por favor"*. Ambos entram na Etapa 1 com R$ 100,00. Assim que a administração envia os comprovantes PIX, o status muda para **Etapa 2: PIX Confirmado**.
+- **Exemplo Prático**: O encarregado envia *"Bom dia, 6 vale por favor"* com 5 nomes sem valor e *"Colaborador B 50 reais"*. O sistema registra **somente os 6 vales** (`5 × R$ 100,00 + 1 × R$ 50,00 = R$ 550,00`) na Etapa 1 e **0 diárias**. Assim que a administração anexa os comprovantes PIX, o status muda para **Etapa 2: PIX Confirmado**.
 
 ### 13.2 Rateio Multi-Obra (`0,5 + 0,5`) & Regra de Chuva (`R$ 120,00`)
 - Um colaborador pode atuar meio período em um canteiro e meio período em outro no mesmo dia (soma $\le 1,0$).

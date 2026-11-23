@@ -7,10 +7,18 @@ import {
   extrairAssinaturaEstruturalMensagem,
   extrairRemetenteDeTextoLote,
   gerarBlocoFewShotPrompt,
+  montarRegrasAprendizadoPedidoVales,
   sugerirObraPadraoSeOmitida,
   type ContextoAprendizadoRemetente,
 } from '@/services/aprendizadoCampoService';
-import { higienizarMensagemParaExtracao } from '@/lib/extracaoDiariasParser';
+import {
+  detectarMensagemExclusivaVales,
+  executarPipelineDuasPassagens,
+  extrairListaTrabalhadoresDeterministica,
+  extrairPedidoExclusivoVales,
+  higienizarMensagemParaExtracao,
+  reconciliarExtracaoComParserDeterministico,
+} from '@/lib/extracaoDiariasParser';
 import { TENANTS } from '@/lib/tenant';
 import type { NLPExtracaoResponse } from '@/types/database';
 
@@ -201,6 +209,181 @@ describe('Motor de Aprendizado Contínuo por Remetente (V18) & Diária Zé Baian
         apiVales.includes('registrarCorrecaoHumanaAprendizado') &&
         validacoesPage.includes('MemoriaAprendizadoPanel'),
       'Hooks de correção humana, API multi-tenant /api/aprendizado e UI discreta devem estar conectados'
+    );
+  });
+
+  it('4. V26 Separação Estrita: "Bom dia Patrícia 6 vale por favor." gera SOMENTE 6 vales (R$ 550,00) e 0 diárias (inclusive bloqueando alucinação da IA)', async () => {
+    const MENSAGEM_6_VALES = `Bom dia Patrícia 6 vale por favor.
+Mateus
+Ian
+Peu
+Lucas. J.
+José baiano 50 reais.
+Gil`;
+
+    // 1. Classificador estrito e parser determinístico de diárias
+    const deteccao = detectarMensagemExclusivaVales(MENSAGEM_6_VALES);
+    assert.equal(deteccao.isExclusivoVales, true);
+    assert.equal(deteccao.qtdDeclarada, 6);
+    assert.equal(deteccao.temValorExplicitoPorLinha, true);
+
+    const diariasDet = extrairListaTrabalhadoresDeterministica(MENSAGEM_6_VALES);
+    assert.equal(
+      diariasDet.obras.length,
+      0,
+      'Parser de diárias NUNCA pode gerar apontamentos em mensagem exclusiva de vales'
+    );
+
+    // 2. Extração determinística de vales (5 x R$ 100,00 + 1 x R$ 50,00 = R$ 550,00)
+    const pedidoVales = extrairPedidoExclusivoVales(MENSAGEM_6_VALES);
+    assert.equal(pedidoVales.isExclusivoVales, true);
+    assert.equal(pedidoVales.vales.length, 6);
+    assert.equal(pedidoVales.totalValor, 550);
+    assert.deepEqual(
+      pedidoVales.vales.map((v) => ({ nome: v.nome, valor: v.valor })),
+      [
+        { nome: 'Mateus', valor: 100 },
+        { nome: 'Ian', valor: 100 },
+        { nome: 'Peu', valor: 100 },
+        { nome: 'Lucas J.', valor: 100 },
+        { nome: 'Zé Baiano', valor: 50 },
+        { nome: 'Gil', valor: 100 },
+      ]
+    );
+
+    // 3. Mesmo se a IA alucinar diárias ou deixar "José baiano 50 reais" como nome, reconciliador corrige para 0 diárias e 6 vales limpos
+    const iaAlucinada: NLPExtracaoResponse = {
+      obras: [
+        {
+          nome_obra: 'GERAL',
+          apontamentos: [
+            { nome: 'Mateus', fracao: 1.0, motivo: 'NORMAL' },
+            { nome: 'José baiano 50 reais', fracao: 1.0, motivo: 'NORMAL' },
+          ],
+          vales: [{ nome: 'José baiano 50 reais.', valor: 100 }],
+          setup: false,
+        },
+      ],
+    };
+
+    const reconciliada = reconciliarExtracaoComParserDeterministico(
+      MENSAGEM_6_VALES,
+      iaAlucinada
+    );
+    assert.equal(reconciliada.obras.length, 1);
+    assert.equal(
+      reconciliada.obras[0].apontamentos.length,
+      0,
+      'Reconciliador deve zerar qualquer diária indevida em mensagem exclusiva de vales'
+    );
+    assert.equal(reconciliada.obras[0].vales.length, 6);
+    assert.equal(
+      reconciliada.obras[0].vales.reduce((acc, v) => acc + v.valor, 0),
+      550
+    );
+    assert.ok(
+      reconciliada.obras[0].vales.every((v) => !v.nome.toLowerCase().includes('50 reais')),
+      'Nenhum nome de trabalhador pode conter "50 reais"'
+    );
+
+    // 4. Pipeline completo em 2 passagens preserva texto original, gera 0 diárias e 6 vales = R$ 550,00
+    const pipelineRes = await executarPipelineDuasPassagens({
+      textoOriginal: MENSAGEM_6_VALES,
+      executarExtracaoLLM: async () => iaAlucinada,
+    });
+    assert.equal(pipelineRes.sanitizacao.textoOriginal, MENSAGEM_6_VALES);
+    assert.equal(pipelineRes.segundaPassagemExecutada, false);
+    assert.equal(pipelineRes.extracao.obras[0].apontamentos.length, 0);
+    assert.equal(pipelineRes.extracao.obras[0].vales.length, 6);
+    assert.equal(pipelineRes.pedidoExclusivoVales.totalValor, 550);
+  });
+
+  it('5. V26 Motor de Aprendizado por Remetente (Gil): gera regras estruturais + aliases, injeta few-shot, evita ponto_lote fantasma e valida Migration V26', () => {
+    const MENSAGEM_6_VALES = `Bom dia Patrícia 6 vale por favor.
+Mateus
+Ian
+Peu
+Lucas. J.
+José baiano 50 reais.
+Gil`;
+
+    const pedidoVales = extrairPedidoExclusivoVales(MENSAGEM_6_VALES);
+    const plano = montarRegrasAprendizadoPedidoVales(pedidoVales);
+
+    assert.ok(
+      plano.regras.some(
+        (r) =>
+          r.tipoRegra === 'ASSINATURA_ESTRUTURAL' &&
+          r.origemPadrao.includes('VALOR_POR_LINHA') &&
+          r.destinoCanonico.includes('0 diárias')
+      ),
+      'Deve gerar regra estrutural SOMENTE_VALES com valor por linha'
+    );
+    assert.ok(
+      plano.regras.some(
+        (r) =>
+          r.tipoRegra === 'EXPRESSAO_RECORRENTE' &&
+          r.origemPadrao === 'N vale por favor'
+      ),
+      'Deve gerar expressão recorrente "N vale por favor"'
+    );
+    assert.ok(
+      plano.regras.some(
+        (r) =>
+          r.tipoRegra === 'ALIAS_TRABALHADOR' &&
+          r.origemPadrao === 'José baiano' &&
+          r.destinoCanonico === 'Zé Baiano'
+      ),
+      'Deve gerar alias aprendido José baiano -> Zé Baiano'
+    );
+    assert.equal(plano.habitos.enviaListaExclusivaVales, true);
+    assert.equal(plano.habitos.usaValorExplicitoLinhaVale, true);
+
+    // Few-shot inclui os novos hábitos de vale do remetente
+    const fewShot = gerarBlocoFewShotPrompt({
+      tenantId: TENANTS.jhoston.id,
+      remetenteTelefone: '5524993212989',
+      perfilRemetente: {
+        id: 'sp-gil',
+        tenant_id: TENANTS.jhoston.id,
+        remetente_telefone: '5524993212989',
+        remetente_nome: 'Gil',
+        obra_padrao_sugerida: 'PISCINA PORTO SEGURO',
+        habitos_escrita: plano.habitos,
+        total_mensagens_validadas: 15,
+        ultimo_envio_em: '2026-11-23T10:00:00Z',
+      },
+      regrasAtivas: [],
+    });
+    assert.ok(fewShot.includes('N vale por favor'));
+    assert.ok(fewShot.includes('José baiano 50 reais'));
+
+    // Integridade de integração no Gemini, Webhook WhatsApp, UI MemoriaAprendizadoPanel e Migration V26
+    const repoRoot = process.cwd();
+    const geminiSrc = fs.readFileSync(
+      path.join(repoRoot, 'src/lib/gemini.ts'),
+      'utf8'
+    );
+    const webhookSrc = fs.readFileSync(
+      path.join(repoRoot, 'src/app/api/webhook/whatsapp/route.ts'),
+      'utf8'
+    );
+    const memoriaUi = fs.readFileSync(
+      path.join(repoRoot, 'src/components/MemoriaAprendizadoPanel.tsx'),
+      'utf8'
+    );
+    const sqlV26 = fs.readFileSync(
+      path.join(repoRoot, 'supabase/migration_v26_aprendizado_vales_exclusivos.sql'),
+      'utf8'
+    );
+
+    assert.ok(
+      geminiSrc.includes('registrarAprendizadoPedidoExclusivoVales') &&
+        webhookSrc.includes('const temApontamentosDiaria') &&
+        memoriaUi.includes('Lista só vales (0 diárias)') &&
+        sqlV26.includes('CABECALHO_VALE_POR_FAVOR+LISTA_VERTICAL+VALOR_POR_LINHA') &&
+        sqlV26.includes('00000000-0000-0000-0000-000000000001'),
+      'Integração completa de aprendizado de vales, prevenção de ponto_lote fantasma, UI e Migration V26 deve estar presente'
     );
   });
 });

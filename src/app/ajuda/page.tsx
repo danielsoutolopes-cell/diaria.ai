@@ -97,9 +97,9 @@ export default function AjudaPage() {
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-1">
-              <span className="font-black text-amber-950 block">4. Vales em 2 Etapas (/validacao/vales) &amp; Quitação PIX OCR</span>
+              <span className="font-black text-amber-950 block">4. Vales em 2 Etapas (/validacao/vales) &amp; Separação Estrita (0 Diárias)</span>
               <p className="text-[11px] text-amber-900">
-                <strong>Exemplo:</strong> Pedidos naturais no grupo entram na Etapa 1 (padrão R$ 100,00). Ao subir o comprovante PIX com IA, o vale é pareado para a Etapa 2. No Borderô, o botão <strong>Liquidar PIX (Foto OCR)</strong> lê o comprovante e mostra a prévia exata antes de baixar o ciclo.
+                <strong>Exemplo:</strong> Listas exclusivas de vale (ex.: <em>&quot;6 vale por favor&quot;</em> com <em>&quot;Colaborador B 50 reais&quot;</em> e demais sem valor) geram <strong>somente vales</strong> (valor por linha + padrão R$ 100,00) e <strong>0 diárias indevidas</strong>, memorizando o padrão do remetente para próximos envios.
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200/80 space-y-1">

@@ -5,7 +5,10 @@ import {
   normalizarNomeTrabalhadorCanonico,
 } from '@/lib/normalizarObra';
 import type { NLPExtracaoResponse } from '@/types/database';
-import type { ResultadoSanitizacaoMensagem } from '@/lib/extracaoDiariasParser';
+import type {
+  ResultadoPedidoExclusivoVales,
+  ResultadoSanitizacaoMensagem,
+} from '@/lib/extracaoDiariasParser';
 
 export type TipoRegraAprendizado =
   | 'ALIAS_TRABALHADOR'
@@ -24,8 +27,19 @@ export interface HabitosEscritaRemetente {
   usaPontoFinalCabecalho?: boolean;
   usaLinhasEmBranco?: boolean;
   usaIniciaisComPonto?: boolean;
+  enviaListaExclusivaVales?: boolean;
+  usaValorExplicitoLinhaVale?: boolean;
   expressoesRecorrentes?: string[];
   ultimaObraValidada?: string;
+}
+
+export interface RegraAprendizadoPedidoValesPlan {
+  regras: Array<{
+    tipoRegra: TipoRegraAprendizado;
+    origemPadrao: string;
+    destinoCanonico: string;
+  }>;
+  habitos: HabitosEscritaRemetente;
 }
 
 export interface SenderProfileRecord {
@@ -151,7 +165,7 @@ export function aplicarRegrasAprendidasTexto(
         break;
       }
 
-      // Match por fronteira de palavra dentro da linha (ex.: "Wender 22 0.5", "José baiano chuva")
+      // Match por fronteira de palavra dentro da linha (ex.: "Wender 22 0.5", "José baiano 50 reais")
       const regexPalavra = new RegExp(
         `(^|[\\s,;:(-])${escapeRegex(origemLimpa)}(?=$|[\\s,;:)\\-])`,
         'i'
@@ -208,6 +222,16 @@ export function gerarBlocoFewShotPrompt(
     if (habitos.usaIniciaisComPonto) {
       listaHabitos.push('abrevia iniciais com ponto (ex.: "Lucas. J")');
     }
+    if (habitos.enviaListaExclusivaVales) {
+      listaHabitos.push(
+        'envia pedidos exclusivos de vale ("N vale por favor") que NÃO geram diárias (apontamentos: [])'
+      );
+    }
+    if (habitos.usaValorExplicitoLinhaVale) {
+      listaHabitos.push(
+        'informa valor específico por linha nos vales (ex.: "José baiano 50 reais." -> nome "Zé Baiano", valor 50; demais R$ 100,00)'
+      );
+    }
     if (listaHabitos.length > 0) {
       linhas.push(`• Hábitos de escrita aprendidos: ${listaHabitos.join('; ')}.`);
     }
@@ -239,7 +263,7 @@ export function gerarBlocoFewShotPrompt(
         r.tipo_regra === 'EXPRESSAO_RECORRENTE' ||
         r.tipo_regra === 'ASSINATURA_ESTRUTURAL'
     )
-    .slice(0, 8);
+    .slice(0, 10);
   if (expressoes.length > 0) {
     linhas.push('PADRÕES ESTRUTURAIS E EXPRESSÕES RECORRENTES APRENDIDAS:');
     for (const r of expressoes) {
@@ -261,6 +285,61 @@ export function gerarBlocoFewShotPrompt(
   }
 
   return linhas.join('\n');
+}
+
+/**
+ * Monta o plano estrutural de regras e hábitos para pedidos exclusivos de vale
+ * (ex.: "N vale por favor" + "<nome> <valor> reais" + aliases como "José baiano" -> "Zé Baiano").
+ */
+export function montarRegrasAprendizadoPedidoVales(
+  pedidoVales: ResultadoPedidoExclusivoVales
+): RegraAprendizadoPedidoValesPlan {
+  if (!pedidoVales.isExclusivoVales || pedidoVales.vales.length === 0) {
+    return { regras: [], habitos: {} };
+  }
+
+  const regras: RegraAprendizadoPedidoValesPlan['regras'] = [];
+
+  const assinaturaOrigem = pedidoVales.temValorPorLinha
+    ? 'CABECALHO_VALE_POR_FAVOR+LISTA_VERTICAL+VALOR_POR_LINHA'
+    : 'CABECALHO_VALE_POR_FAVOR+LISTA_VERTICAL';
+
+  regras.push({
+    tipoRegra: 'ASSINATURA_ESTRUTURAL',
+    origemPadrao: assinaturaOrigem,
+    destinoCanonico:
+      'SOMENTE_VALES (0 diárias • valor explícito "<nome> <valor> reais" por linha + fallback R$ 100,00)',
+  });
+
+  if (pedidoVales.cabecalhoVale) {
+    const cabUpper = chaveNorm(pedidoVales.cabecalhoVale);
+    if (/\b\d+\s+VALES?\s+POR\s+FAVOR\b/.test(cabUpper)) {
+      regras.push({
+        tipoRegra: 'EXPRESSAO_RECORRENTE',
+        origemPadrao: 'N vale por favor',
+        destinoCanonico:
+          'PEDIDO_EXCLUSIVO_VALES (apontamentos: [], valor por linha ou padrão R$ 100,00)',
+      });
+    }
+  }
+
+  for (const alias of pedidoVales.aliasesDetectados) {
+    regras.push({
+      tipoRegra: 'ALIAS_TRABALHADOR',
+      origemPadrao: alias.origem,
+      destinoCanonico: alias.destino,
+    });
+  }
+
+  const habitos: HabitosEscritaRemetente = {
+    enviaListaExclusivaVales: true,
+    ...(pedidoVales.temValorPorLinha ? { usaValorExplicitoLinhaVale: true } : {}),
+    expressoesRecorrentes: pedidoVales.cabecalhoVale
+      ? [pedidoVales.cabecalhoVale.slice(0, 80)]
+      : undefined,
+  };
+
+  return { regras, habitos };
 }
 
 /**
@@ -777,6 +856,51 @@ export async function registrarCorrecaoHumanaAprendizado(params: {
   }
 
   return regrasGravadas;
+}
+
+/**
+ * Registra automaticamente no Motor de Aprendizado por Remetente (`sender_profiles` e
+ * `parser_learning_rules`) as regras estruturais e aliases de pedidos exclusivos de vales
+ * (ex.: "N vale por favor" + "<nome> <valor> reais" + "José baiano" -> "Zé Baiano"),
+ * isolado estritamente por `tenant_id`.
+ */
+export async function registrarAprendizadoPedidoExclusivoVales(params: {
+  tenantId: string;
+  pedidoVales: ResultadoPedidoExclusivoVales;
+  textoOriginal: string;
+  remetenteTelefone?: string | null;
+  remetenteNome?: string | null;
+  criadoPor?: string;
+}): Promise<number> {
+  const plano = montarRegrasAprendizadoPedidoVales(params.pedidoVales);
+  if (plano.regras.length === 0) return 0;
+
+  let gravadas = 0;
+  for (const r of plano.regras) {
+    const salvo = await registrarRegraAprendida({
+      tenantId: params.tenantId,
+      tipoRegra: r.tipoRegra,
+      origemPadrao: r.origemPadrao,
+      destinoCanonico: r.destinoCanonico,
+      origemAprendizado: 'AUTO_PASSAGEM_2',
+      remetenteTelefone: params.remetenteTelefone || null,
+      remetenteNome: params.remetenteNome || null,
+      exemploMensagem: params.textoOriginal.slice(0, 260),
+      criadoPor: params.criadoPor || 'Auto-Aprendizado Vales Exclusivos',
+    });
+    if (salvo) gravadas++;
+  }
+
+  if (params.remetenteTelefone) {
+    await atualizarPerfilRemetenteValidado({
+      tenantId: params.tenantId,
+      remetenteTelefone: params.remetenteTelefone,
+      remetenteNome: params.remetenteNome || undefined,
+      habitosAdicionais: plano.habitos,
+    });
+  }
+
+  return gravadas;
 }
 
 export async function atualizarRegraAprendida(params: {

@@ -235,9 +235,9 @@ export function MemoriaAprendizadoPanel({
                 {profiles.map((p) => (
                   <div
                     key={p.id}
-                    className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs flex items-center justify-between gap-2"
+                    className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs flex items-start justify-between gap-2"
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 space-y-1">
                       <p className="font-bold text-slate-900 truncate">
                         {p.remetente_nome}
                       </p>
@@ -247,6 +247,21 @@ export function MemoriaAprendizadoPanel({
                           {p.obra_padrao_sugerida || 'A definir'}
                         </strong>
                       </p>
+                      {(p.habitos_escrita?.enviaListaExclusivaVales ||
+                        p.habitos_escrita?.usaValorExplicitoLinhaVale) && (
+                        <div className="flex flex-wrap gap-1 pt-0.5">
+                          {p.habitos_escrita?.enviaListaExclusivaVales && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                              Lista só vales (0 diárias)
+                            </span>
+                          )}
+                          {p.habitos_escrita?.usaValorExplicitoLinhaVale && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-800 border border-indigo-200">
+                              &lt;nome&gt; &lt;valor&gt; reais
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600 tabular-nums shrink-0">
                       {p.total_mensagens_validadas}x

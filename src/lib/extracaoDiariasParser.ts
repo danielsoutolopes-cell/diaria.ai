@@ -365,11 +365,383 @@ function parseLinhaTrabalhador(
   };
 }
 
+export interface ItemValeExtraidoDetalhado {
+  nome: string;
+  nomeOriginal: string;
+  valor: number;
+  valorExplicito: boolean;
+}
+
+export interface DeteccaoMensagemExclusivaVales {
+  isExclusivoVales: boolean;
+  cabecalhoVale: string | null;
+  qtdDeclarada: number | null;
+  temValorExplicitoPorLinha: boolean;
+}
+
+export interface ResultadoPedidoExclusivoVales {
+  isExclusivoVales: boolean;
+  cabecalhoVale: string | null;
+  qtdDeclarada: number | null;
+  vales: ItemValeExtraidoDetalhado[];
+  totalValor: number;
+  aliasesDetectados: Array<{ origem: string; destino: string }>;
+  temValorPorLinha: boolean;
+  extracao: NLPExtracaoResponse;
+}
+
+const NOMES_CANONICOS_VALE: Record<string, string> = {
+  GIL: 'Gil',
+  MATEUS: 'Mateus',
+  'LUCAS J': 'Lucas J.',
+  PEU: 'Peu',
+  IAN: 'Ian',
+  'ZE BAIANO': 'Zé Baiano',
+  DANIEL: 'Daniel',
+  WENDER: 'Wender',
+  MANOEL: 'Manoel',
+  'ZE ROBERTO': 'Zé Roberto',
+  DIEGO: 'Diego',
+};
+
+/**
+ * Canoniza o nome do beneficiário de vale para exibição limpa:
+ * - "José baiano" -> "Zé Baiano"
+ * - "Lucas. J." / "Lucas. J" -> "Lucas J."
+ * - "Gil" / "Gilvan - Gil" -> "Gil"
+ * - "Peu" -> "Peu"
+ */
+export function resolverNomeBeneficiarioVale(
+  nomeBruto: string,
+  funcionariosOficiais?: readonly string[]
+): string {
+  const limpo = nomeBruto
+    .replace(/^[-•*–—\d.)\s]+/, '')
+    .replace(/[,;:!?]+$/, '')
+    .trim();
+
+  if (!limpo) return 'Trabalhador';
+
+  const canon = normalizarNomeTrabalhadorCanonico(limpo);
+  const chaveCanon = removerAcentosUpper(canon);
+
+  if (NOMES_CANONICOS_VALE[chaveCanon]) {
+    return NOMES_CANONICOS_VALE[chaveCanon];
+  }
+
+  if (funcionariosOficiais && funcionariosOficiais.length > 0) {
+    const matchTenant = funcionariosOficiais.find(
+      (f) =>
+        removerAcentosUpper(normalizarNomeTrabalhadorCanonico(f)) === chaveCanon
+    );
+    if (matchTenant) {
+      return matchTenant.trim();
+    }
+  }
+
+  const matchInicial = limpo.match(/^([A-Za-zÀ-ÿ]+)\s*\.\s*([A-Za-zÀ-ÿ])\.?$/);
+  if (matchInicial) {
+    return `${matchInicial[1]} ${matchInicial[2].toUpperCase()}.`;
+  }
+
+  return canon.replace(/\.+$/, '').trim();
+}
+
+function isLinhaCabecalhoOuSaudacaoVale(linha: string): boolean {
+  const upper = removerAcentosUpper(linha);
+  if (!upper) return true;
+  if (
+    /\b(VALE|VALES|ADIANTAMENTO|POR FAVOR|PFV|OBRIGADO|OBRIGADA|BOM DIA|BOA TARDE|BOA NOITE|PATRICIA|DANIEL LOPES|PIX)\b/.test(
+      upper
+    )
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Detecta de forma estrita quando a mensagem é um pedido EXCLUSIVO de vales
+ * (ex.: "Bom dia Patrícia 6 vale por favor.\nMateus\nIan\nPeu\nLucas. J.\nJosé baiano 50 reais.\nGil"),
+ * garantindo separação total entre solicitações de vale e apontamentos de diária.
+ */
+export function detectarMensagemExclusivaVales(
+  textoMensagem: string
+): DeteccaoMensagemExclusivaVales {
+  if (!textoMensagem || !textoMensagem.trim()) {
+    return {
+      isExclusivoVales: false,
+      cabecalhoVale: null,
+      qtdDeclarada: null,
+      temValorExplicitoPorLinha: false,
+    };
+  }
+
+  const linhas = textoMensagem
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (linhas.length === 0) {
+    return {
+      isExclusivoVales: false,
+      cabecalhoVale: null,
+      qtdDeclarada: null,
+      temValorExplicitoPorLinha: false,
+    };
+  }
+
+  const textoUpper = removerAcentosUpper(textoMensagem);
+  const temTermoVale = /\b(VALE|VALES|ADIANTAMENTO)\b/.test(textoUpper);
+  if (!temTermoVale) {
+    return {
+      isExclusivoVales: false,
+      cabecalhoVale: null,
+      qtdDeclarada: null,
+      temValorExplicitoPorLinha: false,
+    };
+  }
+
+  // Se houver menção clara de diária, presença, trabalho, chuva, viagem, falta ou dia da semana de apontamento -> NÃO é exclusivo de vales
+  const temSinalDiariaOuPresenca =
+    /\b(DIARIA|DIARIAS|PRESENCA|PRESENCAS|APONTAMENTO|TRABALHOU|TRABALHARAM|CHUVA|VIAGEM|PARADO|MEIO\s*DIA|MEIO\s*PERIODO|FALTA|FALTOU|PONTO|EFETIVO|DOMINGO|SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|SABADO)\b/.test(
+      textoUpper
+    );
+  if (temSinalDiariaOuPresenca) {
+    return {
+      isExclusivoVales: false,
+      cabecalhoVale: null,
+      qtdDeclarada: null,
+      temValorExplicitoPorLinha: false,
+    };
+  }
+
+  const linhaCabecalho =
+    linhas.find((l) => /\b(VALE|VALES|ADIANTAMENTO)\b/.test(removerAcentosUpper(l))) ||
+    linhas[0];
+  const matchQtd = removerAcentosUpper(linhaCabecalho).match(
+    /\b(\d{1,2})\s+VALES?\b/
+  );
+  const qtdDeclarada = matchQtd ? Number(matchQtd[1]) : null;
+
+  const temValorExplicitoPorLinha = linhas.some((l) => {
+    if (isLinhaCabecalhoOuSaudacaoVale(l)) return false;
+    return /(?:R\$\s*\d+|\b\d+(?:[.,]\d{1,2})?\s*(?:reais|real|conto|contos|pila)\b)/i.test(
+      l
+    );
+  });
+
+  return {
+    isExclusivoVales: true,
+    cabecalhoVale: linhaCabecalho,
+    qtdDeclarada,
+    temValorExplicitoPorLinha,
+  };
+}
+
+/**
+ * Extrai beneficiário + valor (explícito na linha ou fallback R$ 100,00) de uma linha
+ * de pedido exclusivo de vales (ex.: "José baiano 50 reais." -> { nome: "Zé Baiano", valor: 50 }).
+ */
+export function parseLinhaBeneficiarioVale(
+  linhaBruta: string,
+  funcionariosOficiais?: readonly string[]
+): ItemValeExtraidoDetalhado | null {
+  const limpa = linhaBruta
+    .replace(/^[-•*–—]+\s*/, '')
+    .replace(/^\d+[.)]\s+/, '')
+    .trim();
+
+  if (!limpa) return null;
+  if (isLinhaCabecalhoOuSaudacaoVale(limpa)) return null;
+
+  const upper = removerAcentosUpper(limpa);
+  if (/^\d+([.,]\d+)?$/.test(upper)) return null;
+
+  let valor = 100.0;
+  let valorExplicito = false;
+  let nomeSemValor = limpa;
+
+  // 1. Padrão explícito "R$ 50,00" / "R$ 50"
+  const matchRs = nomeSemValor.match(/R\$\s*(\d+(?:[.,]\d{1,2})?)/i);
+  if (matchRs) {
+    const parsedVal = Number(matchRs[1].replace(',', '.'));
+    if (Number.isFinite(parsedVal) && parsedVal > 0) {
+      valor = Number(parsedVal.toFixed(2));
+      valorExplicito = true;
+      nomeSemValor = nomeSemValor.replace(matchRs[0], ' ').trim();
+    }
+  }
+
+  // 2. Padrão explícito "50 reais." / "50 real" / "150 contos"
+  if (!valorExplicito) {
+    const matchReais = nomeSemValor.match(
+      /\b(\d+(?:[.,]\d{1,2})?)\s*(?:reais|real|conto|contos|pila)\b\.?/i
+    );
+    if (matchReais) {
+      const parsedVal = Number(matchReais[1].replace(',', '.'));
+      if (Number.isFinite(parsedVal) && parsedVal > 0) {
+        valor = Number(parsedVal.toFixed(2));
+        valorExplicito = true;
+        nomeSemValor = nomeSemValor.replace(matchReais[0], ' ').trim();
+      }
+    }
+  }
+
+  // 3. Número monetário explícito no final da linha (ex.: "José baiano - 50" ou "Mateus 150"),
+  //    preservando apelidos numéricos conhecidos como "Wender 22"
+  if (!valorExplicito && !/^WENDER\s+22\.?$/i.test(upper)) {
+    const matchFim = nomeSemValor.match(
+      /(?:\s*[-–—:]\s*|\s+)(\d+(?:[.,]\d{1,2})?)\.?$/
+    );
+    if (matchFim) {
+      const parsedVal = Number(matchFim[1].replace(',', '.'));
+      if (Number.isFinite(parsedVal) && parsedVal >= 25) {
+        valor = Number(parsedVal.toFixed(2));
+        valorExplicito = true;
+        nomeSemValor = nomeSemValor.slice(0, matchFim.index).trim();
+      }
+    }
+  }
+
+  // Remove conectores residuais nas pontas ("de", "para", "-", ":", ",") mantendo inicial "Lucas. J."
+  const nomeOriginalLimpo = nomeSemValor
+    .replace(/\b(?:de|valor|vale|vales|para|pra|pro)\s*$/i, '')
+    .replace(/^[-–—:,;\s]+/, '')
+    .replace(/[-–—:,;\s]+$/, '')
+    .trim();
+
+  if (!nomeOriginalLimpo || nomeOriginalLimpo.length < 2) return null;
+  if (!/[A-Za-zÀ-ÿ]{2,}/.test(nomeOriginalLimpo)) return null;
+
+  const nomeResolvido = resolverNomeBeneficiarioVale(
+    nomeOriginalLimpo,
+    funcionariosOficiais
+  );
+
+  return {
+    nome: nomeResolvido,
+    nomeOriginal: nomeOriginalLimpo.replace(/\.+$/, '').trim() || nomeOriginalLimpo,
+    valor,
+    valorExplicito,
+  };
+}
+
+/**
+ * Extrai uma solicitação exclusiva de vales em bloco (0 diárias), com valor explícito por linha,
+ * fallback de R$ 100,00, canonização de nomes e coleta de aliases para o Motor de Aprendizado.
+ */
+export function extrairPedidoExclusivoVales(
+  textoMensagem: string,
+  opcoes: OpcoesExtracaoDiarias = {}
+): ResultadoPedidoExclusivoVales {
+  const deteccao = detectarMensagemExclusivaVales(textoMensagem);
+  if (!deteccao.isExclusivoVales) {
+    return {
+      isExclusivoVales: false,
+      cabecalhoVale: null,
+      qtdDeclarada: null,
+      vales: [],
+      totalValor: 0,
+      aliasesDetectados: [],
+      temValorPorLinha: false,
+      extracao: { obras: [] },
+    };
+  }
+
+  const linhas = textoMensagem
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const vales: ItemValeExtraidoDetalhado[] = [];
+  const vistos = new Set<string>();
+  const aliasesDetectados: Array<{ origem: string; destino: string }> = [];
+  const aliasesVistos = new Set<string>();
+
+  for (const linha of linhas) {
+    if (isLinhaCabecalhoOuSaudacaoVale(linha)) continue;
+
+    const segmentos =
+      linha.includes(',') || linha.includes(';')
+        ? linha
+            .split(/[,;]+/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [linha];
+
+    for (const seg of segmentos) {
+      const item = parseLinhaBeneficiarioVale(seg, opcoes.funcionariosOficiais);
+      if (!item) continue;
+
+      const chave = removerAcentosUpper(
+        normalizarNomeTrabalhadorCanonico(item.nome)
+      );
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      vales.push(item);
+
+      // Coleta aliases reais distintos para retroalimentar o Motor de Aprendizado
+      const origRaw = seg
+        .replace(/R\$\s*\d+(?:[.,]\d{1,2})?/gi, '')
+        .replace(/\b\d+(?:[.,]\d{1,2})?\s*(?:reais|real|conto|contos|pila)\b\.?/gi, '')
+        .replace(/^[-•*–—\d.)\s]+/, '')
+        .trim();
+      const origChave = removerAcentosUpper(origRaw.replace(/\.+$/, ''));
+      const destChave = removerAcentosUpper(item.nome.replace(/\.+$/, ''));
+      if (
+        origRaw &&
+        (origChave !== destChave || origRaw.includes('.')) &&
+        origRaw.toLowerCase() !== item.nome.toLowerCase()
+      ) {
+        const pairKey = `${origRaw.toLowerCase()}=>${item.nome.toLowerCase()}`;
+        if (!aliasesVistos.has(pairKey)) {
+          aliasesVistos.add(pairKey);
+          aliasesDetectados.push({ origem: origRaw, destino: item.nome });
+        }
+      }
+    }
+  }
+
+  const totalValor = Number(
+    vales.reduce((acc, v) => acc + v.valor, 0).toFixed(2)
+  );
+  const dataRef = extrairDataReferenciaTexto(
+    textoMensagem,
+    opcoes.anoReferencia ?? 2026
+  );
+  const temValorPorLinha = vales.some((v) => v.valorExplicito);
+
+  return {
+    isExclusivoVales: true,
+    cabecalhoVale: deteccao.cabecalhoVale,
+    qtdDeclarada: deteccao.qtdDeclarada,
+    vales,
+    totalValor,
+    aliasesDetectados,
+    temValorPorLinha,
+    extracao:
+      vales.length > 0
+        ? {
+            obras: [
+              {
+                nome_obra: 'GERAL',
+                data_referencia: dataRef,
+                apontamentos: [],
+                vales: vales.map((v) => ({ nome: v.nome, valor: v.valor })),
+                setup: false,
+              },
+            ],
+          }
+        : { obras: [] },
+  };
+}
+
 /**
  * Parser determinístico de listas de diárias:
  * - NUNCA interrompe ou trunca após pontos finais (".") como "seguro." ou iniciais ("Lucas. J").
  * - Preserva TODAS as linhas após cabeçalhos mesmo com linhas em branco (\n\n).
  * - Aceita todos os dias da semana 24/7 (inclusive domingos e feriados).
+ * - Separação estrita: mensagens exclusivas de pedido de vale NUNCA geram apontamentos de diária.
  */
 export function extrairListaTrabalhadoresDeterministica(
   textoMensagem: string,
@@ -379,25 +751,17 @@ export function extrairListaTrabalhadoresDeterministica(
     return { obras: [] };
   }
 
-  // Mensagem estritamente de pedido de vale (sem lista de diárias) não deve gerar apontamentos
-  const textoUpper = removerAcentosUpper(textoMensagem);
+  // SEPARAÇÃO ESTRITA: Mensagem exclusiva de pedido de vales NUNCA gera diárias
+  if (detectarMensagemExclusivaVales(textoMensagem).isExclusivoVales) {
+    return { obras: [] };
+  }
+
   const linhasOriginais = textoMensagem.split(/\r?\n/);
   const linhasNaoVazias = linhasOriginais
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
   if (linhasNaoVazias.length === 0) {
-    return { obras: [] };
-  }
-
-  // Se for mensagem curta falando só de vale sem lista vertical de presença
-  const pareceSomenteVale =
-    linhasNaoVazias.length <= 2 &&
-    /\b(VALE|VALES|ADIANTAMENTO|PIX)\b/.test(textoUpper) &&
-    !/\b(DIARIA|DIARIAS|PRESENCA|TRABALHOU|CHUVA|VIAGEM|DOMINGO|SEGUNDA|TERCA|QUARTA|QUINTA|SEXTA|SABADO)\b/.test(
-      textoUpper
-    );
-  if (pareceSomenteVale) {
     return { obras: [] };
   }
 
@@ -542,8 +906,87 @@ export function reconciliarExtracaoComParserDeterministico(
   extracaoIA: NLPExtracaoResponse | null | undefined,
   opcoes: OpcoesExtracaoDiarias = {}
 ): NLPExtracaoResponse {
-  const det = extrairListaTrabalhadoresDeterministica(textoMensagem, opcoes);
+  const pedidoVales = extrairPedidoExclusivoVales(textoMensagem, opcoes);
   const obrasIA = Array.isArray(extracaoIA?.obras) ? extracaoIA.obras : [];
+
+  // SEPARAÇÃO ESTRITA: Pedido exclusivo de VALES gera APENAS vales (0 diárias),
+  // bloqueando qualquer apontamento indevido alucinado pela IA e garantindo
+  // valores explícitos por linha (ex.: "José baiano 50 reais." -> Zé Baiano R$ 50) + fallback R$ 100.
+  if (pedidoVales.isExclusivoVales) {
+    const obraSugeridaIA = obrasIA.find(
+      (o) =>
+        o.nome_obra &&
+        removerAcentosUpper(o.nome_obra) !== 'GERAL' &&
+        removerAcentosUpper(o.nome_obra) !== 'CANTEIRO GERAL'
+    );
+    const nomeObraFinal = obraSugeridaIA?.nome_obra
+      ? normalizarNomeObraCanonica(
+          obraSugeridaIA.nome_obra.replace(/[.!?]+$/g, '').trim()
+        )
+      : pedidoVales.extracao.obras[0]?.nome_obra || 'GERAL';
+    const dataFinal =
+      obrasIA.find((o) => o.data_referencia)?.data_referencia ||
+      pedidoVales.extracao.obras[0]?.data_referencia ||
+      extrairDataReferenciaTexto(textoMensagem, opcoes.anoReferencia ?? 2026);
+
+    const valesConsolidados: Array<{ nome: string; valor: number }> = [];
+    const vistos = new Set<string>();
+
+    // 1. Prioriza os vales extraídos deterministicamente (valor exato por linha + fallback 100)
+    for (const vDet of pedidoVales.vales) {
+      const chave = removerAcentosUpper(
+        normalizarNomeTrabalhadorCanonico(vDet.nome)
+      );
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      valesConsolidados.push({
+        nome: vDet.nome,
+        valor: vDet.valor,
+      });
+    }
+
+    // 2. Incorpora eventuais vales adicionais que a IA encontrou (limpando sufixo "50 reais" do nome)
+    for (const obra of obrasIA) {
+      for (const vIA of obra.vales || []) {
+        const parsedLinha = parseLinhaBeneficiarioVale(
+          vIA.nome,
+          opcoes.funcionariosOficiais
+        );
+        const nomeLimpo = parsedLinha
+          ? parsedLinha.nome
+          : resolverNomeBeneficiarioVale(vIA.nome, opcoes.funcionariosOficiais);
+        const valorLimpo = parsedLinha?.valorExplicito
+          ? parsedLinha.valor
+          : Number(vIA.valor) > 0
+            ? Number(Number(vIA.valor).toFixed(2))
+            : 100.0;
+        const chave = removerAcentosUpper(
+          normalizarNomeTrabalhadorCanonico(nomeLimpo)
+        );
+        if (!vistos.has(chave)) {
+          vistos.add(chave);
+          valesConsolidados.push({ nome: nomeLimpo, valor: valorLimpo });
+        }
+      }
+    }
+
+    return {
+      obras:
+        valesConsolidados.length > 0
+          ? [
+              {
+                nome_obra: nomeObraFinal,
+                data_referencia: dataFinal,
+                apontamentos: [],
+                vales: valesConsolidados,
+                setup: false,
+              },
+            ]
+          : [],
+    };
+  }
+
+  const det = extrairListaTrabalhadoresDeterministica(textoMensagem, opcoes);
 
   // Caso 1: IA falhou ou veio vazia -> usa extração determinística integral
   const totalApIA = obrasIA.reduce(
@@ -595,10 +1038,22 @@ export function reconciliarExtracaoComParserDeterministico(
       nome_obra: obraNomeLimpo,
       data_referencia: dataFinal,
       apontamentos: apontamentosUnicos,
-      vales: (obra.vales || []).map((v) => ({
-        nome: resolverNomeOficialTrabalhador(v.nome, opcoes.funcionariosOficiais),
-        valor: Number(v.valor ?? 100.0),
-      })),
+      vales: (obra.vales || []).map((v) => {
+        const parsedLinha = parseLinhaBeneficiarioVale(
+          v.nome,
+          opcoes.funcionariosOficiais
+        );
+        return {
+          nome: parsedLinha
+            ? parsedLinha.nome
+            : resolverNomeBeneficiarioVale(v.nome, opcoes.funcionariosOficiais),
+          valor: parsedLinha?.valorExplicito
+            ? parsedLinha.valor
+            : Number(v.valor) > 0
+              ? Number(Number(v.valor).toFixed(2))
+              : 100.0,
+        };
+      }),
     };
   });
 
@@ -672,6 +1127,7 @@ export interface ResultadoPipelineDuasPassagens {
   sanitizacao: ResultadoSanitizacaoMensagem;
   auditoriaPassagem1: AuditoriaContagemLista;
   segundaPassagemExecutada: boolean;
+  pedidoExclusivoVales: ResultadoPedidoExclusivoVales;
   logsAjuste: string[];
 }
 
@@ -844,9 +1300,18 @@ export async function executarPipelineDuasPassagens(params: {
 
   // PASSAGEM 1 — Sanitização cirúrgica preservando textoOriginal intacto
   const sanitizacao = higienizarMensagemParaExtracao(params.textoOriginal, opcoes);
+  const pedidoExclusivoVales = extrairPedidoExclusivoVales(
+    params.textoOriginal,
+    opcoes
+  );
   if (sanitizacao.alteracoesAplicadas.length > 0) {
     logsAjuste.push(
       `[PASSAGEM_1_SANITIZACAO] Regras aplicadas: ${sanitizacao.alteracoesAplicadas.join(', ')} (candidatos na lista: ${sanitizacao.candidatosLista.length}).`
+    );
+  }
+  if (pedidoExclusivoVales.isExclusivoVales) {
+    logsAjuste.push(
+      `[CLASSIFICADOR_VALES_EXCLUSIVO] Pedido exclusivo de vales detectado (${pedidoExclusivoVales.vales.length} vale(s) = R$ ${pedidoExclusivoVales.totalValor.toFixed(2)}, 0 diárias).`
     );
   }
 
@@ -862,17 +1327,18 @@ export async function executarPipelineDuasPassagens(params: {
     );
   }
 
-  // AUDITORIA DE CONTAGEM DA LISTA
+  // AUDITORIA DE CONTAGEM DA LISTA (apenas para mensagens com apontamentos de diária)
   const auditoriaPassagem1 = auditarContagemListaExtracao(
-    sanitizacao.candidatosLista,
+    pedidoExclusivoVales.isExclusivoVales ? [] : sanitizacao.candidatosLista,
     extracaoPassagem2A
   );
 
   let extracaoCombinada: NLPExtracaoResponse | null = extracaoPassagem2A;
   let segundaPassagemExecutada = false;
 
-  // Se houver nomes faltantes em relação à lista, dispara Passagem 2B focada
+  // Se houver nomes faltantes em relação à lista de diárias, dispara Passagem 2B focada
   if (
+    !pedidoExclusivoVales.isExclusivoVales &&
     auditoriaPassagem1.divergenciaDetectada &&
     auditoriaPassagem1.nomesFaltantes.length > 0
   ) {
@@ -952,15 +1418,17 @@ export async function executarPipelineDuasPassagens(params: {
     }
   }
 
-  // Reconciliação final determinística (garante 100% de completude e resolução de aliases)
+  // Reconciliação final determinística (usa textoOriginal nos pedidos de vale p/ preservar pontuação/valores exatos)
   const extracaoFinal = reconciliarExtracaoComParserDeterministico(
-    sanitizacao.textoHigienizado || params.textoOriginal,
+    pedidoExclusivoVales.isExclusivoVales
+      ? params.textoOriginal
+      : sanitizacao.textoHigienizado || params.textoOriginal,
     extracaoCombinada,
     opcoes
   );
 
   const auditoriaFinal = auditarContagemListaExtracao(
-    sanitizacao.candidatosLista,
+    pedidoExclusivoVales.isExclusivoVales ? [] : sanitizacao.candidatosLista,
     extracaoFinal
   );
   if (segundaPassagemExecutada) {
@@ -974,6 +1442,7 @@ export async function executarPipelineDuasPassagens(params: {
     sanitizacao,
     auditoriaPassagem1,
     segundaPassagemExecutada,
+    pedidoExclusivoVales,
     logsAjuste,
   };
 }

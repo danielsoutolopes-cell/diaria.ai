@@ -997,42 +997,47 @@ export async function POST(req: NextRequest) {
         obraId = novaObra?.id || null;
       }
 
-      // 2. Criar lote de ponto com Carimbo Temporal & Metadados Periciais
-      const agoraBrasilia = new Date().toLocaleString('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-      });
+      // 2. Criar lote de ponto SOMENTE quando houver apontamentos de diária (mensagens exclusivas de vale NÃO geram ponto_lote nem diárias)
+      const temApontamentosDiaria = Boolean(obra.apontamentos && obra.apontamentos.length > 0);
       const dataRefLote = obra.data_referencia || hojeBrasilia;
-      const sha256Pericial = crypto
-        .createHash('sha256')
-        .update(`${senderNumber}|${remoteJid}|${messageText}|${agoraBrasilia}`)
-        .digest('hex');
+      let loteId: string | undefined = undefined;
 
-      const cabecalhoPericial =
-        `[ORIGEM_WHATSAPP]\n` +
-        `Remetente: ${senderNumber}\n` +
-        `Grupo/JID: ${remoteJid}\n` +
-        `Timestamp: ${agoraBrasilia}\n` +
-        `SHA256: ${sha256Pericial}\n` +
-        `[MENSAGEM_ORIGINAL]\n${messageText}`;
+      if (temApontamentosDiaria) {
+        const agoraBrasilia = new Date().toLocaleString('pt-BR', {
+          timeZone: 'America/Sao_Paulo',
+        });
+        const sha256Pericial = crypto
+          .createHash('sha256')
+          .update(`${senderNumber}|${remoteJid}|${messageText}|${agoraBrasilia}`)
+          .digest('hex');
 
-      const { data: lote } = await supabaseAdmin
-        .from('ponto_lote')
-        .insert({
-          tenant_id: tenantId,
-          obra_id: obraId,
-          data_referencia: dataRefLote,
-          texto_original: cabecalhoPericial,
-          status_validacao: 'PENDENTE',
-          token_aprovacao: tokenAprovacaoBloco,
-        })
-        .select('id')
-        .single();
+        const cabecalhoPericial =
+          `[ORIGEM_WHATSAPP]\n` +
+          `Remetente: ${senderNumber}\n` +
+          `Grupo/JID: ${remoteJid}\n` +
+          `Timestamp: ${agoraBrasilia}\n` +
+          `SHA256: ${sha256Pericial}\n` +
+          `[MENSAGEM_ORIGINAL]\n${messageText}`;
 
-      const loteId = lote?.id;
-      if (loteId) ultimoLoteId = loteId;
+        const { data: lote } = await supabaseAdmin
+          .from('ponto_lote')
+          .insert({
+            tenant_id: tenantId,
+            obra_id: obraId,
+            data_referencia: dataRefLote,
+            texto_original: cabecalhoPericial,
+            status_validacao: 'PENDENTE',
+            token_aprovacao: tokenAprovacaoBloco,
+          })
+          .select('id')
+          .single();
+
+        loteId = lote?.id;
+        if (loteId) ultimoLoteId = loteId;
+      }
 
       // 3. Registrar detalhes de ponto com cálculo hierárquico e isolamento de ciclos pós-quitação
-      if (loteId && obra.apontamentos?.length) {
+      if (loteId && temApontamentosDiaria && obra.apontamentos?.length) {
         const { data: pontosAbertosDia } = await supabaseAdmin
           .from('lancamentos_financeiros')
           .select('nome_trabalhador, fracao_dia, obra_id, status')

@@ -55,7 +55,7 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       {
         nome: 'Memória de Campo (IA) por Remetente',
         descricao:
-          'Aprende automaticamente apelidos, padrões de escrita e obra padrão de cada remetente (inclusive a partir de correções humanas na validação). Clique em "Ver / Ajustar" para revisar ou editar regras aprendidas.',
+          'Aprende automaticamente apelidos, listas exclusivas de vales (que nunca geram diárias), valor explícito por linha ("<nome> <valor> reais") e obra padrão de cada remetente. Clique em "Ver / Ajustar" para revisar ou editar regras aprendidas.',
       },
     ],
     exemplo:
@@ -86,9 +86,9 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       'Fluxo separado para controlar pedidos de vale em campo (Etapa 1) e a confirmação com comprovante PIX salvo em nuvem (Etapa 2).',
     funcoes: [
       {
-        nome: 'Valor Padrão & Dropdowns Oficiais',
+        nome: 'Separação Estrita (0 Diárias) & Valor por Linha',
         descricao:
-          'Selecione Trabalhador e Obra nos menus suspensos. Se o valor for omitido na solicitação, o sistema sugere R$ 100,00.',
+          'Mensagens exclusivas de pedido de vale (ex.: "6 vale por favor" seguido da lista de nomes) geram somente vales — nunca diárias. Linhas com valor explícito (ex.: "Colaborador B 50 reais") usam o valor informado; as demais recebem o padrão R$ 100,00.',
       },
       {
         nome: 'Leitura OCR com IA (Gemini Vision)',
@@ -102,7 +102,7 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
       },
     ],
     exemplo:
-      'Quando o encarregado pedir "Um vale para o João" no grupo, o pedido aparece na Etapa 1. Ao subir o comprovante PIX, ele muda para Etapa 2 (Confirmado) e fica disponível no Borderô.',
+      'Quando o encarregado envia "Bom dia, 6 vale por favor" seguido de 5 nomes sem valor e "Colaborador B 50 reais", o sistema cria exatamente 6 vales (5 × R$ 100,00 + 1 × R$ 50,00 = R$ 550,00) e 0 diárias.',
   },
   '/caixinha': {
     titulo: 'Caixinha de Campo & Reembolsos',

@@ -10,6 +10,7 @@ import {
   carregarContextoAprendizado,
   extrairAssinaturaEstruturalMensagem,
   gerarBlocoFewShotPrompt,
+  registrarAprendizadoPedidoExclusivoVales,
   registrarRegraAprendida,
   sugerirObraPadraoSeOmitida,
   type ContextoAprendizadoRemetente,
@@ -54,7 +55,10 @@ Ler TODA a mensagem do início ao último caractere (enviada por encarregados ou
      * "Wender 22" / "Weslen" -> "Wender"
      * "Manoel" -> "Manoel"
    - Identificar datas citadas na mensagem (ex: "05/11", "dia 09 de novembro", "14 de novembro", "21/11", "Domingo 22 de novembro") e formatar em YYYY-MM-DD considerando o ano corrente (2026).
-4. Vales e adiantamentos financeiros concedidos a cada trabalhador (ex: "dei 50 de vale pra cada", "adiantou 100 pro José", "Uma vale pra o Mateus", "Pra o Daniel e o Ian também por favor. Vale."). Se o encarregado pedir vale SEM informar o valor, extraia cada nome em "vales" com "valor": 100.0 (padrão operacional de vale quando omitido).
+4. Vales e adiantamentos financeiros (SEPARAÇÃO ESTRITA — PEDIDO EXCLUSIVO DE VALES NÃO GERA DIÁRIAS):
+   - Se a mensagem for um pedido exclusivo de vales (ex.: "Bom dia Patrícia 6 vale por favor." seguido de nomes, "5 vale por favor", "Uma vale pra o Mateus por favor.") e NÃO mencionar presença/diária/trabalho, retorne OBRIGATORIAMENTE "apontamentos": [] (ZERO diárias) e preencha SOMENTE "vales".
+   - Valor por linha: se a linha especificar um valor explícito (ex.: "José baiano 50 reais." ou "Zé Baiano R$ 50"), extraia "valor": 50.0 e canonize o nome para "Zé Baiano" (NUNCA mantenha "50 reais" dentro do nome).
+   - Fallback de valor: se a linha não trouxer valor (ex.: "Mateus", "Ian", "Peu", "Lucas. J.", "Gil"), aplique "valor": 100.0 e canonize o nome ("Lucas. J." -> "Lucas J.", "Gil" -> "Gil", "Peu" -> "Peu").
 5. A flag "setup": true caso a mensagem seja uma ordem de alocação/cadastro inicial de equipe (ex: "Obra Bahia, aloca o José e o Pedro lá com diária de...").
 
 REGRAS RÍGIDAS DE COMPLETUDE E ANTI-TRUNCAMENTO (OBRIGATÓRIO):
@@ -250,6 +254,20 @@ export async function extrairDadosMensagem(
       resultadoPipeline.logsAjuste.push(
         `[CONTEXTO_OBRA_REMETENTE] Obra padrão sugerida aplicada: ${obraSugeridaAplicada}.`
       );
+    }
+
+    // Auto-aprendizado de pedidos exclusivos de vale (ex.: "N vale por favor" + "<nome> <valor> reais")
+    if (
+      resultadoPipeline.pedidoExclusivoVales.isExclusivoVales &&
+      resultadoPipeline.pedidoExclusivoVales.vales.length > 0
+    ) {
+      void registrarAprendizadoPedidoExclusivoVales({
+        tenantId: targetTenantId,
+        pedidoVales: resultadoPipeline.pedidoExclusivoVales,
+        textoOriginal: textoMensagem,
+        remetenteTelefone: contextoRemetente?.remetenteTelefone || null,
+        remetenteNome: contextoRemetente?.remetenteNome || null,
+      }).catch(() => {});
     }
 
     // Auto-aprendizado: se acionou a 2ª passagem complementar, grava assinatura estrutural
