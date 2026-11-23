@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
         .from('obras_config')
         .select('*')
         .eq('tenant_id', activeTenant.id)
+        .eq('ativo', true)
         .order('created_at', { ascending: false }),
       lerObrasLogisticaTenant(activeTenant.id),
     ]);
