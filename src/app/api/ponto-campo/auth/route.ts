@@ -80,14 +80,14 @@ export async function GET(req: NextRequest) {
     // Lista apenas nomes de colaboradores ativos da Jhoston (zero valores em R$ ou PIX)
     const { data: funcs } = await supabaseAdmin
       .from('funcionarios_obra')
-      .select('id, nome')
+      .select('id, nome_trabalhador')
       .eq('tenant_id', JHOSTON_TENANT_ID)
       .eq('ativo', true)
-      .order('nome', { ascending: true });
+      .order('nome_trabalhador', { ascending: true });
 
     const colaboradores = (funcs || []).map((f) => ({
       id: String(f.id),
-      nome: String(f.nome),
+      nome: String(f.nome_trabalhador),
     }));
 
     const statusRelatorios = obrasVinculadas.map((obraNome) =>

@@ -349,3 +349,5 @@
 - **APIs criadas**: `/api/ponto-campo/auth`, `/api/ponto-campo/ponto`, `/api/ponto-campo/relatorio`.
 - **Documentação atualizada**: `src/components/ContextualHelp.tsx` (`/ponto`) e `HANDOFF.md`.
 - **Biometria Nativa WebAuthn (Digital / Face ID)** (`/api/ponto-campo/biometria` + `/ponto`): Após o primeiro login com PIN, o encarregado pode ativar a biometria do próprio celular (Android / iPhone) em 1 toque e passar a entrar com Digital ou Face ID nas próximas sessões (mantendo o PIN como fallback).
+- **Ajuste de Regime — Beto (José Roberto) (`Jhoston`)**: Atualizado no Supabase (`funcionarios_obra`) para `regime_remuneracao = 'DIARISTA'` e `regra_dias_uteis_seg_sab = false`, passando a receber a diária cadastrada conforme o ponto anotado pelo encarregado (Diego).
+- **Fix `/api/ponto-campo/auth`**: Corrigida a coluna de consulta em `funcionarios_obra` para `nome_trabalhador`.
