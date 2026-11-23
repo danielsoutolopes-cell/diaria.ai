@@ -87,7 +87,7 @@ export default function AjudaPage() {
             <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 space-y-1">
               <span className="font-black text-indigo-950 block">2. Caixinha de Campo, Emissor PIX &amp; OCR Inteligente (/caixinha)</span>
               <p className="text-[11px] text-indigo-900">
-                <strong>Exemplo:</strong> Em uma única tela, separe o <strong>Portador do Caixinha</strong> do <strong>Emissor do PIX</strong> e grave <strong>Data + Hora (HH:MM)</strong>. Mesmo se a foto do PIX vier cortada, o OCR aplica fallback inteligente (remetente/horário do WhatsApp ou relógio da tela) e exibe no extrato quem enviou e o horário (<code>dd/mm/aaaa às HH:mm</code>).
+                <strong>Exemplo:</strong> Em uma única tela, separe o <strong>Portador do Caixinha</strong> do <strong>Emissor do PIX</strong> (gerencie emissores adicionais direto no <strong>/setup</strong> sem alterar o fluxo de vales) e grave <strong>Data + Hora (HH:MM)</strong>. Mesmo em prints cortados, o OCR aplica fallback inteligente e exibe no extrato quem enviou e o horário (<code>dd/mm/aaaa às HH:mm</code>).
               </p>
             </div>
             <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200/80 space-y-1">

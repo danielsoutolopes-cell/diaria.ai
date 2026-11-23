@@ -12,9 +12,13 @@ import { formatarNomeExibicaoTrabalhador } from '@/lib/normalizarObra';
 import { formatarTicketPontoWhatsApp } from '@/services/ticketPonto';
 import {
   aplicarFallbackOcrCaixinha,
+  EMISSORES_PIX_PADRAO,
+  extrairEmissoresPixAtivos,
   formatarDataHoraBr,
+  isEmissorPixPadrao,
   listarEmissoresPixTenant,
   normalizarEmissorPix,
+  normalizarListaEmissoresConfig,
 } from '@/lib/caixinhaPixRastreabilidade';
 
 describe('Caixinha de Campo V21 — Anti-Duplicidade do Gil & Unificação no Menu', () => {
@@ -235,8 +239,18 @@ describe('Caixinha de Campo V21 — Anti-Duplicidade do Gil & Unificação no Me
     assert.equal(normalizarEmissorPix('Jhoston Construções LTDA'), 'Conta Empresa');
     assert.equal(normalizarEmissorPix('não visível'), null);
 
-    const listaEmissores = listarEmissoresPixTenant(['Patrícia Grubel', 'Joabson Nascimento']);
-    assert.deepEqual(listaEmissores, ['Patrícia', 'Daniel', 'Joabson', 'Conta Empresa']);
+    const listaEmissores = listarEmissoresPixTenant([
+      'Patrícia Grubel',
+      'Joabson Nascimento',
+      'Daniel Lopes',
+      'Conta Empresa',
+    ]);
+    assert.deepEqual(listaEmissores, [
+      'Patrícia',
+      'Joabson',
+      'Daniel',
+      'Conta Empresa',
+    ]);
 
     // Cenário A: Comprovante Nubank cortado enviado via WhatsApp pelo Joabson às 14:32 BRT (17:32 UTC)
     const tsUnix = Math.floor(Date.parse('2026-11-23T14:32:00-03:00') / 1000);
@@ -361,6 +375,72 @@ describe('Caixinha de Campo V21 — Anti-Duplicidade do Gil & Unificação no Me
         migrationV24.includes('ADD COLUMN IF NOT EXISTS origem_emissor') &&
         migrationV24.includes('ADD COLUMN IF NOT EXISTS origem_data_hora'),
       'Migration V24 deve criar as colunas de rastreabilidade de forma idempotente'
+    );
+  });
+
+  it('7. V25 Emissores PIX Caixinha: Patrícia e Joabson obrigatórios por padrão + gestão no /setup da Jhoston isolada por tenant_id (vales inalterados)', () => {
+    // 1. Opções iniciais obrigatórias: Patrícia e Joabson
+    assert.deepEqual([...EMISSORES_PIX_PADRAO], ['Patrícia', 'Joabson']);
+    assert.equal(isEmissorPixPadrao('Patrícia'), true);
+    assert.equal(isEmissorPixPadrao('Joabson Nascimento'), true);
+    assert.equal(isEmissorPixPadrao('Daniel'), false);
+
+    // 2. Merge de emissores adicionais cadastrados respeitando ativo/inativo e sem duplicidade
+    const config = normalizarListaEmissoresConfig([
+      { id: '1', nome: 'Daniel', ativo: true },
+      { id: '2', nome: 'Financeiro Obra', ativo: false },
+      { id: '3', nome: 'Patrícia Grubel', ativo: false }, // padrão nunca desativa
+      { id: '4', nome: 'Conta Empresa', ativo: true },
+    ]);
+    assert.equal(config.length, 5);
+    assert.equal(config[0].nome, 'Patrícia');
+    assert.equal(config[0].padrao, true);
+    assert.equal(config[0].ativo, true);
+    assert.equal(config[1].nome, 'Joabson');
+    assert.equal(config[1].padrao, true);
+    assert.equal(config[1].ativo, true);
+
+    const ativosDropdown = extrairEmissoresPixAtivos(config, [
+      'Financeiro Obra', // inativo na config -> não entra no dropdown
+      'Sócio Externo',
+    ]);
+    assert.deepEqual(ativosDropdown, [
+      'Patrícia',
+      'Joabson',
+      'Daniel',
+      'Conta Empresa',
+      'Sócio Externo',
+    ]);
+
+    // 3. Integridade de /setup (contexto Jhoston), /api/caixa-campo/emissores e /api/caixa-campo
+    const repoRoot = process.cwd();
+    const setupPage = fs.readFileSync(
+      path.join(repoRoot, 'src/app/setup/page.tsx'),
+      'utf8'
+    );
+    const setupIntermack = fs.readFileSync(
+      path.join(repoRoot, 'src/components/SetupIntermackPanel.tsx'),
+      'utf8'
+    );
+    const emissoresApi = fs.readFileSync(
+      path.join(repoRoot, 'src/app/api/caixa-campo/emissores/route.ts'),
+      'utf8'
+    );
+    const caixaApi = fs.readFileSync(
+      path.join(repoRoot, 'src/app/api/caixa-campo/route.ts'),
+      'utf8'
+    );
+
+    assert.ok(
+      setupPage.includes('<EmissoresPixCaixinhaSetup />') &&
+        !setupIntermack.includes('EmissoresPixCaixinhaSetup'),
+      '/setup deve exibir gestão de emissores da Caixinha no contexto Jhoston sem alterar SetupIntermackPanel'
+    );
+    assert.ok(
+      emissoresApi.includes(".eq('tenant_id', tenantId)") &&
+        emissoresApi.includes('emissores_pix_caixinha') &&
+        caixaApi.includes('emissores_pix_caixinha'),
+      'API de emissores e /api/caixa-campo devem isolar emissores_pix_caixinha por tenant_id e alimentar o dropdown'
     );
   });
 });

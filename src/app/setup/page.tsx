@@ -29,6 +29,7 @@ import {
   type TenantConfig,
 } from '@/lib/tenant';
 import SetupIntermackPanel from '@/components/SetupIntermackPanel';
+import EmissoresPixCaixinhaSetup from '@/components/EmissoresPixCaixinhaSetup';
 
 interface ObraItem {
   id: string;
@@ -1923,6 +1924,11 @@ export default function SetupPage() {
           </div>
         </div>
       )}
+
+      {/* Emissores do PIX da Caixinha de Campo (Contexto Jhoston — alimenta /caixinha) */}
+      <div className="pt-2">
+        <EmissoresPixCaixinhaSetup />
+      </div>
     </div>
   );
 }

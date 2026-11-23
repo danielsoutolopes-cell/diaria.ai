@@ -13,11 +13,13 @@ import {
 } from '@/lib/caixinhaDeduplicacao';
 import {
   aplicarFallbackOcrCaixinha,
+  extrairEmissoresPixAtivos,
   listarEmissoresPixTenant,
   montarDataHoraEnvioIso,
   normalizarDataIso,
   normalizarEmissorPix,
   normalizarHoraHHMM,
+  normalizarListaEmissoresConfig,
   obterDataHoraBrasilia,
   type LeituraBrutaOcrCaixinha,
   type OrigemRastreabilidadeCaixinha,
@@ -269,12 +271,21 @@ export async function GET(req: NextRequest) {
   try {
     const activeTenant = getActiveTenantFromRequest(req);
     const aliasesExtras = await carregarAliasesTenant(activeTenant.id);
-    const { movimentos } = await lerCaixaCampo(activeTenant.id, aliasesExtras);
+    const { configs, movimentos } = await lerCaixaCampo(
+      activeTenant.id,
+      aliasesExtras
+    );
     const contas = consolidarContasCaixinha(movimentos, aliasesExtras);
+    const emissoresConfig = normalizarListaEmissoresConfig(
+      configs.emissores_pix_caixinha
+    );
     const emissoresHistorico = movimentos
       .filter((m) => m.tipo === 'ENTRADA_PIX')
       .map((m) => m.emissorPix || m.enviadoPor);
-    const emissoresPix = listarEmissoresPixTenant(emissoresHistorico);
+    const emissoresPix = extrairEmissoresPixAtivos(
+      emissoresConfig,
+      emissoresHistorico
+    );
 
     return NextResponse.json({
       tenant: activeTenant.slug,

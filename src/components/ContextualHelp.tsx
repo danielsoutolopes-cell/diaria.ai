@@ -349,6 +349,11 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
         descricao:
           'No Modo Diarista, apenas Nome e Chave PIX são obrigatórios. Nas empresas com módulo de compras, Alias do Cliente e Endereço (CEP) saem automaticamente nos pedidos.',
       },
+      {
+        nome: 'Emissores de PIX da Caixinha de Campo (Modo Diarista)',
+        descricao:
+          'Adicione, ative/desative ou remova pagadores adicionais do Caixinha de Campo (além dos emissores padrão obrigatórios), alimentando automaticamente o dropdown de Emissor no /caixinha sem alterar o fluxo de vales.',
+      },
     ],
     exemplo:
       'Em uma Empresa Modo Empreita, cadastre o Empreiteiro na aba 1, vincule os funcionários dele na aba 2 com apelidos/CPF e marque "Hidráulica" e "Gesso" na obra pela aba 3 — tudo já aparece pronto nos dropdowns do Diário de Obra.',

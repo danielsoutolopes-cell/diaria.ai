@@ -9,10 +9,16 @@ export type OrigemRastreabilidadeCaixinha =
 
 export const EMISSORES_PIX_PADRAO: readonly string[] = [
   'Patrícia',
-  'Daniel',
   'Joabson',
-  'Conta Empresa',
 ];
+
+export interface EmissorPixCaixinhaConfig {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  padrao: boolean;
+  criadoEm: string;
+}
 
 export const LABELS_ORIGEM_RASTREABILIDADE: Record<
   OrigemRastreabilidadeCaixinha,
@@ -131,8 +137,118 @@ export function normalizarEmissorPix(
   return limpo;
 }
 
+export function isEmissorPixPadrao(nome: string | null | undefined): boolean {
+  const norm = normalizarEmissorPix(nome);
+  if (!norm) return false;
+  const chave = removerAcentos(norm).toLowerCase();
+  return EMISSORES_PIX_PADRAO.some(
+    (p) => removerAcentos(p).toLowerCase() === chave
+  );
+}
+
 /**
- * Combina os emissores padrão do tenant com gestores extras sem duplicidade.
+ * Normaliza a lista persistida de emissores (`emissores_pix_caixinha`), garantindo
+ * que as opções padrão obrigatórias (Patrícia e Joabson) estejam sempre presentes e ativas.
+ */
+export function normalizarListaEmissoresConfig(
+  raw: unknown
+): EmissorPixCaixinhaConfig[] {
+  const vistos = new Map<string, EmissorPixCaixinhaConfig>();
+
+  EMISSORES_PIX_PADRAO.forEach((nomePadrao) => {
+    const chave = removerAcentos(nomePadrao).toLowerCase();
+    vistos.set(chave, {
+      id: `padrao-${chave}`,
+      nome: nomePadrao,
+      ativo: true,
+      padrao: true,
+      criadoEm: '2026-11-01T00:00:00.000Z',
+    });
+  });
+
+  if (Array.isArray(raw)) {
+    raw.forEach((item, idx) => {
+      if (typeof item === 'string') {
+        const nomeNorm = normalizarEmissorPix(item);
+        if (!nomeNorm) return;
+        const chave = removerAcentos(nomeNorm).toLowerCase();
+        if (!vistos.has(chave)) {
+          vistos.set(chave, {
+            id: `emissor-${chave}-${idx}`,
+            nome: nomeNorm,
+            ativo: true,
+            padrao: false,
+            criadoEm: new Date().toISOString(),
+          });
+        }
+        return;
+      }
+
+      if (!item || typeof item !== 'object') return;
+      const obj = item as Record<string, unknown>;
+      const nomeRaw = typeof obj.nome === 'string' ? obj.nome : '';
+      const nomeNorm = normalizarEmissorPix(nomeRaw);
+      if (!nomeNorm) return;
+      const chave = removerAcentos(nomeNorm).toLowerCase();
+      if (vistos.has(chave)) return;
+
+      vistos.set(chave, {
+        id:
+          typeof obj.id === 'string' && obj.id.trim()
+            ? obj.id.trim()
+            : `emissor-${chave}-${idx}`,
+        nome: nomeNorm,
+        ativo: obj.ativo !== false,
+        padrao: false,
+        criadoEm:
+          typeof obj.criadoEm === 'string'
+            ? obj.criadoEm
+            : new Date().toISOString(),
+      });
+    });
+  }
+
+  return Array.from(vistos.values());
+}
+
+/**
+ * Extrai a lista final de nomes para o dropdown "Emissor / Quem Enviou o PIX":
+ * sempre inicia com Patrícia e Joabson + emissores adicionais ativos do tenant,
+ * respeitando emissores desativados manualmente no /setup.
+ */
+export function extrairEmissoresPixAtivos(
+  config: ReadonlyArray<EmissorPixCaixinhaConfig>,
+  extrasHistorico?: ReadonlyArray<string | null | undefined>
+): string[] {
+  const normalizada = normalizarListaEmissoresConfig(config);
+  const inativos = new Set<string>(
+    normalizada
+      .filter((item) => !item.ativo && !item.padrao)
+      .map((item) => removerAcentos(item.nome).toLowerCase())
+  );
+
+  const vistos = new Map<string, string>();
+  const adicionar = (nome: string | null | undefined) => {
+    const norm = normalizarEmissorPix(nome);
+    if (!norm) return;
+    const chave = removerAcentos(norm).toLowerCase();
+    if (inativos.has(chave)) return;
+    if (!vistos.has(chave)) {
+      vistos.set(chave, norm);
+    }
+  };
+
+  normalizada
+    .filter((item) => item.padrao || item.ativo)
+    .forEach((item) => adicionar(item.nome));
+
+  (extrasHistorico || []).forEach(adicionar);
+
+  return Array.from(vistos.values());
+}
+
+/**
+ * Combina as opções padrão obrigatórias (Patrícia e Joabson) com emissores extras sem duplicidade.
  */
 export function listarEmissoresPixTenant(
   extras?: ReadonlyArray<string | null | undefined>
