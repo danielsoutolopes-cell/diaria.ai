@@ -39,3 +39,8 @@ next-env.d.ts
 .baileys_auth/
 .baileys_service_auth/
 baileys_auth_info/
+
+# Sessões temporárias Baileys (WhatsApp)
+auth_info_baileys*
+.baileys_auth*
+.tmp-fly-session*

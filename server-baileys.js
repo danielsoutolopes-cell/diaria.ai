@@ -9,10 +9,15 @@ const {
   downloadMediaMessage,
 } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
+const { useSupabaseAuthState } = require('./lib/baileys-supabase-auth');
 
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const AUTH_DIR = path.join(DATA_DIR, '.baileys_service_auth');
 const GROUPS_CONFIG_FILE = path.join(DATA_DIR, 'monitored_groups.json');
+const SESSION_ID = process.env.BAILEYS_SESSION_ID || 'default';
+const processedMessageIds = new Set();
+let lastActivityAt = Date.now();
+let currentAuthClear = null;
 
 function loadSavedGroupsConfig() {
   try {
@@ -64,9 +69,20 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
 
   if (fresh) {
     await cleanAuthDir();
+    if (typeof currentAuthClear === 'function') {
+      try { await currentAuthClear(); } catch (e) {}
+    }
   }
 
-  const auth = await useMultiFileAuthState(AUTH_DIR);
+  let auth = await useSupabaseAuthState(SESSION_ID);
+  if (auth) {
+    currentAuthClear = auth.clearSession;
+    console.log(`[BAILEYS-SERVICE] Persistência ativa no Supabase (session_id='${SESSION_ID}').`);
+  } else {
+    currentAuthClear = null;
+    auth = await useMultiFileAuthState(AUTH_DIR);
+    console.log('[BAILEYS-SERVICE] Fallback: persistência em disco local (.baileys_service_auth).');
+  }
   const browser = getBrowserProfile(targetOs);
   
   let version = [2, 3000, 1043857760];

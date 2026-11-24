@@ -330,6 +330,11 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
         descricao:
           'Clique em "Puxar Grupos do WhatsApp" e vincule cada grupo à empresa, nome da obra e ambiente (Interno/Externo).',
       },
+      {
+        nome: 'Chaves de Ambiente & Integrações (Somente Leitura)',
+        descricao:
+          'Painel exclusivo do Super Admin para conferir o status (Ativa/Ausente) das variáveis de infraestrutura (Render, Supabase, Cloudflare R2, GitHub Actions e sessão Baileys) e copiar segredos mascarados com segurança, sem risco de alteração acidental.',
+      },
     ],
     exemplo:
       'Ative "FF_EXTRATO_COLABORADOR_LINK" apenas para uma empresa piloto em homologação: o botão Link Extrato (EM HOMOLOGAÇÃO) aparece somente nela, enquanto a outra empresa permanece 100% intacta.',

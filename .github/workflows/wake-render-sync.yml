@@ -1,0 +1,35 @@
+name: Wake Render & Sync WhatsApp (diaria.ai)
+
+on:
+  schedule:
+    # 09:00 e 09:05 BRT (UTC-3 => 12:00 e 12:05 UTC)
+    - cron: '0 12 * * *'
+    - cron: '5 12 * * *'
+    # 12:00 e 12:05 BRT (UTC-3 => 15:00 e 15:05 UTC)
+    - cron: '0 15 * * *'
+    - cron: '5 15 * * *'
+    # 19:00 e 19:05 BRT (UTC-3 => 22:00 e 22:05 UTC)
+    - cron: '0 22 * * *'
+    - cron: '5 22 * * *'
+  workflow_dispatch:
+
+jobs:
+  wake-and-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acordar Render e sincronizar Baileys (/api/whatsapp/wake)
+        env:
+          RENDER_APP_URL: ${{ secrets.RENDER_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$RENDER_APP_URL" ]; then
+            echo "Erro: secret RENDER_APP_URL não configurado."
+            exit 1
+          fi
+          TARGET_URL="${RENDER_APP_URL%/}/api/whatsapp/wake"
+          echo "Disparando wake em $TARGET_URL ..."
+          curl -fsS -X POST "$TARGET_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -d '{"source":"github-actions"}'
+          echo ""

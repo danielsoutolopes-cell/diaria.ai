@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import FarolWhatsApp from '@/components/FarolWhatsApp';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   CalendarCheck2,
@@ -257,6 +258,7 @@ export default function Sidebar() {
     <aside className="hidden lg:flex w-72 bg-slate-950 text-white min-h-screen flex-col border-r border-slate-800/80 shrink-0 select-none">
       {/* Brand Header */}
       <div className="p-6 border-b border-slate-800/80">
+        <FarolWhatsApp />
         <div className="flex items-center gap-3.5">
           <div className="relative">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-[1.5px] shadow-lg shadow-emerald-500/20">

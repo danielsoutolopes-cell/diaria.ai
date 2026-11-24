@@ -359,3 +359,24 @@
 - **PIN Dinâmico por Fase (`0000` / `1234`) & Envio de Convite pelo Sistema (`/config-geral`)**:
   - Em **`EM HOMOLOGAÇÃO`**, o PIN do PWA `/ponto` é automaticamente **`0000`**; ao promover para **`100% ATIVO`**, volta automaticamente para **`1234`** (PIN oficial).
   - Adicionado em `/config-geral` (card `FF_PWA_PONTO_CAMPO`) o disparador **Enviar Link + PIN** com dropdown de contatos ou campo editável de WhatsApp/e-mail (`/api/ponto-campo/convite`), enviando o link `/ponto`, o PIN vigente e as regras básicas via WhatsApp (Baileys) e copiando o texto para a área de transferência.
+
+
+### Chaves de Ambiente & Integrações — Somente Leitura (`/config-geral`, 24/11/2026)
+- **Backend Protegido (`src/app/api/config-geral/chaves-ambiente/route.ts` + `src/lib/chavesAmbiente.ts`)**:
+  - Verificação estrita de sessão Super Admin (`isDanielOuPatricia` via cookie `diaria_user`), retornando **HTTP 403** para qualquer outro perfil.
+  - Bloqueio explícito de escrita (**HTTP 405** + header `Allow: GET`) para `POST`, `PUT`, `PATCH` e `DELETE`.
+  - Lista estruturada de variáveis críticas (`RENDER_APP_URL`, `CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `CLOUDFLARE_R2_*`) + resumo da tabela `baileys_session_state` (`session_id`, `total_chaves`, `updated_at`).
+  - Segredos mascarados por padrão (`prefixo••••••••sufixo`); valor completo só é retornado ao Super Admin quando `?revelar=1` é solicitado explicitamente para exibição/cópia rápida.
+- **UI Somente Leitura (`src/components/ChavesAmbienteReadOnlyPanel.tsx`)**:
+  - Montada exclusivamente em `/config-geral` (ausente em `/setup`), com selo **`SOMENTE LEITURA · SUPER ADMIN`**, inputs `readOnly`/`disabled`, toggle local Mostrar/Ocultar e botão Copiar.
+- **Testes**: Adicionada suíte `tests/chaves_ambiente_readonly.test.ts` validando mascaramento, bloqueio `403`, bloqueio `405`, renderização somente leitura em `/config-geral` e ausência em `/setup`.
+
+
+### Persistência Contínua Baileys no Supabase (V27), Farol WhatsApp & Wake Render (24/11/2026)
+- **Migration V27 (`supabase/migrations/migration_v27_baileys_session_state.sql`)**: Tabela `public.baileys_session_state` criada e aplicada diretamente no Supabase (`session_id`, `key_name`, `data jsonb`, `updated_at`), com RLS ativo restrito exclusivamente ao `service_role`.
+- **Script de Migração Fly.io -> Supabase (`scripts/migrar-sessao-fly-para-supabase.js`)**: Verifica diretórios de sessão no Fly.io via `flyctl`, faz download temporário (ignorado no `.gitignore`) e upsert em lotes no Supabase; executado em 24/11/2026 (máquina Fly.io já suspensa — fallback seguro ativo).
+- **Adapter Contínuo (`src/lib/baileysSupabaseAuth.ts` + `lib/baileys-supabase-auth.js` + `server-baileys.js`)**: `useSupabaseAuthState` com cache em memória e batch upsert debounced; toda renovação futura de `creds` e `keys` do Baileys é gravada automaticamente no Supabase (eliminando dependência de disco efêmero no Render).
+- **Wake, Status & Farol WhatsApp**:
+  - `POST /api/whatsapp/wake` (com trava de 3 minutos para concluir uploads/IA antes de hibernar) e `GET /api/whatsapp/status`.
+  - Componente `src/components/FarolWhatsApp.tsx` no menu lateral (`🔴 Vermelho` com auto-wake -> `🟡 Amarelo` sincronizando -> `🟢 Verde` conectado + botão manual `Sincronizar`).
+- **GitHub Action (`.github/workflows/wake-render-sync.yml`)**: Agendamentos UTC equivalentes a `09:00`, `09:05`, `12:00`, `12:05`, `19:00` e `19:05` BRT (`0 12 * * *`, `5 12 * * *`, `0 15 * * *`, `5 15 * * *`, `0 22 * * *`, `5 22 * * *` + `workflow_dispatch`) chamando `POST ${RENDER_APP_URL}/api/whatsapp/wake`.

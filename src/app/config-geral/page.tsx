@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { isDanielOuPatricia } from '@/lib/tenant';
 import FeatureFlagsHomologacaoPanel from '@/components/FeatureFlagsHomologacaoPanel';
+import ChavesAmbienteReadOnlyPanel from '@/components/ChavesAmbienteReadOnlyPanel';
 
 interface GrupoWhatsAppMapeado {
   id: string;
@@ -419,6 +420,9 @@ export default function ConfigGeralPage() {
           </div>
         )}
       </section>
+
+      {/* Seção Somente Leitura: Chaves de Ambiente & Integrações (Exclusivo Super Admin) */}
+      <ChavesAmbienteReadOnlyPanel />
     </div>
   );
 }
