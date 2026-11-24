@@ -347,18 +347,19 @@ export async function POST(req: NextRequest) {
       }
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
       });
       const clean = body.imagemBase64.replace(/^data:[^;]+;base64,/, '');
 
       const prompt = `Você é o motor OCR financeiro de alta precisão do sistema diaria.ai.
-Analise esta imagem (comprovante de PIX de bancos como Nubank, C6, Itaú, Santander, Inter, Bradesco, cupom fiscal, nota fiscal ou recibo de obra).
+Analise esta imagem (comprovante de PIX de bancos como Nubank, C6, Itaú, Santander, Inter, Bradesco, tela de confirmação rápida "Sua transferência foi concluída", cupom fiscal, nota fiscal ou recibo de obra).
 
-REGRAS ESTRITAS PARA COMPROVANTES CORTADOS (ex.: print Nubank mostrando só valor e destinatário sem pagador ou sem campo "Quando" completo):
-1. NÃO INVENTE o pagador ("emissorPix"). Se a seção de pagador/origem estiver cortada ou não aparecer claramente na imagem, retorne "emissorPix": null e "comprovanteCortado": true.
-2. Extraia a data ("YYYY-MM-DD") e a hora ("HH:MM") do campo oficial de data/hora da transferência (ex.: "Quando", "Data", "Horário"). Se estiver cortado ou ausente, retorne null.
-3. Se o campo oficial de horário estiver cortado, mas o relógio da barra superior do celular aparecer no print (ex.: "14:32" no canto superior esquerdo), informe esse horário em "horaBarraStatus": "HH:MM" (caso contrário, null).
-4. Em "destinatario", informe o nome de quem RECEBEU o PIX (se for comprovante PIX) ou null.
+REGRAS ESTRITAS PARA COMPROVANTES CORTADOS OU TELA RÁPIDA (ex.: foto/print Nubank com "Sua transferência foi concluída", valor, "Para Gilvan Batista dos Santos", "Quando: Agora", sem pagador):
+1. Qualquer tela de transferência/PIX concluída ("Sua transferência foi concluída", "PIX enviado", "Comprovante de transferência", "NU PAGAMENTOS") é SEMPRE "tipo": "ENTRADA_PIX" e "categoria": "Suprimento PIX".
+2. NÃO INVENTE o pagador ("emissorPix"). Se a seção de pagador/origem estiver cortada ou não aparecer claramente na imagem, retorne "emissorPix": null e "comprovanteCortado": true.
+3. Extraia a data ("YYYY-MM-DD") e a hora ("HH:MM") do campo oficial de data/hora da transferência (ex.: "Quando", "Data", "Horário"). Se aparecer "Agora" ou estiver cortado/ausente, retorne null.
+4. Se o campo oficial de horário estiver cortado, mas o relógio da barra superior do celular aparecer no print (ex.: "14:32" no canto superior esquerdo), informe esse horário em "horaBarraStatus": "HH:MM" (caso contrário, null).
+5. Em "destinatario", informe o nome de quem RECEBEU o PIX (ex.: "Gilvan Batista dos Santos" -> "Gil") ou null.
 
 Retorne APENAS JSON puro (sem markdown):
 {
