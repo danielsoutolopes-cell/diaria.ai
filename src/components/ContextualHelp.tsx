@@ -339,6 +339,25 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
     exemplo:
       'Ative "FF_EXTRATO_COLABORADOR_LINK" apenas para uma empresa piloto em homologação: o botão Link Extrato (EM HOMOLOGAÇÃO) aparece somente nela, enquanto a outra empresa permanece 100% intacta.',
   },
+  '/chaves-autorizacao': {
+    titulo: 'Chave Autorizante Efêmera (Dupla Alçada — 3 min)',
+    resumo:
+      'Gera o PIN individual de 6 dígitos (válido por 3 minutos) exclusivo de cada administrador para autorizar edições ou exclusões de lançamentos com mais de 24 horas.',
+    funcoes: [
+      {
+        nome: 'Regra das 24 Horas',
+        descricao:
+          'Lançamentos com menos de 24h podem ser editados ou excluídos normalmente; após 24h, o sistema exige os 2 PINs simultâneos (Patrícia + Daniel).',
+      },
+      {
+        nome: 'Expiração Automática em 3 Minutos',
+        descricao:
+          'Cada administrador visualiza apenas o próprio PIN com contador regressivo e renovação automática.',
+      },
+    ],
+    exemplo:
+      'Para ajustar uma diária de 3 dias atrás em /relatorios, cada administrador abre /chaves-autorizacao, informa seu PIN de 6 dígitos e confirma a operação.',
+  },
   '/ponto': {
     titulo: 'App de Campo Instalável (PWA — Ponto & 3 Fotos)',
     resumo:

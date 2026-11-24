@@ -2,15 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getActiveTenantFromRequest } from '@/lib/tenant';
 import { deleteFromR2ByUrl } from '@/services/r2Storage';
+import { validarDuplaAlcada } from '@/lib/duplaAlcada';
 
 interface ExcluirLancamentoBody {
   lancamentoId?: string;
+  pinPatricia?: string;
+  pinDaniel?: string;
 }
 
 interface LancamentoExcluirRow {
   id: string;
   comprovante_url: string | null;
   nome_trabalhador: string;
+  created_at?: string | null;
+  data_referencia?: string | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -29,7 +34,7 @@ export async function POST(req: NextRequest) {
     // 1. Buscar o registro isolado por tenant_id
     const { data: lancRaw, error: fetchErr } = await supabaseAdmin
       .from('lancamentos_financeiros')
-      .select('id, comprovante_url, nome_trabalhador')
+      .select('id, comprovante_url, nome_trabalhador, created_at, data_referencia')
       .eq('id', lancamentoId)
       .eq('tenant_id', activeTenant.id)
       .single();
@@ -39,6 +44,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Lançamento não encontrado para a empresa ativa.' },
         { status: 404 }
+      );
+    }
+
+    // 1.5 Trava de Dupla Alçada (>24h exige PIN Patrícia + PIN Daniel válidos por 3 min)
+    const checkDupla = validarDuplaAlcada({
+      createdAt: lancamento.created_at,
+      dataReferencia: lancamento.data_referencia,
+      pinPatricia: body.pinPatricia,
+      pinDaniel: body.pinDaniel,
+    });
+    if (!checkDupla.autorizado) {
+      return NextResponse.json(
+        {
+          error: checkDupla.erro,
+          exigeDuplaAlcada: true,
+        },
+        { status: 403 }
       );
     }
 

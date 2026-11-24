@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getActiveTenantFromRequest } from '@/lib/tenant';
 import { formatarAlertaEdicaoPatricia } from '@/services/notificacoesAdmin';
+import { validarDuplaAlcada } from '@/lib/duplaAlcada';
 import type { StatusLancamento } from '@/types/database';
 
 interface EditarLancamentoBody {
@@ -13,6 +14,8 @@ interface EditarLancamentoBody {
   status?: StatusLancamento;
   usuarioLogado?: string;
   confirmarSobrescrita?: boolean;
+  pinPatricia?: string;
+  pinDaniel?: string;
 }
 
 interface ObraRel {
@@ -25,6 +28,7 @@ interface LancamentoEditRow {
   nome_trabalhador: string;
   valor_monetario: number | string | null;
   data_referencia: string;
+  created_at?: string | null;
   status: string;
   ponto_lote_id: string | null;
   validado_por?: string | null;
@@ -77,6 +81,7 @@ export async function POST(req: NextRequest) {
         nome_trabalhador,
         valor_monetario,
         data_referencia,
+        created_at,
         status,
         ponto_lote_id,
         obras_config (
@@ -88,6 +93,23 @@ export async function POST(req: NextRequest) {
       .single();
 
     const lanc = lancRaw as unknown as LancamentoEditRow | null;
+    if (lanc) {
+      const checkDupla = validarDuplaAlcada({
+        createdAt: lanc.created_at,
+        dataReferencia: lanc.data_referencia,
+        pinPatricia: body.pinPatricia,
+        pinDaniel: body.pinDaniel,
+      });
+      if (!checkDupla.autorizado) {
+        return NextResponse.json(
+          {
+            error: checkDupla.erro,
+            exigeDuplaAlcada: true,
+          },
+          { status: 403 }
+        );
+      }
+    }
     if (errLanc || !lanc) {
       return NextResponse.json(
         { error: 'Lançamento não encontrado para a empresa ativa.' },

@@ -380,3 +380,36 @@
   - `POST /api/whatsapp/wake` (com trava de 3 minutos para concluir uploads/IA antes de hibernar) e `GET /api/whatsapp/status`.
   - Componente `src/components/FarolWhatsApp.tsx` no menu lateral (`🔴 Vermelho` com auto-wake -> `🟡 Amarelo` sincronizando -> `🟢 Verde` conectado + botão manual `Sincronizar`).
 - **GitHub Action (`.github/workflows/wake-render-sync.yml`)**: Agendamentos UTC equivalentes a `09:00`, `09:05`, `12:00`, `12:05`, `19:00` e `19:05` BRT (`0 12 * * *`, `5 12 * * *`, `0 15 * * *`, `5 15 * * *`, `0 22 * * *`, `5 22 * * *` + `workflow_dispatch`) chamando `POST ${RENDER_APP_URL}/api/whatsapp/wake`.
+
+
+### Auditoria ("Bate") de Diárias Jhoston — 16/11/2026 a 23/11/2026 (24/11/2026)
+- **Confronto direto no Supabase (`lancamentos_financeiros`, `tipo_lancamento = 'PONTO'`, ativos `status <> 'DESCARTADO'`, `tenant_id = Jhoston`)**:
+  - **Total Esperado:** `70` diárias (`56` Piscina Porto Seguro + `14` outras frentes).
+  - **Total Ativo no Banco:** `70` diárias → **`70 OK` · `0 FALTANDO` · `0 DUPLICADOS ATIVOS`** (9 registros históricos anteriores constam corretamente como `DESCARTADO`).
+  - **Piscina Porto Seguro (8 dias: 16/11 a 23/11 × 7 pessoas — Gil, Mateus, Lucas J., Peu, Ian, Zé Baiano, Daniel):** `56/56 OK`.
+  - **Outras frentes (`Porto Imperial` = `Obra Mauro`, `Quase Tudo`, `Casa do Joabson`):** `14/14 OK` (incluindo `Manoel` `0.5` Quase Tudo + `0.5` Casa do Joabson em `19/11`, `Manoel` + `Wender` em `21/11`, e `Manoel` Casa do Joabson + `Wender` Quase Tudo em `23/11` — este último em `PENDENTE` aguardando validação humana).
+- **Validação de testes**: `node scripts/run-tests.js` (**68/68 aprovados**) e `npm run build` (**0 erros**).
+
+
+### Conferência Rápida no Ar — Pós-Deploy Render (`https://diaria-ai.onrender.com`, 24/11/2026)
+- **1. Governança & Chaves Somente Leitura (`/config-geral`)**: **PASS**
+  - `GET /api/config-geral/chaves-ambiente`: `403` para não-Super Admin, `405` em `POST`, `200` (`somenteLeitura: true`) para Super Admin.
+  - 6/9 variáveis ativas no Render (`RENDER_APP_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY`); pendentes de preencher no painel Render: `CRON_SECRET`, `CLOUDFLARE_R2_ACCOUNT_ID`, `CLOUDFLARE_R2_BUCKET_NAME`.
+  - `GET /api/feature-flags?all=1`: `200` Super Admin / `403` não-admin; 3 flags com ciclo de 3 estados ativas.
+- **2. Tenant `Jhoston` (`DIÁRIAS`)**: **PASS**
+  - `GET /api/obras`: 4 obras canônicas ativas (`CASA DO JOABSON`, `PORTO IMPERIAL`, `PORTO SEGURO`, `QUASE TUDO`).
+  - `GET /api/reembolsos`: `200` (`success: true`); 70/70 diárias (`16/11` a `23/11`) 100% validadas e espelhadas no Supabase.
+- **3. Tenant `Intermack` (`EMPREITA`)**: **PASS**
+  - `GET /api/diario-obra`: `200` (`tenant: "intermack"`, `subempreitaAtiva: true`, `obras: 1`), isolamento multi-tenant intacto.
+- **4. Farol, Wake & Sessão Baileys no Render**: **PASS (Aguardando 1º pareamento no Render)**
+  - `GET /api/whatsapp/status`: `200` (`farol: "VERMELHO"`, `status: "DISCONNECTED"`).
+  - `POST /api/whatsapp/wake`: `200` (`status: "CONNECTING"`, trava de hibernação de 3 minutos aplicada).
+  - `baileys_session_state`: `0` chaves (Fly.io já estava suspenso); após o 1º pareamento em `/whatsapp` no Render, o adapter `useSupabaseAuthState` gravará todas as chaves continuamente no Supabase.
+
+
+### Dupla Alçada (>24h) com PIN Efêmero de 3 Minutos — Edição & Exclusão (`/relatorios` + `/chaves-autorizacao`, 24/11/2026)
+- **Motor de Dupla Alçada (`src/lib/duplaAlcada.ts` + `GET /api/dupla-alcada/pin`)**:
+  - Gera PIN individual de 6 dígitos (HMAC-SHA256) com validade de **3 minutos** exclusivo para cada administrador (`Patrícia` e `Daniel`), bloqueando outros perfis com HTTP `403`.
+  - Lançamentos com **até 24h** podem ser editados ou excluídos normalmente; **após 24h**, `/api/lancamentos/editar` e `/api/lancamentos/excluir` exigem simultaneamente `pinPatricia` + `pinDaniel` válidos na janela de 3 minutos (retornando HTTP `403` com `exigeDuplaAlcada: true` caso contrário).
+- **Tela Separada de PIN (`/chaves-autorizacao`)**: Exibe apenas o PIN do administrador logado com contador regressivo ao vivo (`03:00` → `00:00`), barra de validade e botão **Copiar Meu PIN**.
+- **Modal de Extrato Individual (`/relatorios`)**: Adicionado botão **`Editar`** ao lado de **`Excluir`** com painel inline de confirmação e entrada dos 2 PINs (com link direto para `/chaves-autorizacao`).
