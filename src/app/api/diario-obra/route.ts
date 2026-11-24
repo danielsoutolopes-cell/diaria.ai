@@ -13,6 +13,7 @@ import {
   type EfetivoItem,
 } from '@/lib/diarioObraRelatorio';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { validarDuplaAlcada } from '@/lib/duplaAlcada';
 import crypto from 'crypto';
 
 export type { DiarioObraRegistro, EfetivoItem };
@@ -140,8 +141,16 @@ export async function GET(req: NextRequest) {
 }
 
 interface DiarioPostBody {
-  action: 'salvar' | 'excluir' | 'efetivo-dia' | 'refinar' | 'enviar-whatsapp';
+  action:
+    | 'salvar'
+    | 'editar'
+    | 'excluir'
+    | 'efetivo-dia'
+    | 'refinar'
+    | 'enviar-whatsapp';
   id?: string;
+  pinPatricia?: string;
+  pinDaniel?: string;
   destinoJid?: string;
   filtroEmpreiteiro?: string;
   obraId?: string | null;
@@ -198,6 +207,73 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Puxar efetivo validado do dia (sem valores financeiros)
+    // Editar diário registrado (livre até 24h; após 24h exige Dupla Alçada 8 dígitos / 3 min)
+    if (body.action === 'editar' && body.id) {
+      const { paramId, configs, diarios } = await lerDiariosEEtapesDoTenant(
+        activeTenant.id
+      );
+      const idx = diarios.findIndex((d) => d.id === body.id);
+      if (idx === -1) {
+        return NextResponse.json(
+          { error: 'Diário de obra não encontrado.' },
+          { status: 404 }
+        );
+      }
+
+      const atual = diarios[idx];
+      const checkDupla = validarDuplaAlcada({
+        createdAt: atual.criadoEm,
+        dataReferencia: atual.data,
+        pinPatricia: body.pinPatricia,
+        pinDaniel: body.pinDaniel,
+      });
+      if (!checkDupla.autorizado) {
+        return NextResponse.json(
+          {
+            error: checkDupla.erro,
+            exigeDuplaAlcada: true,
+          },
+          { status: 403 }
+        );
+      }
+
+      const atualizado: DiarioObraRegistro = {
+        ...atual,
+        resumo:
+          body.resumo !== undefined ? body.resumo.trim() : atual.resumo,
+        ocorrencias:
+          body.ocorrencias !== undefined
+            ? body.ocorrencias.trim()
+            : atual.ocorrencias,
+        statusCondominio:
+          body.statusCondominio !== undefined
+            ? sanitizarStatusCondominio(body.statusCondominio)
+            : atual.statusCondominio,
+        clima: body.clima !== undefined ? body.clima : atual.clima,
+      };
+
+      const novosDiarios = [...diarios];
+      novosDiarios[idx] = atualizado;
+
+      if (paramId) {
+        await supabaseAdmin
+          .from('parametros_sistema')
+          .update({
+            configuracoes: {
+              ...configs,
+              diarios_obra: novosDiarios,
+            },
+          })
+          .eq('id', paramId);
+      }
+
+      return NextResponse.json({
+        success: true,
+        diario: atualizado,
+        diarios: novosDiarios,
+      });
+    }
+
     if (body.action === 'efetivo-dia') {
       const dataRef = body.data || new Date().toISOString().split('T')[0];
       const { data: lancs } = await supabaseAdmin

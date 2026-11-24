@@ -131,6 +131,18 @@ export default function DiarioObraPage() {
   const [refinandoIA, setRefinandoIA] = useState(false);
   const [enviandoZapId, setEnviandoZapId] = useState<string | null>(null);
   const [destinoZap, setDestinoZap] = useState('');
+  const [edicaoDiario, setEdicaoDiario] = useState<{
+    id: string;
+    resumo: string;
+    ocorrencias: string;
+    exigeDuplaAlcada: boolean;
+    prefixoPatricia: string;
+    prefixoDaniel: string;
+    pinPatricia: string;
+    pinDaniel: string;
+    erro: string | null;
+    salvando: boolean;
+  } | null>(null);
   const [avisoEnvio, setAvisoEnvio] = useState<string | null>(null);
   const [mapaGruposObra, setMapaGruposObra] = useState<
     Array<{ jid: string; obraNome: string }>
@@ -604,6 +616,102 @@ export default function DiarioObraPage() {
       console.error(e);
     } finally {
       setEnviandoZapId(null);
+    }
+  }
+
+  async function iniciarEdicaoDiario(d: DiarioObraRegistro) {
+    const tsCriado = d.criadoEm ? Date.parse(d.criadoEm) : Number.NaN;
+    const tsRef = !Number.isNaN(tsCriado)
+      ? tsCriado
+      : Date.parse(`${d.data}T12:00:00-03:00`);
+    const passou24h =
+      !Number.isNaN(tsRef) && Date.now() - tsRef > 24 * 60 * 60 * 1000;
+
+    let prefPat = '';
+    let prefDan = '';
+    if (passou24h) {
+      try {
+        const r = await fetch('/api/dupla-alcada/pin?prefixos=1', {
+          cache: 'no-store',
+        });
+        const data = (await r.json()) as {
+          prefixoPatricia?: string;
+          prefixoDaniel?: string;
+        };
+        prefPat = data.prefixoPatricia || '';
+        prefDan = data.prefixoDaniel || '';
+      } catch {
+        // ignora
+      }
+    }
+
+    setEdicaoDiario({
+      id: d.id,
+      resumo: d.resumo || '',
+      ocorrencias: d.ocorrencias || '',
+      exigeDuplaAlcada: passou24h,
+      prefixoPatricia: prefPat,
+      prefixoDaniel: prefDan,
+      pinPatricia: '',
+      pinDaniel: '',
+      erro: null,
+      salvando: false,
+    });
+  }
+
+  async function salvarEdicaoDiario() {
+    if (!edicaoDiario) return;
+    setEdicaoDiario((prev) =>
+      prev ? { ...prev, salvando: true, erro: null } : null
+    );
+    try {
+      const pinPat8 =
+        edicaoDiario.pinPatricia.length === 4 && edicaoDiario.prefixoPatricia
+          ? `${edicaoDiario.prefixoPatricia}${edicaoDiario.pinPatricia}`
+          : edicaoDiario.pinPatricia || undefined;
+      const pinDan8 =
+        edicaoDiario.pinDaniel.length === 4 && edicaoDiario.prefixoDaniel
+          ? `${edicaoDiario.prefixoDaniel}${edicaoDiario.pinDaniel}`
+          : edicaoDiario.pinDaniel || undefined;
+
+      const res = await fetch('/api/diario-obra', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'editar',
+          id: edicaoDiario.id,
+          resumo: edicaoDiario.resumo,
+          ocorrencias: edicaoDiario.ocorrencias,
+          pinPatricia: pinPat8,
+          pinDaniel: pinDan8,
+        }),
+      });
+      const data = (await res.json()) as {
+        success?: boolean;
+        diarios?: DiarioObraRegistro[];
+        error?: string;
+        exigeDuplaAlcada?: boolean;
+      };
+      if (!res.ok || !data.success) {
+        setEdicaoDiario((prev) =>
+          prev
+            ? {
+                ...prev,
+                salvando: false,
+                exigeDuplaAlcada:
+                  data.exigeDuplaAlcada || prev.exigeDuplaAlcada,
+                erro: data.error || 'Não foi possível salvar a edição.',
+              }
+            : null
+        );
+        return;
+      }
+      if (data.diarios) setDiarios(data.diarios);
+      setEdicaoDiario(null);
+    } catch {
+      setEdicaoDiario((prev) =>
+        prev ? { ...prev, salvando: false, erro: 'Erro de conexão.' } : null
+      );
     }
   }
 
@@ -1533,6 +1641,134 @@ export default function DiarioObraPage() {
                       </p>
                     )}
 
+                    {edicaoDiario?.id === d.id && (
+                      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-black text-slate-900">
+                            Editar Diário de Obra
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setEdicaoDiario(null)}
+                            className="text-[11px] font-bold text-slate-500 hover:text-slate-800"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                        <textarea
+                          rows={3}
+                          value={edicaoDiario.resumo}
+                          onChange={(e) =>
+                            setEdicaoDiario((prev) =>
+                              prev ? { ...prev, resumo: e.target.value } : null
+                            )
+                          }
+                          placeholder="Resumo das atividades..."
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-900"
+                        />
+                        <input
+                          type="text"
+                          value={edicaoDiario.ocorrencias}
+                          onChange={(e) =>
+                            setEdicaoDiario((prev) =>
+                              prev
+                                ? { ...prev, ocorrencias: e.target.value }
+                                : null
+                            )
+                          }
+                          placeholder="Ocorrências / impedimentos (opcional)"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-900"
+                        />
+
+                        {edicaoDiario.exigeDuplaAlcada && (
+                          <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-1">
+                              <span className="text-[10px] font-black text-amber-900">
+                                🔒 &gt;24h — Dupla Alçada (8 dígitos • 3 min)
+                              </span>
+                              <a
+                                href="/chaves-autorizacao"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[10px] font-black text-emerald-700 underline"
+                              >
+                                Tela de PIN ↗
+                              </a>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                              <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-amber-300 bg-white">
+                                <span className="text-[10px] font-mono font-black text-slate-500 shrink-0">
+                                  Patrícia: {edicaoDiario.prefixoPatricia || '••••'}-
+                                </span>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={8}
+                                  placeholder="4 últimos"
+                                  value={edicaoDiario.pinPatricia}
+                                  onChange={(e) =>
+                                    setEdicaoDiario((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            pinPatricia: e.target.value
+                                              .replace(/\D/g, '')
+                                              .slice(0, 8),
+                                          }
+                                        : null
+                                    )
+                                  }
+                                  className="w-full text-[11px] font-mono font-black outline-none"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-amber-300 bg-white">
+                                <span className="text-[10px] font-mono font-black text-slate-500 shrink-0">
+                                  Daniel: {edicaoDiario.prefixoDaniel || '••••'}-
+                                </span>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  maxLength={8}
+                                  placeholder="4 últimos"
+                                  value={edicaoDiario.pinDaniel}
+                                  onChange={(e) =>
+                                    setEdicaoDiario((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            pinDaniel: e.target.value
+                                              .replace(/\D/g, '')
+                                              .slice(0, 8),
+                                          }
+                                        : null
+                                    )
+                                  }
+                                  className="w-full text-[11px] font-mono font-black outline-none"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {edicaoDiario.erro && (
+                          <p className="text-[11px] font-bold text-rose-700">
+                            {edicaoDiario.erro}
+                          </p>
+                        )}
+
+                        <button
+                          type="button"
+                          disabled={edicaoDiario.salvando}
+                          onClick={() => void salvarEdicaoDiario()}
+                          className="w-full py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black disabled:opacity-50"
+                        >
+                          {edicaoDiario.salvando
+                            ? 'Salvando...'
+                            : 'Salvar Alterações'}
+                        </button>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-2 pt-1">
                       <button
                         type="button"
@@ -1546,6 +1782,14 @@ export default function DiarioObraPage() {
                       >
                         <Printer className="w-3.5 h-3.5" />
                         <span>Relatório</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => void iniciarEdicaoDiario(d)}
+                        className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold"
+                      >
+                        Editar
                       </button>
 
                       <button
