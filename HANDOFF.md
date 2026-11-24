@@ -420,3 +420,6 @@
   - `/bordero`: `exportarParaExcel` (`xlsx`) sob demanda + `ReceiptLightbox` via `next/dynamic`.
   - `/auditoria`: `SaudeSistemaPanel` via `next/dynamic`.
 - **Fase 3 (Final) — Índices Compostos de Performance no Supabase (`migration_v28_performance_indexes.sql`)**: 6 índices multi-tenant (`tenant_id` + filtros/ordenação) criados e aplicados diretamente em `lancamentos_financeiros`, `ponto_lote`, `funcionarios_obra` e `obras_config`, acelerando `/api/bordero`, `/api/relatorios`, `/api/pendentes`, `/api/vales` e `/api/auditoria`.
+- **Menu Adaptativo por Frequência de Uso & Revelação Progressiva (`src/components/Sidebar.tsx`)**:
+  - Os módulos principais agora aprendem automaticamente quais telas são mais acessadas por empresa (`diaria_menu_freq_${tenantSlug}`) e se reordenam do mais usado para o menos usado (mantendo *Visão Geral & Caixa* fixo no topo).
+  - Itens secundários / baixa frequência (*PitWall*, *Conciliação*, *Saúde*, *Mensageria*, *Bot*, *RBAC*, *Configuração Geral*, *Manual*, *GADAP*, *Produtos*) ficam recolhidos no bloco colapsável **`Mais opções`** (expandindo automaticamente quando o usuário acessa um deles).

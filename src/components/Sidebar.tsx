@@ -188,6 +188,26 @@ export default function Sidebar() {
   const [currentUser, setCurrentUser] = React.useState<string>('Patrícia Grubel');
   const [activeTenant, setActiveTenant] = React.useState<TenantConfig>(TENANTS.jhoston);
   const [pendentesBadge, setPendentesBadge] = React.useState<number>(0);
+  const [menuFreq, setMenuFreq] = React.useState<Record<string, number>>({});
+  const [mostrarSecundarios, setMostrarSecundarios] = React.useState<boolean>(false);
+
+  const SECUNDARIOS_HREFS = React.useMemo(
+    () =>
+      new Set([
+        '/pitwall',
+        '/conciliacao',
+        '/auditoria',
+        '/mensageria',
+        '/whatsapp',
+        '/configuracoes',
+        '/config-geral',
+        '/chaves-autorizacao',
+        '/ajuda',
+        '/gadap',
+        '/produtos',
+      ]),
+    []
+  );
 
   React.useEffect(() => {
     const cookies = document.cookie.split('; ');
@@ -211,6 +231,28 @@ export default function Sidebar() {
       })
       .catch(() => {});
   }, []);
+
+  // Aprendizado automático de frequência de uso dos menus por empresa (tenant)
+  React.useEffect(() => {
+    if (!pathname) return;
+    if (SECUNDARIOS_HREFS.has(pathname)) {
+      setMostrarSecundarios(true);
+    }
+    const storageKey = `diaria_menu_freq_${activeTenant.slug}`;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const parsed: Record<string, number> = raw
+        ? (JSON.parse(raw) as Record<string, number>)
+        : {};
+      if (pathname !== '/' && !SECUNDARIOS_HREFS.has(pathname)) {
+        parsed[pathname] = (parsed[pathname] || 0) + 1;
+        localStorage.setItem(storageKey, JSON.stringify(parsed));
+      }
+      setMenuFreq(parsed);
+    } catch {
+      // ignora storage bloqueado
+    }
+  }, [pathname, activeTenant.slug, SECUNDARIOS_HREFS]);
 
   const isDanielOrPatricia = isDanielOuPatricia(currentUser);
   const isIntermack = activeTenant.slug === 'intermack';
@@ -364,60 +406,112 @@ export default function Sidebar() {
         </button>
 
         <div className="text-[11px] font-semibold tracking-wider uppercase text-slate-400 px-3 mb-2 flex items-center justify-between">
-          <span>Módulos de Gestão</span>
-          <TrendingUp className="w-3 h-3 text-slate-400" />
+          <span>Principais (por uso)</span>
+          <TrendingUp
+            className="w-3 h-3 text-emerald-400"
+            aria-label="Ordenação adaptativa por frequência de uso"
+          />
         </div>
 
-        {visibleNavItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-          const displayName =
-            isIntermack && 'intermackName' in item && item.intermackName
-              ? item.intermackName
-              : item.name;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`group flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all ${
-                isActive
-                  ? isIntermack
-                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-950/50 font-semibold'
-                    : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950/50 font-semibold'
-                  : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Icon
-                  className={`w-4 h-4 transition-transform group-hover:scale-110 ${
-                    isActive
-                      ? 'text-white'
-                      : isIntermack
-                        ? 'text-slate-400 group-hover:text-indigo-400'
-                        : 'text-slate-400 group-hover:text-emerald-400'
-                  }`}
-                />
-                <span className="tracking-tight text-xs font-semibold">{displayName}</span>
-              </div>
+        {(() => {
+          const principais = visibleNavItems
+            .filter((item) => !SECUNDARIOS_HREFS.has(item.href))
+            .map((item, idx) => ({ item, idx }))
+            .sort((a, b) => {
+              if (a.item.href === '/') return -1;
+              if (b.item.href === '/') return 1;
+              const fa = menuFreq[a.item.href] || 0;
+              const fb = menuFreq[b.item.href] || 0;
+              if (fb !== fa) return fb - fa;
+              return a.idx - b.idx;
+            })
+            .map((x) => x.item);
 
-              {(item.badge || (item.href === '/validacoes' && pendentesBadge > 0)) && (
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                    isActive
-                      ? 'bg-white/20 text-white border-white/30'
-                      : item.href === '/validacoes' && pendentesBadge > 0
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                        : item.badgeColor || 'bg-slate-800 text-slate-400 border-slate-700'
-                  }`}
-                >
-                  {item.href === '/validacoes' && pendentesBadge > 0
-                    ? pendentesBadge
-                    : item.badge}
-                </span>
-              )}
-            </Link>
+          const secundarios = visibleNavItems.filter((item) =>
+            SECUNDARIOS_HREFS.has(item.href)
           );
-        })}
+
+          const renderItem = (item: (typeof visibleNavItems)[number]) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            const displayName =
+              isIntermack && 'intermackName' in item && item.intermackName
+                ? item.intermackName
+                : item.name;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  isActive
+                    ? isIntermack
+                      ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-950/50 font-semibold'
+                      : 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950/50 font-semibold'
+                    : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon
+                    className={`w-4 h-4 transition-transform group-hover:scale-110 ${
+                      isActive
+                        ? 'text-white'
+                        : isIntermack
+                          ? 'text-slate-400 group-hover:text-indigo-400'
+                          : 'text-slate-400 group-hover:text-emerald-400'
+                    }`}
+                  />
+                  <span className="tracking-tight text-xs font-semibold">
+                    {displayName}
+                  </span>
+                </div>
+
+                {(item.badge ||
+                  (item.href === '/validacoes' && pendentesBadge > 0)) && (
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      isActive
+                        ? 'bg-white/20 text-white border-white/30'
+                        : item.href === '/validacoes' && pendentesBadge > 0
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          : item.badgeColor ||
+                            'bg-slate-800 text-slate-400 border-slate-700'
+                    }`}
+                  >
+                    {item.href === '/validacoes' && pendentesBadge > 0
+                      ? pendentesBadge
+                      : item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          };
+
+          return (
+            <>
+              {principais.map(renderItem)}
+
+              {secundarios.length > 0 && (
+                <div className="pt-3 mt-3 border-t border-slate-800/80 space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setMostrarSecundarios((prev) => !prev)}
+                    className="w-full px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wider uppercase text-slate-400 hover:text-slate-200 hover:bg-slate-900/70 flex items-center justify-between transition-colors"
+                  >
+                    <span>Mais opções ({secundarios.length})</span>
+                    <span className="text-[10px]">
+                      {mostrarSecundarios ? '▲' : '▼'}
+                    </span>
+                  </button>
+                  {mostrarSecundarios && (
+                    <div className="space-y-1 pt-1">
+                      {secundarios.map(renderItem)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </nav>
 
       {/* Footer System Status */}
