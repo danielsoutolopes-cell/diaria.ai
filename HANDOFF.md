@@ -423,3 +423,9 @@
 - **Menu Adaptativo por Frequência de Uso & Revelação Progressiva (`src/components/Sidebar.tsx`)**:
   - Os módulos principais agora aprendem automaticamente quais telas são mais acessadas por empresa (`diaria_menu_freq_${tenantSlug}`) e se reordenam do mais usado para o menos usado (mantendo *Visão Geral & Caixa* fixo no topo).
   - Itens secundários / baixa frequência (*PitWall*, *Conciliação*, *Saúde*, *Mensageria*, *Bot*, *RBAC*, *Configuração Geral*, *Manual*, *GADAP*, *Produtos*) ficam recolhidos no bloco colapsável **`Mais opções`** (expandindo automaticamente quando o usuário acessa um deles).
+
+
+### Cofre de Projetos — Plantas PDF Compactadas + WhatsApp (`/projetos`, 24/11/2026)
+- **Nova página dedicada (`/projetos`)** + API (`/api/projetos`) isolada por `tenant_id` (`Intermack` e `Jhoston`).
+- **Armazenamento Compactado**: PDFs enviados são compactados com `zlib.gzipSync` (nível 9) no Cloudflare R2 (`projetos/${tenantSlug}/.../*.pdf.gz`), exibindo a economia de espaço em `%`, e descompactados sob demanda (`GET /api/projetos?download=<id>`) ou no envio direto como documento PDF via WhatsApp (`Baileys /send-document` com fallback `wa.me`).
+- Integrado ao menu lateral (`Sidebar.tsx`) e ajuda contextual (`ContextualHelp.tsx`).

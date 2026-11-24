@@ -339,6 +339,25 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
     exemplo:
       'Ative "FF_EXTRATO_COLABORADOR_LINK" apenas para uma empresa piloto em homologação: o botão Link Extrato (EM HOMOLOGAÇÃO) aparece somente nela, enquanto a outra empresa permanece 100% intacta.',
   },
+  '/projetos': {
+    titulo: 'Cofre de Projetos (Plantas PDF Compactadas)',
+    resumo:
+      'Repositório seguro de plantas e projetos em PDF por obra e disciplina, armazenados compactados (GZIP) e prontos para download ou envio direto no WhatsApp.',
+    funcoes: [
+      {
+        nome: 'Compactação Automática (GZIP)',
+        descricao:
+          'Todo PDF enviado é compactado automaticamente antes de ir para a nuvem (reduzindo espaço) e descompactado na hora do download ou envio.',
+      },
+      {
+        nome: 'Envio Direto via WhatsApp',
+        descricao:
+          'Informe um número de WhatsApp (opcional) e clique em "Zap" para enviar a planta em PDF diretamente ao empreiteiro ou cliente.',
+      },
+    ],
+    exemplo:
+      'Selecione a obra, escolha a disciplina "Hidráulica", anexe a planta PDF (Rev. 01) e clique em "Zap" para enviar direto ao encarregado.',
+  },
   '/chaves-autorizacao': {
     titulo: 'Chave Autorizante Efêmera (Dupla Alçada — 3 min)',
     resumo:

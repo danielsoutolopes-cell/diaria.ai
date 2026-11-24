@@ -72,6 +72,13 @@ const navItems = [
     badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
   },
   {
+    name: 'Cofre de Projetos (PDF)',
+    href: '/projetos',
+    icon: FileSpreadsheet,
+    badge: 'PDF',
+    badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+  },
+  {
     name: 'Propostas & Medição IA',
     href: '/medicoes',
     icon: Sparkles,
