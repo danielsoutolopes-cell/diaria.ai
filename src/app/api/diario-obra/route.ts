@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getActiveTenantFromRequest } from '@/lib/tenant';
 import { uploadToR2 } from '@/services/r2Storage';
-import { gerarPdfDiarioBase64 } from '@/lib/pdfDiario';
+import { gerarPdfDiarioComFotosBase64 } from '@/lib/pdfDiario';
 import { listarEquipesDiarioTenant } from '@/services/diarioEquipesService';
 import {
   isSubempreitaHabilitada,
@@ -273,7 +273,10 @@ export async function POST(req: NextRequest) {
       const filtroEmp = subempreitaAtiva
         ? (body.filtroEmpreiteiro || '').trim() || undefined
         : undefined;
-      const { base64, fileName } = gerarPdfDiarioBase64(diario, filtroEmp);
+      const { base64, fileName } = await gerarPdfDiarioComFotosBase64(
+        diario,
+        filtroEmp
+      );
       const destino = (body.destinoJid || '').trim() || '5511978543369';
       const baileysBase =
         process.env.BAILEYS_API_URL ||

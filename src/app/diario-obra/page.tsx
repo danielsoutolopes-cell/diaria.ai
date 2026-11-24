@@ -431,7 +431,10 @@ export default function DiarioObraPage() {
   }
 
   async function handleRefinarResumoIA() {
-    if (!resumo.trim()) return;
+    if (!resumo.trim()) {
+      alert('Digite primeiro um rascunho no campo Resumo antes de clicar em Refinar IA.');
+      return;
+    }
     setRefinandoIA(true);
     try {
       const etapaAtiva = subempreitaAtiva ? resolverEtapaAtiva() : { nome: null };
@@ -446,10 +449,15 @@ export default function DiarioObraPage() {
           resumo,
         }),
       });
-      const d = (await res.json()) as { resumoRefinado?: string };
-      if (d.resumoRefinado) setResumo(d.resumoRefinado);
+      const d = (await res.json()) as { resumoRefinado?: string; error?: string };
+      if (!res.ok || !d.resumoRefinado) {
+        alert(d.error || 'Não foi possível refinar o texto com IA agora.');
+        return;
+      }
+      setResumo(d.resumoRefinado);
     } catch (e) {
       console.error(e);
+      alert('Erro de conexão ao refinar texto com IA.');
     } finally {
       setRefinandoIA(false);
     }
@@ -607,9 +615,14 @@ export default function DiarioObraPage() {
       diario,
       subempreitaAtiva ? filtroEmp || undefined : undefined
     );
-    void navigator.clipboard.writeText(texto);
+    void navigator.clipboard.writeText(texto).catch(() => {});
     setCopiadoId(diario.id);
     setTimeout(() => setCopiadoId(null), 2500);
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(texto)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
   }
 
   function handleCopiarRelatorioConsolidado() {
@@ -618,9 +631,14 @@ export default function DiarioObraPage() {
       filtroHistoricoEmpreiteiro || undefined,
       filtroHistoricoObra || undefined
     );
-    void navigator.clipboard.writeText(texto);
+    void navigator.clipboard.writeText(texto).catch(() => {});
     setCopiadoConsolidado(true);
     setTimeout(() => setCopiadoConsolidado(false), 2500);
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(texto)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
   }
 
   function handleExportarCsvEmpreiteiro() {

@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import EspelhoPontoMensal from '@/components/EspelhoPontoMensal';
-import CalendarioVisualObra from '@/components/CalendarioVisualObra';
+import dynamic from 'next/dynamic';
 import {
   BarChart3,
   Calendar,
@@ -25,17 +24,33 @@ import {
   ExternalLink,
   Activity,
 } from 'lucide-react';
-import {
-  exportarParaExcel,
-  exportarExtratoAnalitico5AbasV6,
-  type ExtratoAnaliticoV6Payload,
-  type LinhaBorderoExport,
-  type LinhaCustoObraExport,
-  type LinhaExtratoAnaliticoExport,
+import type {
+  ExtratoAnaliticoV6Payload,
+  LinhaBorderoExport,
+  LinhaCustoObraExport,
+  LinhaExtratoAnaliticoExport,
 } from '@/lib/exportExcel';
-import CalendarioValesCaixa from '@/components/CalendarioValesCaixa';
-import SaudeSistemaPanel from '@/components/SaudeSistemaPanel';
-import ExtratoIndividualModal from '@/components/ExtratoIndividualModal';
+
+const EspelhoPontoMensal = dynamic(
+  () => import('@/components/EspelhoPontoMensal'),
+  { ssr: false }
+);
+const CalendarioVisualObra = dynamic(
+  () => import('@/components/CalendarioVisualObra'),
+  { ssr: false }
+);
+const CalendarioValesCaixa = dynamic(
+  () => import('@/components/CalendarioValesCaixa'),
+  { ssr: false }
+);
+const SaudeSistemaPanel = dynamic(
+  () => import('@/components/SaudeSistemaPanel'),
+  { ssr: false }
+);
+const ExtratoIndividualModal = dynamic(
+  () => import('@/components/ExtratoIndividualModal'),
+  { ssr: false }
+);
 
 interface ObraResumoRel {
   nome?: string | null;
@@ -225,6 +240,9 @@ export default function RelatoriosPage() {
         return;
       }
       const hoje = new Date().toISOString().split('T')[0];
+      const { exportarExtratoAnalitico5AbasV6 } = await import(
+        '@/lib/exportExcel'
+      );
       exportarExtratoAnalitico5AbasV6(
         data.payload,
         `extrato-analitico-5-abas-v6-${periodo}-${hoje}`
@@ -314,7 +332,7 @@ export default function RelatoriosPage() {
   }
 
   // Exportar Borderô Consolidado para XLS
-  function handleExportarBorderoXls() {
+  async function handleExportarBorderoXls() {
     const linhas: LinhaBorderoExport[] = dadosBordero.map((b) => ({
       Colaborador: b.nome,
       Obra: b.obra,
@@ -326,11 +344,12 @@ export default function RelatoriosPage() {
       Período: periodo.toUpperCase(),
     }));
 
+    const { exportarParaExcel } = await import('@/lib/exportExcel');
     exportarParaExcel(linhas, `bordero-${periodo}-${new Date().toISOString().split('T')[0]}`, 'Borderô Consolidado');
   }
 
   // Exportar Custo por Canteiro para XLS
-  function handleExportarObrasXls() {
+  async function handleExportarObrasXls() {
     const linhas: LinhaCustoObraExport[] = dadosObras.map((o) => ({
       Obra: o.nomeObra,
       Tipo: o.tipoObra === 'PISCINA' ? 'Piscina' : 'Obra Civil',
@@ -340,6 +359,7 @@ export default function RelatoriosPage() {
       'Qtd Trabalhadores': o.qtdTrabalhadores,
     }));
 
+    const { exportarParaExcel } = await import('@/lib/exportExcel');
     exportarParaExcel(linhas, `custo-obras-${periodo}-${new Date().toISOString().split('T')[0]}`, 'Custos por Canteiro');
   }
 

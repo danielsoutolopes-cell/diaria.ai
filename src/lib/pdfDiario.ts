@@ -233,3 +233,201 @@ export function gerarPdfDiarioBase64(
     fileName: `RDO-${diario.tenantSlug}-${safeObra}${safeEmp}-${diario.data}.pdf`,
   };
 }
+
+
+/**
+ * Versão com miniaturas fotográficas embutidas (jsPDF) para download/envio ao cliente.
+ * Mantém gerarPdfDiarioBase64 síncrona intacta para retrocompatibilidade.
+ */
+export async function gerarPdfDiarioComFotosBase64(
+  diario: DiarioObraRegistro,
+  filtroEmpreiteiro?: string | null
+): Promise<{ base64: string; fileName: string }> {
+  const { jsPDF } = await import('jspdf');
+  const subempreitaAtiva = isSubempreitaHabilitada(diario.tenantSlug);
+  const ocorrenciaFinal = montarTextoOcorrencia(
+    diario.ocorrenciaTipo,
+    diario.ocorrencias
+  );
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  let y = 14;
+
+  const checkPage = (need = 10) => {
+    if (y + need > 282) {
+      doc.addPage();
+      y = 14;
+    }
+  };
+
+  // Cabeçalho
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, 210, 24, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.text(
+    sanitizePdfText(`${diario.empresaNome.toUpperCase()} - RELATORIO DIARIO DE OBRA (RDO)`),
+    12,
+    11
+  );
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(
+    sanitizePdfText(
+      `Obra: ${diario.obraNome}  |  Data: ${diario.data}  |  ${
+        diario.ambiente === 'INTERNO'
+          ? `Acesso: ${sanitizarStatusCondominio(diario.statusCondominio)}`
+          : `Clima: ${diario.clima || 'Ensolarado'}`
+      }`
+    ),
+    12,
+    18
+  );
+
+  y = 32;
+  doc.setTextColor(15, 23, 42);
+
+  // Equipes / Efetivo
+  if (subempreitaAtiva) {
+    const grupos = agruparEfetivoPorEmpreiteiro(diario, filtroEmpreiteiro);
+    const totalPresentes = grupos.reduce((a, g) => a + g.totalProfissionais, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.text(
+      sanitizePdfText(`EQUIPES E EFETIVO PRESENTE (${totalPresentes} profissional(is))`),
+      12,
+      y
+    );
+    y += 6;
+
+    for (const grupo of grupos) {
+      checkPage(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.text(
+        sanitizePdfText(
+          `${grupo.empreiteiroNome} (${grupo.totalProfissionais} prof. | ${grupo.totalHomensDia.toFixed(1)} H/D) — Etapa: ${grupo.etapas.join(', ') || 'Geral'}`
+        ),
+        12,
+        y
+      );
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.8);
+      for (const f of grupo.funcionarios) {
+        checkPage(6);
+        const label = formatarNomeFuncionarioComMetadados(f);
+        doc.text(
+          sanitizePdfText(`• ${label} (${f.periodo === 'MEIO_DIA' ? 'Meio Dia' : 'Integral'})`),
+          16,
+          y
+        );
+        y += 4.8;
+      }
+      y += 2;
+    }
+  } else if (Array.isArray(diario.efetivo) && diario.efetivo.length > 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.text(`EFETIVO PRESENTE (${diario.efetivo.length})`, 12, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    for (const f of diario.efetivo) {
+      checkPage(6);
+      doc.text(
+        sanitizePdfText(`• ${f.nome} (${f.periodo === 'MEIO_DIA' ? 'Meio Dia' : 'Integral'})`),
+        15,
+        y
+      );
+      y += 4.8;
+    }
+    y += 3;
+  }
+
+  // Resumo
+  checkPage(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.text('RESUMO DAS ATIVIDADES', 12, y);
+  y += 5.5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.2);
+  const resumoLinhas = wrapLines(sanitizePdfText(diario.resumo || 'Sem resumo.'), 95);
+  for (const linha of resumoLinhas) {
+    checkPage(6);
+    doc.text(linha, 12, y);
+    y += 4.8;
+  }
+
+  if (ocorrenciaFinal) {
+    y += 4;
+    checkPage(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.text('OCORRENCIAS / IMPEDIMENTOS', 12, y);
+    y += 5.5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.2);
+    for (const linha of wrapLines(sanitizePdfText(ocorrenciaFinal), 95)) {
+      checkPage(6);
+      doc.text(linha, 12, y);
+      y += 4.8;
+    }
+  }
+
+  // Miniaturas fotográficas (até 3 fotos lado a lado)
+  const fotosLista = Array.isArray(diario.fotos) ? diario.fotos.slice(0, 3) : [];
+  if (fotosLista.length > 0) {
+    y += 6;
+    checkPage(58);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.text(`REGISTRO FOTOGRAFICO (${fotosLista.length} foto(s))`, 12, y);
+    y += 5;
+
+    const thumbW = 58;
+    const thumbH = 44;
+    const gap = 6;
+    let col = 0;
+
+    for (const fotoUrl of fotosLista) {
+      try {
+        let dataUrl = '';
+        let fmt: 'JPEG' | 'PNG' = 'JPEG';
+        if (fotoUrl.startsWith('data:image/')) {
+          dataUrl = fotoUrl;
+          fmt = fotoUrl.includes('image/png') ? 'PNG' : 'JPEG';
+        } else if (fotoUrl.startsWith('http')) {
+          const r = await fetch(fotoUrl);
+          if (r.ok) {
+            const contentType = r.headers.get('content-type') || 'image/jpeg';
+            fmt = contentType.includes('png') ? 'PNG' : 'JPEG';
+            const buf = Buffer.from(await r.arrayBuffer());
+            dataUrl = `data:${contentType};base64,${buf.toString('base64')}`;
+          }
+        }
+        if (dataUrl) {
+          const x = 12 + col * (thumbW + gap);
+          doc.addImage(dataUrl, fmt, x, y, thumbW, thumbH);
+          doc.setDrawColor(203, 213, 225);
+          doc.rect(x, y, thumbW, thumbH);
+          col++;
+        }
+      } catch {
+        // ignora foto inacessível sem quebrar geração do PDF
+      }
+    }
+    if (col > 0) y += thumbH + 6;
+  }
+
+  const slugObra = sanitizePdfText(diario.obraNome || 'obra')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40);
+  const fileName = `RDO-${diario.tenantSlug}-${slugObra}-${diario.data}.pdf`;
+  const base64 = Buffer.from(doc.output('arraybuffer')).toString('base64');
+  return { base64, fileName };
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Layers,
   HardHat,
@@ -28,8 +29,14 @@ import {
   TENANTS,
   type TenantConfig,
 } from '@/lib/tenant';
-import SetupIntermackPanel from '@/components/SetupIntermackPanel';
-import EmissoresPixCaixinhaSetup from '@/components/EmissoresPixCaixinhaSetup';
+const SetupIntermackPanel = dynamic(
+  () => import('@/components/SetupIntermackPanel'),
+  { ssr: false }
+);
+const EmissoresPixCaixinhaSetup = dynamic(
+  () => import('@/components/EmissoresPixCaixinhaSetup'),
+  { ssr: false }
+);
 
 interface ObraItem {
   id: string;
