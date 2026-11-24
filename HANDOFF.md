@@ -414,3 +414,8 @@
 - **Tela Separada de PIN (`/chaves-autorizacao`)**: Exibe apenas o PIN do administrador logado com contador regressivo ao vivo (`03:00` → `00:00`), barra de validade e botão **Copiar Meu PIN**.
 - **Modal de Extrato Individual (`/relatorios`)**: Adicionado botão **`Editar`** ao lado de **`Excluir`** com painel inline de confirmação e entrada dos 2 PINs (com link direto para `/chaves-autorizacao`).
 - **Omnichannel Multimodal (Texto + Imagem via Upload ou `Ctrl+V`)** (`src/components/TerminalIA.tsx` + `src/app/api/nlp/route.ts`): Suporte nativo a envio/colagem de prints de WhatsApp, comprovantes PIX/Nubank e listas de ponto no Terminal IA usando **Gemini 2.5 Flash** conectado ao fluxo completo de Pré-Validação ("De Acordo").
+- **Otimização de Performance Fases 1 e 2 (`next/dynamic` + `import()` sob demanda)**:
+  - `/relatorios`: First Load JS reduzido de **398 kB → 97,9 kB (−75,4%)** com lazy-load de `xlsx` e painéis/calendários.
+  - `/setup`: `SetupIntermackPanel` e `EmissoresPixCaixinhaSetup` via `next/dynamic` (**111 kB → 102 kB**).
+  - `/bordero`: `exportarParaExcel` (`xlsx`) sob demanda + `ReceiptLightbox` via `next/dynamic`.
+  - `/auditoria`: `SaudeSistemaPanel` via `next/dynamic`.

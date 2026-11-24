@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import {
   FileSpreadsheet,
   Check,
@@ -26,8 +27,15 @@ import {
   Info,
 } from 'lucide-react';
 import { gerarPayloadPix } from '@/lib/pix';
-import { ReceiptLightbox } from '@/components/ReceiptLightbox';
-import { exportarParaExcel, LinhaBorderoExport } from '@/lib/exportExcel';
+import type { LinhaBorderoExport } from '@/lib/exportExcel';
+
+const ReceiptLightbox = dynamic(
+  () =>
+    import('@/components/ReceiptLightbox').then((m) => ({
+      default: m.ReceiptLightbox,
+    })),
+  { ssr: false }
+);
 import { calcularBrutoPorRegime } from '@/services/regimesRemuneracao';
 import {
   alterarSelecaoFuncionario,
@@ -724,7 +732,12 @@ export default function BorderoPage() {
                     Período: 'FECHAMENTO',
                   };
                 });
-                exportarParaExcel(linhasExport, `fechamento-bordero-${new Date().toISOString().split('T')[0]}`);
+                void import('@/lib/exportExcel').then(({ exportarParaExcel }) =>
+                  exportarParaExcel(
+                    linhasExport,
+                    `fechamento-bordero-${new Date().toISOString().split('T')[0]}`
+                  )
+                );
               }}
               disabled={funcionarios.length === 0}
               className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95 disabled:opacity-50 shrink-0"

@@ -1,7 +1,19 @@
 'use client';
 
 import React from 'react';
-import SaudeSistemaPanel from '@/components/SaudeSistemaPanel';
+import dynamic from 'next/dynamic';
+
+const SaudeSistemaPanel = dynamic(
+  () => import('@/components/SaudeSistemaPanel'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-8 text-center text-xs font-bold text-slate-500 animate-pulse">
+        Carregando painel de Saúde do Sistema...
+      </div>
+    ),
+  }
+);
 
 export default function AuditoriaPage() {
   return (
