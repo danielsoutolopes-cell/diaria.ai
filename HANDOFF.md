@@ -419,3 +419,4 @@
   - `/setup`: `SetupIntermackPanel` e `EmissoresPixCaixinhaSetup` via `next/dynamic` (**111 kB → 102 kB**).
   - `/bordero`: `exportarParaExcel` (`xlsx`) sob demanda + `ReceiptLightbox` via `next/dynamic`.
   - `/auditoria`: `SaudeSistemaPanel` via `next/dynamic`.
+- **Fase 3 (Final) — Índices Compostos de Performance no Supabase (`migration_v28_performance_indexes.sql`)**: 6 índices multi-tenant (`tenant_id` + filtros/ordenação) criados e aplicados diretamente em `lancamentos_financeiros`, `ponto_lote`, `funcionarios_obra` e `obras_config`, acelerando `/api/bordero`, `/api/relatorios`, `/api/pendentes`, `/api/vales` e `/api/auditoria`.
