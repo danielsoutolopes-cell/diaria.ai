@@ -13,6 +13,8 @@ import {
   AlertCircle,
   Check,
   Trash2,
+  ImagePlus,
+  X,
 } from 'lucide-react';
 import { NLPExtracaoResponse } from '@/types/database';
 import { processarMensagemNLP } from '@/actions/nlp';
@@ -21,6 +23,7 @@ interface ChatMessage {
   id: string;
   sender: 'user' | 'bot';
   text: string;
+  imagemPreview?: string;
   timestamp: string;
   data?: NLPExtracaoResponse;
   faltando?: string[];
@@ -62,6 +65,11 @@ function verificarPendenciasExtracao(extracao: NLPExtracaoResponse): string[] {
 
 export default function TerminalIA() {
   const [input, setInput] = useState('');
+  const [imagemAnexo, setImagemAnexo] = useState<{
+    base64: string;
+    mimeType: string;
+    preview: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [enviandoValidacaoId, setEnviandoValidacaoId] = useState<string | null>(null);
   const [contextoRascunho, setContextoRascunho] = useState<string>('');
@@ -95,11 +103,28 @@ export default function TerminalIA() {
     ]);
   }, []);
 
+  function carregarImagemFile(file: File) {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      if (!result) return;
+      setImagemAnexo({
+        base64: result,
+        mimeType: file.type || 'image/jpeg',
+        preview: result,
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
   async function handleSend(texto?: string) {
     const userText = (texto || input).trim();
-    if (!userText || loading) return;
+    const imgAtual = texto ? null : imagemAnexo;
+    if ((!userText && !imgAtual) || loading) return;
 
     setInput('');
+    if (imgAtual) setImagemAnexo(null);
     const hora = new Date().toLocaleTimeString('pt-BR', {
       hour: '2-digit',
       minute: '2-digit',
@@ -108,7 +133,8 @@ export default function TerminalIA() {
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
-      text: userText,
+      text: userText || '📷 Imagem enviada para leitura IA',
+      imagemPreview: imgAtual?.preview,
       timestamp: hora,
     };
 
@@ -120,12 +146,38 @@ export default function TerminalIA() {
       : userText;
 
     try {
-      const resultado = await processarMensagemNLP(textoAcumulado);
+      let resultado: {
+        success?: boolean;
+        extracao?: NLPExtracaoResponse;
+        mensagemOriginal?: string;
+        error?: string;
+      };
+
+      if (imgAtual) {
+        const res = await fetch('/api/nlp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mensagem: textoAcumulado,
+            imagemBase64: imgAtual.base64,
+            imagemMimeType: imgAtual.mimeType,
+          }),
+        });
+        resultado = (await res.json()) as {
+          success?: boolean;
+          extracao?: NLPExtracaoResponse;
+          mensagemOriginal?: string;
+          error?: string;
+        };
+      } else {
+        resultado = await processarMensagemNLP(textoAcumulado);
+      }
 
       if (resultado.success && resultado.extracao) {
         const extracao = resultado.extracao;
         const faltando = verificarPendenciasExtracao(extracao);
-        setContextoRascunho(textoAcumulado);
+        const textoFinal = resultado.mensagemOriginal || textoAcumulado;
+        setContextoRascunho(textoFinal);
 
         const botMsg: ChatMessage = {
           id: `bot-${Date.now()}`,
@@ -136,7 +188,7 @@ export default function TerminalIA() {
               : 'Tudo completo! Confira o rascunho abaixo e clique em "De Acordo" para enviar para a fila de Validação (ou digite qualquer ajuste):',
           data: extracao,
           faltando,
-          textoOriginalAcumulado: textoAcumulado,
+          textoOriginalAcumulado: textoFinal,
           timestamp: hora,
         };
         setMessages((prev) => [...prev, botMsg]);
@@ -234,7 +286,7 @@ export default function TerminalIA() {
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              NLP Multi-Contexto • Gemini 3.5 Flash
+              Omnichannel Multimodal (Texto + Imagem) • Gemini 2.5 Flash
             </p>
           </div>
         </div>
@@ -274,6 +326,13 @@ export default function TerminalIA() {
                   : 'bg-white border border-slate-200/90 text-slate-800 rounded-tl-none'
               }`}
             >
+              {m.imagemPreview && (
+                <img
+                  src={m.imagemPreview}
+                  alt="Imagem anexada"
+                  className="mb-2 max-h-48 rounded-xl border border-white/20 object-contain"
+                />
+              )}
               <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
 
               {/* Alertas de informações faltantes */}
@@ -414,6 +473,26 @@ export default function TerminalIA() {
           ))}
         </div>
 
+        {imagemAnexo && (
+          <div className="flex items-center gap-2 p-2 rounded-2xl bg-emerald-50 border border-emerald-200 w-fit">
+            <img
+              src={imagemAnexo.preview}
+              alt="Preview"
+              className="w-12 h-12 rounded-xl object-cover border border-emerald-200"
+            />
+            <span className="text-xs font-bold text-emerald-900">
+              Imagem pronta para leitura IA
+            </span>
+            <button
+              type="button"
+              onClick={() => setImagemAnexo(null)}
+              className="p-1 rounded-lg bg-white text-slate-500 hover:text-rose-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -421,20 +500,49 @@ export default function TerminalIA() {
           }}
           className="flex items-center gap-2"
         >
+          <label
+            title="Anexar print ou foto (ou use Ctrl+V)"
+            className="p-3 rounded-2xl bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 cursor-pointer transition-colors shrink-0"
+          >
+            <ImagePlus className="w-4 h-4" />
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) carregarImagemFile(file);
+                e.target.value = '';
+              }}
+            />
+          </label>
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onPaste={(e) => {
+              const items = e.clipboardData?.items;
+              if (!items) return;
+              for (const item of Array.from(items)) {
+                if (item.type.startsWith('image/')) {
+                  const file = item.getAsFile();
+                  if (file) {
+                    carregarImagemFile(file);
+                    break;
+                  }
+                }
+              }
+            }}
             placeholder={
               contextoRascunho
-                ? 'Responda o que faltou ou digite um ajuste...'
-                : 'Ex: Vale de R$ 100,00 para o Peu, Obra Porto Seguro, hoje...'
+                ? 'Responda o que faltou ou cole um print (Ctrl+V)...'
+                : 'Digite ou cole um print (Ctrl+V) de ponto, vale ou PIX...'
             }
             className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-slate-900"
           />
           <button
             type="submit"
-            disabled={loading || !input.trim()}
+            disabled={loading || (!input.trim() && !imagemAnexo)}
             className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold flex items-center gap-2 shadow-sm disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
