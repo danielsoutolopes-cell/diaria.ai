@@ -102,12 +102,32 @@ export async function POST(req: NextRequest) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')}-${fracaoDia}`;
 
+    // Abatimento automático se o colaborador possuir saldo de Adiantamento de Diárias ATIVO
+    let valorFinal = valorMonetario;
+    let etiquetaAbatimento: string | null = null;
+    if (funcionarioId) {
+      const { aplicarAbatimentoAdiantamentoDiarias } = await import('@/lib/adiantamentoDiarias');
+      const ab = await aplicarAbatimentoAdiantamentoDiarias({
+        tenantId: activeTenant.id,
+        funcionarioId,
+        fracaoDia,
+        valorMonetarioOriginal: valorMonetario,
+      });
+      if (ab.abatido) {
+        valorFinal = ab.valorLiquidoRestante;
+        etiquetaAbatimento = ab.etiquetaObservacao;
+      }
+    }
+
     const obsFinal = [
       observacao || 'NORMAL',
+      etiquetaAbatimento,
       `origem=ABA_PONTO_DIRETO`,
       `indicado_por=${indicadoPor}`,
       `obra=${obraCanonica}`,
-    ].join(' | ');
+    ]
+      .filter(Boolean)
+      .join(' | ');
 
     const { data: inserido, error: insErr } = await supabaseAdmin
       .from('lancamentos_financeiros')
@@ -118,7 +138,7 @@ export async function POST(req: NextRequest) {
         nome_trabalhador: nomeCanonico,
         tipo_lancamento: 'PONTO',
         fracao_dia: fracaoDia,
-        valor_monetario: valorMonetario,
+        valor_monetario: valorFinal,
         status: 'VALIDADO',
         data_referencia: dataRef,
         comprovante_url: comprovanteUrl,

@@ -15,6 +15,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import ValidacaoTabsHeader from '@/components/ValidacaoTabsHeader';
+import AdiantamentoDiariasPanel from '@/components/AdiantamentoDiariasPanel';
 import { ReceiptLightbox } from '@/components/ReceiptLightbox';
 import type { ValeEtapa } from '@/types/database';
 
@@ -346,10 +347,44 @@ export default function ValidacaoValesPage() {
     return true;
   });
 
+  const [subAba, setSubAba] = useState<'vales' | 'adiantamento'>('vales');
+
   return (
     <div>
       <ValidacaoTabsHeader activeTab="vales" />
 
+      <div className="px-4 sm:px-6 lg:px-8 pt-4 max-w-6xl mx-auto">
+        <div className="inline-flex p-1 rounded-2xl bg-slate-100 border border-slate-200 gap-1">
+          <button
+            type="button"
+            onClick={() => setSubAba('vales')}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              subAba === 'vales'
+                ? 'bg-white text-emerald-800 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Vales em 2 Etapas (PIX)
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubAba('adiantamento')}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              subAba === 'adiantamento'
+                ? 'bg-white text-indigo-800 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Adiantamento de Diárias (Desconto em Dias)
+          </button>
+        </div>
+      </div>
+
+      {subAba === 'adiantamento' ? (
+        <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+          <AdiantamentoDiariasPanel />
+        </div>
+      ) : (
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-5 sm:space-y-6">
         {/* Cabeçalho */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
@@ -813,6 +848,7 @@ export default function ValidacaoValesPage() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }
