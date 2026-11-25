@@ -195,7 +195,12 @@ export default function CaixaCampoPanel({
         });
         const d = (await res.json()) as {
           leitura?: LeituraOcrResponse;
+          error?: string;
         };
+        if (!res.ok || !d.leitura) {
+          setAviso(`Não foi possível ler o arquivo com IA: ${d.error || `HTTP ${res.status}`}`);
+          return;
+        }
         if (d.leitura) {
           const l = d.leitura;
           if (l.tipo) setTipo(l.tipo);

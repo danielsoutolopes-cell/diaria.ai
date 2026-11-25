@@ -346,8 +346,13 @@ export async function POST(req: NextRequest) {
         );
       }
       const genAI = new GoogleGenerativeAI(apiKey);
+      const rawModel = (process.env.GEMINI_MODEL || '').trim();
+      const safeModel =
+        !rawModel || rawModel.includes('3.5-flash-lite')
+          ? 'gemini-2.5-flash'
+          : rawModel;
       const model = genAI.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+        model: safeModel,
       });
       const clean = body.imagemBase64.replace(/^data:[^;]+;base64,/, '');
 

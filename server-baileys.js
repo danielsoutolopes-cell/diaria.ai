@@ -24,14 +24,14 @@ function loadSavedGroupsConfig() {
     if (fs.existsSync(GROUPS_CONFIG_FILE)) {
       return JSON.parse(fs.readFileSync(GROUPS_CONFIG_FILE, 'utf8'));
     }
-  } catch(e) {}
+  } catch (e) { }
   return {};
 }
 
 function saveGroupsConfig(monitoredMap) {
   try {
     fs.writeFileSync(GROUPS_CONFIG_FILE, JSON.stringify(monitoredMap, null, 2), 'utf8');
-  } catch(e) {}
+  } catch (e) { }
 }
 
 let state = {
@@ -63,14 +63,14 @@ async function cleanAuthDir() {
 
 async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = false) {
   if (sock) {
-    try { sock.end(undefined); } catch(e){}
+    try { sock.end(undefined); } catch (e) { }
     sock = null;
   }
 
   if (fresh) {
     await cleanAuthDir();
     if (typeof currentAuthClear === 'function') {
-      try { await currentAuthClear(); } catch (e) {}
+      try { await currentAuthClear(); } catch (e) { }
     }
   }
 
@@ -84,7 +84,7 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
     console.log('[BAILEYS-SERVICE] Fallback: persistência em disco local (.baileys_service_auth).');
   }
   const browser = getBrowserProfile(targetOs);
-  
+
   let version = [2, 3000, 1043857760];
   try {
     const { fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
@@ -92,7 +92,7 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
     if (waVer && waVer.version) {
       version = waVer.version;
     }
-  } catch(e) {
+  } catch (e) {
     console.log('[BAILEYS-SERVICE] Erro ao buscar versão do WA Web, usando fallback:', version);
   }
 
@@ -134,7 +134,7 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
       console.log(`[BAILEYS-SERVICE] Conexão encerrada (${targetOs}) com código:`, code);
-      
+
       // Código 515 (Stream Errored - restart required) acontece rotineiramente quando o celular
       // conclui a troca inicial de chaves criptográficas de pareamento!
       // É CRÍTICO reconectar imediatamente SEM deletar a pasta de autenticação:
@@ -168,7 +168,7 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
           memberCount: g.participants?.length || 0,
           monitored: savedConfig[g.id] !== undefined ? savedConfig[g.id] : false,
         }));
-      } catch(e) {}
+      } catch (e) { }
     }
   });
 
@@ -275,7 +275,7 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
         state.pairingCode = code ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
         state.lastSyncAt = new Date().toISOString();
         console.log(`[BAILEYS-SERVICE] Pairing Code [${targetOs}] emitido:`, state.pairingCode);
-      } catch(e) {
+      } catch (e) {
         console.error('[BAILEYS-SERVICE] Erro ao requisitar pairing code:', e);
       }
     }, 2000);
@@ -298,7 +298,7 @@ const server = http.createServer((req, res) => {
   req.on('data', chunk => body += chunk);
   req.on('end', async () => {
     let parsed = {};
-    try { parsed = JSON.parse(body || '{}'); } catch(e){}
+    try { parsed = JSON.parse(body || '{}'); } catch (e) { }
 
     if (req.url === '/status' && req.method === 'GET') {
       res.writeHead(200);
@@ -382,7 +382,7 @@ const server = http.createServer((req, res) => {
       }
     } else if (req.url === '/disconnect' && req.method === 'POST') {
       if (sock) {
-        try { sock.logout(); } catch(e){}
+        try { sock.logout(); } catch (e) { }
         sock = null;
       }
       await cleanAuthDir();
