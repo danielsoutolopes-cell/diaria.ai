@@ -236,7 +236,12 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
         },
       };
 
-      const res = await fetch('http://localhost:3000/api/webhook/whatsapp', {
+      const nextBaseUrl = (
+        process.env.NEXT_APP_URL ||
+        process.env.APP_URL ||
+        'http://localhost:3000'
+      ).replace(/\/+$/, '');
+      const res = await fetch(`${nextBaseUrl}/api/webhook/whatsapp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(webhookPayload),
