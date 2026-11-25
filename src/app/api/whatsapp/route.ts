@@ -12,9 +12,13 @@ import {
 } from '@/lib/whatsapp';
 import { supabaseAdmin } from '@/lib/supabase';
 
+function getBaileysBaseUrl(): string {
+  return (process.env.BAILEYS_SERVER_URL || 'http://localhost:3001').replace(/\/+$/, '');
+}
+
 export async function GET() {
   try {
-    const res = await fetch('http://localhost:3001/status', { cache: 'no-store' });
+    const res = await fetch(`${getBaileysBaseUrl()}/status`, { cache: 'no-store' });
     const data = await res.json();
     return NextResponse.json(data);
   } catch (err) {
@@ -31,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'gerar-qrcode') {
       try {
-        const res = await fetch('http://localhost:3001/connect-qr', {
+        const res = await fetch(`${getBaileysBaseUrl()}/connect-qr`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ targetOs }),
@@ -47,7 +51,7 @@ export async function POST(req: NextRequest) {
     if (action === 'gerar-pairing-code') {
       const cel = phoneNumber || '5511988139833';
       try {
-        const res = await fetch('http://localhost:3001/connect-pairing', {
+        const res = await fetch(`${getBaileysBaseUrl()}/connect-pairing`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone: cel, targetOs }),
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'desconectar' || action === 'limpar-sessao') {
       try {
-        await fetch('http://localhost:3001/disconnect', { method: 'POST' });
+        await fetch(`${getBaileysBaseUrl()}/disconnect`, { method: 'POST' });
       } catch (e) {}
       const session = desconectarWhatsApp();
       return NextResponse.json({ success: true, session });
@@ -74,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'sincronizar') {
       try {
-        const res = await fetch('http://localhost:3001/status', { cache: 'no-store' });
+        const res = await fetch(`${getBaileysBaseUrl()}/status`, { cache: 'no-store' });
         const data = await res.json();
         return NextResponse.json({ success: true, ...data });
       } catch (e) {
@@ -92,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'toggle-grupo' && jid) {
       try {
-        const res = await fetch('http://localhost:3001/toggle-group', {
+        const res = await fetch(`${getBaileysBaseUrl()}/toggle-group`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ jid }),
