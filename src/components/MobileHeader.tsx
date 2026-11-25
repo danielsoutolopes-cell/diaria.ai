@@ -56,7 +56,8 @@ export default function MobileHeader() {
   if (
     pathname === '/login' ||
     pathname.startsWith('/extrato/') ||
-    pathname.startsWith('/ponto')
+    pathname === '/ponto' ||
+    pathname.startsWith('/ponto/')
   ) {
     return null;
   }

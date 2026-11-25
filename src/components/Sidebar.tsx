@@ -306,7 +306,8 @@ export default function Sidebar() {
   if (
     pathname === '/login' ||
     pathname?.startsWith('/extrato/') ||
-    pathname?.startsWith('/ponto')
+    pathname === '/ponto' ||
+    pathname?.startsWith('/ponto/')
   ) {
     return null;
   }

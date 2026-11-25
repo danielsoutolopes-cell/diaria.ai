@@ -283,9 +283,9 @@ export default function PontoDiretoPage() {
                 [
                   { m: 'NORMAL', f: 1.0, label: '1.0 Normal' },
                   { m: 'MEIO_DIA', f: 0.5, label: '0.5 Meio Dia' },
-                  { m: 'CHUVA', f: 1.0, label: 'Chuva (R$150)' },
-                  { m: 'VIAGEM', f: 1.0, label: 'Viagem (R$150)' },
-                  { m: 'DIA_PARADO', f: 1.0, label: 'Parado (R$120)' },
+                  { m: 'CHUVA', f: 1.0, label: 'Chuva' },
+                  { m: 'VIAGEM', f: 1.0, label: 'Viagem' },
+                  { m: 'DIA_PARADO', f: 1.0, label: 'Parado' },
                 ] as const
               ).map((op) => (
                 <button
@@ -309,32 +309,17 @@ export default function PontoDiretoPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">
-              Valor Calculado (R$)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={valorCustom !== '' ? valorCustom : valorCalculado.toFixed(2)}
-              onChange={(e) => setValorCustom(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-sm font-black text-emerald-950 tabular-nums"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">
-              Observação (opcional)
-            </label>
-            <input
-              type="text"
-              placeholder="Ex.: Apontamento direto confirmado..."
-              value={observacao}
-              onChange={(e) => setObservacao(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-900"
-            />
-          </div>
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-700">
+            Observação (opcional)
+          </label>
+          <input
+            type="text"
+            placeholder="Ex.: Apontamento direto confirmado..."
+            value={observacao}
+            onChange={(e) => setObservacao(e.target.value)}
+            className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-900"
+          />
         </div>
 
         {/* Foto opcional com preview */}
@@ -455,28 +440,17 @@ export default function PontoDiretoPage() {
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-500">
-                    Fração &amp; Valor (R$)
+                    Fração do Dia
                   </label>
-                  <div className="flex gap-1.5">
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={fracaoDia}
-                      onChange={(e) => setFracaoDia(Number(e.target.value))}
-                      className="w-16 px-2 py-2 rounded-xl bg-slate-50 border border-slate-200 font-bold"
-                    />
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={
-                        valorCustom !== ''
-                          ? valorCustom
-                          : valorCalculado.toFixed(2)
-                      }
-                      onChange={(e) => setValorCustom(e.target.value)}
-                      className="flex-1 px-2.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 font-black text-emerald-900 tabular-nums"
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    max="1"
+                    value={fracaoDia}
+                    onChange={(e) => setFracaoDia(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-200 font-bold"
+                  />
                 </div>
               </div>
 
