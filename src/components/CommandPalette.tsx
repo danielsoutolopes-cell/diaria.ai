@@ -82,7 +82,7 @@ export default function CommandPalette() {
       { id: 'rel', label: 'Relatórios & Exportações (1 a 6)', category: 'Navegação', href: '/relatorios', icon: BarChart3 },
       { id: 'auditoria', label: 'Auditoria Interna com Correção IA (/auditoria)', category: 'Administração', href: '/auditoria', icon: ShieldAlert, adminOnly: true },
       { id: 'setup', label: 'Obras & Equipes (Setup)', category: 'Navegação', href: '/setup', icon: Layers },
-      { id: 'zap', label: 'Conexão do Bot (WhatsApp)', category: 'Navegação', href: '/whatsapp', icon: QrCode },
+      { id: 'zap', label: 'Conexão do Bot (WhatsApp)', category: 'Navegação', href: '/whatsapp-bot', icon: QrCode },
       { id: 'hub', label: 'Configuração Geral (Hub Multi-Empresa)', category: 'Administração', href: '/config-geral', icon: ShieldCheck, adminOnly: true },
       { id: 'ajuda', label: 'Manual & Ajuda', category: 'Suporte', href: '/ajuda', icon: HelpCircle },
       {

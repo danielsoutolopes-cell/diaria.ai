@@ -106,7 +106,7 @@ export default function DashboardPage() {
             <span>Fila de Aprovação ({metrics.lotesPendentes})</span>
           </Link>
           <Link
-            href="/whatsapp"
+            href="/whatsapp-bot"
             className="px-4 sm:px-5 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 order-2 sm:order-1"
           >
             <QrCode className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -254,7 +254,7 @@ export default function DashboardPage() {
 
             <div className="space-y-2.5">
               <Link
-                href="/whatsapp"
+                href="/whatsapp-bot"
                 className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200/80 hover:border-emerald-200 transition-all text-sm group"
               >
                 <div className="flex items-center gap-3">

@@ -134,7 +134,7 @@ export default function MobileHeader() {
       icon: MessageSquare,
       adminOnly: true,
     },
-    { name: 'WhatsApp Bot', href: '/whatsapp', icon: QrCode },
+    { name: 'WhatsApp Bot', href: '/whatsapp-bot', icon: QrCode },
     {
       name: 'Configuração Geral (Hub)',
       href: '/config-geral',

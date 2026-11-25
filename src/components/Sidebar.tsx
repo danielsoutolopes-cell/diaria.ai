@@ -156,7 +156,7 @@ const navItems = [
   },
   {
     name: 'Configuração do Bot (WhatsApp)',
-    href: '/whatsapp',
+    href: '/whatsapp-bot',
     icon: QrCode,
     badge: 'Online',
     badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
@@ -213,7 +213,7 @@ export default function Sidebar() {
         '/conciliacao',
         '/auditoria',
         '/mensageria',
-        '/whatsapp',
+        '/whatsapp-bot',
         '/configuracoes',
         '/config-geral',
         '/chaves-autorizacao',
