@@ -353,6 +353,7 @@ export async function POST(req: NextRequest) {
           : rawModel;
       const model = genAI.getGenerativeModel({
         model: safeModel,
+        generationConfig: { responseMimeType: 'application/json' },
       });
       const clean = body.imagemBase64.replace(/^data:[^;]+;base64,/, '');
 
@@ -396,7 +397,8 @@ Retorne APENAS JSON puro (sem markdown):
         .replace(/^```\s*/, '')
         .replace(/\s*```$/, '')
         .trim();
-      const parsed = JSON.parse(raw) as LeituraBrutaOcrCaixinha;
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw) as LeituraBrutaOcrCaixinha;
 
       const leitura = aplicarFallbackOcrCaixinha(parsed, {
         remetenteNome: body.remetenteNome || null,
