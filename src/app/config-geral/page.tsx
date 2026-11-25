@@ -17,6 +17,7 @@ import {
 import { isDanielOuPatricia } from '@/lib/tenant';
 import FeatureFlagsHomologacaoPanel from '@/components/FeatureFlagsHomologacaoPanel';
 import ChavesAmbienteReadOnlyPanel from '@/components/ChavesAmbienteReadOnlyPanel';
+import WhatsAppStandbySetupCard from '@/components/WhatsAppStandbySetupCard';
 
 interface GrupoWhatsAppMapeado {
   id: string;
@@ -420,6 +421,9 @@ export default function ConfigGeralPage() {
           </div>
         )}
       </section>
+
+      {/* Chave Stand-by / Ativo da Integração WhatsApp (Baileys) */}
+      <WhatsAppStandbySetupCard />
 
       {/* Seção Somente Leitura: Chaves de Ambiente & Integrações (Exclusivo Super Admin) */}
       <ChavesAmbienteReadOnlyPanel />
