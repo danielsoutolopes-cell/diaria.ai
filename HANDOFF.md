@@ -444,3 +444,20 @@
   - Substituídas todas as referências remanescentes ao modelo inexistente `gemini-3.5-flash-lite` em `src/app/api/medicoes/route.ts` e `src/app/api/mensageria/route.ts` por `process.env.GEMINI_MODEL || 'gemini-2.5-flash'`.
 - **5. Nova Aba `/ponto-direto` (`src/app/ponto-direto/page.tsx` + `src/app/api/ponto-direto/route.ts`)**:
   - Lançamento direto sob indicação (`origem = 'ABA_PONTO_DIRETO'`, `indicado_por = 'DANIEL'`, sem encarregado), com cálculo automático da tabela do sistema, foto opcional (preview + upload R2) e **Dupla Confirmação em 2 passos** (modal de resumo rápido com edição inline de qualquer campo antes de gravar).
+
+
+---
+
+## Sessão 25/11/2026 — Migração Cloudflare Workers (R$ 0,00) + VM Google Cloud 24/7 + Evoluções de Produto
+
+- **Infraestrutura 100% R$ 0,00/mês (24/7 na nuvem):**
+  - **ERP Next.js 14:** Migrado para **Cloudflare Workers** (`@opennextjs/cloudflare@^0.6.6`, `wrangler.jsonc` com `keep_vars: true`, `scripts/stub-sharp-cf.js` com fallback seguro em `src/services/imageStamp.ts`). URL oficial: `https://diaria-ai.danielsoutolopes.workers.dev`.
+  - **WhatsApp Bot (Baileys):** Rodando 24/7 via PM2 + `pm2 startup` em VM **Google Cloud `e2-micro` Always Free** (`us-east1-c`) exposta via **Cloudflare Tunnel** (`BAILEYS_SERVER_URL`). Corrigido `server-baileys.js` para usar `NEXT_APP_URL` no webhook e `src/app/api/whatsapp/route.ts` + `src/app/api/whatsapp/status/route.ts` para proxy Edge compatível com Workers (farol `VERDE` validado ao vivo).
+- **Rota `/whatsapp-bot` & Segurança:**
+  - Criada rota dinâmica `src/app/whatsapp-bot/page.tsx` (`force-dynamic` + `WhatsAppConfigClient.tsx`) e atualizados todos os links do ERP.
+  - Auditoria ao vivo em 18 telas UI + 10 APIs + RBAC; corrigido `src/middleware.ts` para proteger `/ponto-direto` atrás de login (mantendo apenas `/ponto` PWA público) e integrado `/ponto-direto` ao shell do ERP sem exibir valores de diárias.
+- **Novas Funcionalidades & UX/UI:**
+  - **Adiantamento de Diárias (V29):** Tabela `public.adiantamentos_diarias` com RLS, `/api/adiantamentos-diarias`, abatimento automático em `src/lib/adiantamentoDiarias.ts` (integrado a `/api/ponto-direto`) e sub-aba dedicada em `/validacao/vales` (`AdiantamentoDiariasPanel.tsx`).
+  - **OCR PDF nativo + Gemini REST:** Helper `src/lib/geminiRest.ts` (`fetch` REST nativo em `gemini-2.5-flash`) aplicado em `/api/caixa-campo` (`Ler Nota / PIX / PDF com IA`) e `/api/diario-obra` (`Refinar IA`).
+  - **Diário de Obra Mobile & PDF Base64:** Compressão automática de fotos no navegador (`1280px` JPEG 78%) e disparo de PDF em Base64 via Baileys no botão `Zap`.
+  - **Cofre de Projetos & Documentos (`/projetos`):** Adicionada 2ª aba **Cofre de Documentos (RDO / Contratos / ART)** com ultracompactação GZIP no R2 e envio em Base64 via WhatsApp.
