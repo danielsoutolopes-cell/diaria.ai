@@ -125,9 +125,9 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
           'Alterne entre "Visão Completa", "Caixinha" e "Reembolsos" na mesma tela. Separe claramente o Portador do Caixinha (quem recebeu) do Emissor do PIX (quem transferiu) e registre Data + Hora exata (HH:MM).',
       },
       {
-        nome: 'Ler Nota / PIX com IA & Fallback para Prints Cortados',
+        nome: 'Ler Nota / PIX / PDF com IA & Fallback para Prints Cortados',
         descricao:
-          'Suba a foto de um comprovante PIX ou cupom fiscal: a IA extrai valor, data, hora e pagador. Se o print vier cortado sem pagador ou horário completo, o sistema aplica fallback inteligente (remetente/horário do WhatsApp ou relógio da tela) exibindo a origem para revisão rápida antes de salvar.',
+          'Suba foto ou arquivo PDF de um comprovante PIX ou cupom fiscal: a IA extrai valor, data, hora e pagador. Se o print vier cortado sem pagador ou horário completo, o sistema aplica fallback inteligente para revisão rápida antes de salvar.',
       },
     ],
     exemplo:
@@ -443,6 +443,63 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
     ],
     exemplo:
       'Ative o monitoramento do grupo de uma reforma, selecione o modo Empreita + ambiente Interno e clique em "Vincular e Salvar" — a obra é criada e roteada automaticamente.',
+  },
+  '/whatsapp-bot': {
+    titulo: 'Conexão do Bot & Grupos Monitorados',
+    resumo:
+      'Emparelhamento 24/7 da conta WhatsApp via QR Code ou Código de 8 Dígitos e ativação dos grupos de obra monitorados.',
+    funcoes: [
+      {
+        nome: 'QR Code & Código de 8 Dígitos',
+        descricao:
+          'Conecte seu aparelho em "Aparelhos Conectados" e sincronize todos os grupos ativos.',
+      },
+      {
+        nome: 'Monitoramento Seletivo de Grupos',
+        descricao:
+          'Ative a chave apenas nos grupos de obra desejados; grupos pessoais permanecem ignorados.',
+      },
+    ],
+    exemplo:
+      'Escaneie o QR Code, ative o grupo da obra e todos os pontos e comprovantes enviados passam a cair automaticamente na fila de validação.',
+  },
+  '/ponto-direto': {
+    titulo: 'Lançar Ponto Direto (Com Foto & Dupla Confirmação)',
+    resumo:
+      'Registro direto de presença operacional (sem exibição de valores financeiros), com foto opcional e revisão antes de gravar.',
+    funcoes: [
+      {
+        nome: 'Apontamento Limpo sem Valores',
+        descricao:
+          'Selecione Obra, Colaborador, Data e Tipo/Fração (1.0 Normal, 0.5 Meio Dia, Chuva, Viagem ou Parado). O cálculo financeiro ocorre automaticamente nos bastidores.',
+      },
+      {
+        nome: 'Abatimento Automático de Adiantamento',
+        descricao:
+          'Se o colaborador tiver saldo ativo de Adiantamento de Diárias, o sistema abate automaticamente a fração trabalhada.',
+      },
+    ],
+    exemplo:
+      'Lance 1.0 dia Normal para um colaborador em uma obra, anexe foto opcional, revise no modal de dupla confirmação e clique em Confirmar Gravação.',
+  },
+  '/projetos': {
+    titulo: 'Cofre de Projetos & Documentos (PDF Ultracompactado)',
+    resumo:
+      'Armazenamento seguro de Plantas & Projetos e Documentos da Obra (RDO, ART/RRT, Contratos, Atas) em PDF ultracompactado (GZIP) com envio direto em Base64 via WhatsApp.',
+    funcoes: [
+      {
+        nome: 'Duas Abas Organizadas',
+        descricao:
+          'Alterne entre "Plantas & Projetos" e "Cofre de Documentos" para manter desenhos técnicos separados de relatórios e contratos.',
+      },
+      {
+        nome: 'Envio Direto em PDF via WhatsApp',
+        descricao:
+          'Clique em "Enviar Zap" em qualquer arquivo para descompactar e enviar o PDF formatado diretamente no WhatsApp.',
+      },
+    ],
+    exemplo:
+      'Suba o Relatório Diário de Obra em PDF na aba Cofre de Documentos vinculado à obra e compartilhe com 1 clique via WhatsApp.',
   },
 };
 
