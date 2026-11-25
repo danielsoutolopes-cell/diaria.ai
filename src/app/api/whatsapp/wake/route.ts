@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase';
+import { TENANTS } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +32,28 @@ export async function POST(req: NextRequest) {
       { error: 'Não autorizado para acionar /api/whatsapp/wake.' },
       { status: 401 }
     );
+  }
+
+  // Respeita modo STAND-BY configurado em /setup (bloqueia auto-wake indesejado)
+  try {
+    const { data } = await supabaseAdmin
+      .from('parametros_sistema')
+      .select('configuracoes')
+      .eq('tenant_id', TENANTS.jhoston.id)
+      .limit(1)
+      .maybeSingle();
+    const cfg = (data?.configuracoes || {}) as Record<string, unknown>;
+    if (cfg.whatsapp_standby === true) {
+      return NextResponse.json({
+        success: true,
+        standby: true,
+        status: 'STAND_BY',
+        message:
+          'WhatsApp está em STAND-BY (/setup). Auto-wake bloqueado; sessão preservada no Supabase.',
+      });
+    }
+  } catch {
+    // segue
   }
 
   const agora = Date.now();

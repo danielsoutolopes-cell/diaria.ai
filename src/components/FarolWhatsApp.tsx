@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 
-type FarolCor = 'VERDE' | 'AMARELO' | 'VERMELHO';
+type FarolCor = 'VERDE' | 'AMARELO' | 'VERMELHO' | 'STAND_BY';
 
 interface StatusResp {
   farol?: FarolCor;
@@ -67,16 +67,20 @@ export default function FarolWhatsApp() {
   const dotClass =
     farol === 'VERDE'
       ? 'bg-emerald-400'
-      : farol === 'AMARELO'
-        ? 'bg-amber-400 animate-pulse'
-        : 'bg-rose-500';
+      : farol === 'STAND_BY'
+        ? 'bg-amber-400'
+        : farol === 'AMARELO'
+          ? 'bg-amber-400 animate-pulse'
+          : 'bg-rose-500';
 
   const label =
     farol === 'VERDE'
       ? 'WhatsApp Online'
-      : farol === 'AMARELO'
-        ? 'Sincronizando...'
-        : 'Dormindo / Offline';
+      : farol === 'STAND_BY'
+        ? 'WhatsApp Stand-By'
+        : farol === 'AMARELO'
+          ? 'Sincronizando...'
+          : 'Dormindo / Offline';
 
   return (
     <div className="mx-3 mb-2 px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700/70 flex items-center justify-between gap-2">

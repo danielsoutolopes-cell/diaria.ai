@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     // Ação 2: Interagir no Chat com o Gemini para entender a necessidade e gerar o prompt de engenharia
     const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.2,

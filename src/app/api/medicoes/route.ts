@@ -117,7 +117,9 @@ export async function POST(req: NextRequest) {
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      });
 
       const prompt = `Você é um assistente de gestão de obras ajudando um gestor que NÃO é engenheiro.
 Leia a proposta de obra fornecida e extraia em JSON puro (sem markdown) o seguinte formato:
@@ -266,7 +268,9 @@ Regras:
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      });
 
       const resumoDiarios =
         diariosObra.length > 0

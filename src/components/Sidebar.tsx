@@ -79,6 +79,14 @@ const navItems = [
     badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
   },
   {
+    name: 'Lançar Ponto Direto',
+    href: '/ponto-direto',
+    icon: CalendarCheck2,
+    badge: 'Direto',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    onlyDiarista: true,
+  },
+  {
     name: 'Propostas & Medição IA',
     href: '/medicoes',
     icon: Sparkles,

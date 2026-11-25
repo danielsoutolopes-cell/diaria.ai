@@ -37,6 +37,10 @@ const EmissoresPixCaixinhaSetup = dynamic(
   () => import('@/components/EmissoresPixCaixinhaSetup'),
   { ssr: false }
 );
+const WhatsAppStandbySetupCard = dynamic(
+  () => import('@/components/WhatsAppStandbySetupCard'),
+  { ssr: false }
+);
 
 interface ObraItem {
   id: string;
@@ -1934,7 +1938,8 @@ export default function SetupPage() {
 
       {/* Emissores do PIX da Caixinha de Campo (Contexto Jhoston — alimenta /caixinha) */}
       <div className="pt-2">
-        <EmissoresPixCaixinhaSetup />
+        <WhatsAppStandbySetupCard />
+      <EmissoresPixCaixinhaSetup />
       </div>
     </div>
   );

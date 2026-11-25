@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     // 1. Buscar o registro isolado por tenant_id
     const { data: lancRaw, error: fetchErr } = await supabaseAdmin
       .from('lancamentos_financeiros')
-      .select('id, comprovante_url, nome_trabalhador, created_at, data_referencia')
+      .select('id, comprovante_url, nome_trabalhador, created_at, data_referencia, ponto_lote_id')
       .eq('id', lancamentoId)
       .eq('tenant_id', activeTenant.id)
       .single();
@@ -84,6 +84,26 @@ export async function POST(req: NextRequest) {
 
     if (deleteErr) {
       throw deleteErr;
+    }
+
+    // 4. Sincronizar ponto_lote pai para que registros excluídos nunca voltem como pendentes
+    const pontoLoteId = (lancRaw as { ponto_lote_id?: string | null } | null)
+      ?.ponto_lote_id;
+    if (pontoLoteId) {
+      const { count } = await supabaseAdmin
+        .from('lancamentos_financeiros')
+        .select('id', { count: 'exact', head: true })
+        .eq('ponto_lote_id', pontoLoteId)
+        .eq('tenant_id', activeTenant.id)
+        .eq('status', 'PENDENTE');
+      if (!count || count === 0) {
+        await supabaseAdmin
+          .from('ponto_lote')
+          .update({ status_validacao: 'DESCARTADO' })
+          .eq('id', pontoLoteId)
+          .eq('tenant_id', activeTenant.id)
+          .eq('status_validacao', 'PENDENTE');
+      }
     }
 
     return NextResponse.json({

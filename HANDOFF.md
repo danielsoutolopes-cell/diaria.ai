@@ -429,3 +429,18 @@
 - **Nova página dedicada (`/projetos`)** + API (`/api/projetos`) isolada por `tenant_id` (`Intermack` e `Jhoston`).
 - **Armazenamento Compactado**: PDFs enviados são compactados com `zlib.gzipSync` (nível 9) no Cloudflare R2 (`projetos/${tenantSlug}/.../*.pdf.gz`), exibindo a economia de espaço em `%`, e descompactados sob demanda (`GET /api/projetos?download=<id>`) ou no envio direto como documento PDF via WhatsApp (`Baileys /send-document` com fallback `wa.me`).
 - Integrado ao menu lateral (`Sidebar.tsx`) e ajuda contextual (`ContextualHelp.tsx`).
+
+
+### Rodada Completa — WhatsApp STAND-BY (`/setup`), Correção 24/11, IA Gemini 2.5 Flash & `/ponto-direto` (25/11/2026)
+- **1. WhatsApp em `STAND-BY` no `/setup`** (`src/app/api/whatsapp/standby/route.ts`, `src/components/WhatsAppStandbySetupCard.tsx`, `src/app/setup/page.tsx`):
+  - Flag `whatsapp_standby = true` (`STAND_BY`) persistida no Supabase para `Jhoston` e `Intermack`, religável em 1 clique no `/setup`.
+  - `/api/whatsapp/status`, `/api/whatsapp/wake` e `FarolWhatsApp.tsx` respeitam `STAND_BY` (bloqueando auto-wake e mantendo `baileys_session_state` preservada).
+- **2. Exclusão & Validação Persistente (`src/app/api/lancamentos/excluir/route.ts`)**:
+  - Ao excluir um lançamento vinculado a `ponto_lote_id`, se não restarem lançamentos `PENDENTE` naquele lote, o lote pai é automaticamente marcado como `DESCARTADO` — impedindo que registros apagados voltem na fila.
+- **3. Correção definitiva `2026-11-24` (Supabase)**:
+  - `Manoel  (0` (2 registros de `0.50` em `CASA DO JOABSON` e `QUASE TUDO`, com `R$ 90,00`) → corrigidos para **`Manoel`** (`0.50`, **`R$ 115,00`** cada, `VALIDADO`).
+  - **`Daniel`** (`PORTO SEGURO`, `2026-11-24`, `1.00`, **`R$ 280,00`**, `VALIDADO`) reconciliado com idempotência.
+- **4. Diagnóstico & Correção da IA (`gemini-2.5-flash`)**:
+  - Substituídas todas as referências remanescentes ao modelo inexistente `gemini-3.5-flash-lite` em `src/app/api/medicoes/route.ts` e `src/app/api/mensageria/route.ts` por `process.env.GEMINI_MODEL || 'gemini-2.5-flash'`.
+- **5. Nova Aba `/ponto-direto` (`src/app/ponto-direto/page.tsx` + `src/app/api/ponto-direto/route.ts`)**:
+  - Lançamento direto sob indicação (`origem = 'ABA_PONTO_DIRETO'`, `indicado_por = 'DANIEL'`, sem encarregado), com cálculo automático da tabela do sistema, foto opcional (preview + upload R2) e **Dupla Confirmação em 2 passos** (modal de resumo rápido com edição inline de qualquer campo antes de gravar).
