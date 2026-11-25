@@ -7,6 +7,15 @@ export interface DateStampOptions {
   etapa?: string | null;
 }
 
+interface SharpPipeline {
+  metadata(): Promise<{ width?: number; height?: number }>;
+  composite(inputs: Array<{ input: Buffer; top: number; left: number }>): SharpPipeline;
+  jpeg(options: { quality: number }): SharpPipeline;
+  toBuffer(): Promise<Buffer>;
+}
+
+type SharpFn = (input: Buffer) => SharpPipeline;
+
 /**
  * Aplica um carimbo indelével no rodapé da imagem com informações de auditoria
  * (Obra, Data/Hora de Brasília, Clima, Localização e Responsável).
@@ -16,13 +25,18 @@ export async function aplicarDateStamp(
   imageBuffer: Buffer,
   opcoes: DateStampOptions
 ): Promise<Buffer> {
-  type SharpFn = (typeof import('sharp'))['default'];
   let sharpMod: SharpFn | null = null;
   try {
-    const imported = await import('sharp');
-    const candidate = imported?.default ?? imported;
-    if (typeof candidate === 'function') {
-      sharpMod = candidate as SharpFn;
+    const imported: unknown = await import('sharp');
+    if (typeof imported === 'function') {
+      sharpMod = imported as SharpFn;
+    } else if (
+      imported &&
+      typeof imported === 'object' &&
+      'default' in imported &&
+      typeof (imported as { default: unknown }).default === 'function'
+    ) {
+      sharpMod = (imported as { default: SharpFn }).default;
     }
   } catch {
     return imageBuffer;
