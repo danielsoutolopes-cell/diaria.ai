@@ -404,10 +404,10 @@ export default function CaixaCampoPanel({
 
         <label className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all">
           <Camera className="w-3.5 h-3.5" />
-          <span>{lendoIA ? 'Lendo nota com IA...' : 'Ler Nota / PIX com IA'}</span>
+          <span>{lendoIA ? 'Lendo arquivo com IA...' : 'Ler Nota / PIX / PDF com IA'}</span>
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf,.pdf"
             onChange={handleLerFotoIA}
             className="hidden"
           />

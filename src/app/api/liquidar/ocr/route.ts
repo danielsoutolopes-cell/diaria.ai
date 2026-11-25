@@ -45,9 +45,12 @@ export async function POST(req: NextRequest) {
     try {
       const clean = body.imagemBase64.replace(/^data:[^;]+;base64,/, '');
       const buffer = Buffer.from(clean, 'base64');
-      const ext = (body.imagemMimeType || 'image/jpeg').includes('png')
-        ? 'png'
-        : 'jpg';
+      const mimeLower = (body.imagemMimeType || 'image/jpeg').toLowerCase();
+      const ext = mimeLower.includes('pdf')
+        ? 'pdf'
+        : mimeLower.includes('png')
+          ? 'png'
+          : 'jpg';
       const uploadRes = await uploadToR2(
         buffer,
         `liquidacao-pix-${activeTenant.slug}-${Date.now()}.${ext}`,
