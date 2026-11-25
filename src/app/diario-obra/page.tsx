@@ -484,9 +484,43 @@ export default function DiarioObraPage() {
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') {
-          setFotosBase64((prev) =>
-            prev.length < 3 ? [...prev, reader.result as string] : prev
-          );
+          const srcDataUrl = reader.result;
+          const img = new window.Image();
+          img.onload = () => {
+            const maxDim = 1280;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w >= h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, w, h);
+              const compressed = canvas.toDataURL('image/jpeg', 0.78);
+              setFotosBase64((prev) =>
+                prev.length < 3 ? [...prev, compressed] : prev
+              );
+            } else {
+              setFotosBase64((prev) =>
+                prev.length < 3 ? [...prev, srcDataUrl] : prev
+              );
+            }
+          };
+          img.onerror = () => {
+            setFotosBase64((prev) =>
+              prev.length < 3 ? [...prev, srcDataUrl] : prev
+            );
+          };
+          img.src = srcDataUrl;
         }
       };
       reader.readAsDataURL(file);
@@ -1810,7 +1844,7 @@ export default function DiarioObraPage() {
                       <button
                         type="button"
                         onClick={() =>
-                          handleCopiarWhatsApp(d, filtroHistoricoEmpreiteiro)
+                          void handleEnviarPdfWhatsApp(d, filtroHistoricoEmpreiteiro)
                         }
                         className="py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1"
                       >
@@ -1882,7 +1916,7 @@ export default function DiarioObraPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    handleCopiarWhatsApp(
+                    void handleEnviarPdfWhatsApp(
                       diarioSelecionado,
                       filtroModalEmpreiteiro
                     )

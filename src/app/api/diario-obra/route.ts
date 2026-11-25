@@ -194,15 +194,19 @@ export async function POST(req: NextRequest) {
           aviso: 'GEMINI_API_KEY não configurada; mantendo texto original.',
         });
       }
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const { chamarGeminiRest } = await import('@/lib/geminiRest');
       const contextoExtra =
         subempreitaAtiva && (body.etapaNome || body.empreiteiro)
           ? ` Etapa/Serviço: ${body.etapaNome || 'Geral'}. Empreiteiro: ${body.empreiteiro || 'Equipe'}.`
           : '';
       const prompt = `Reescreva o rascunho abaixo de um Diário de Obra (${activeTenant.nome}, Obra: ${body.obraNome || 'Obra'}.${contextoExtra}) em português claro, profissional e objetivo para enviar ao cliente final. Mantenha no máximo 4 frases curtas ou 3-4 tópicos diretos. Não invente informações nem mencione valores financeiros.\n\nRascunho:\n${rascunho}`;
-      const result = await model.generateContent(prompt);
-      const texto = result.response.text().trim();
+      const texto = (
+        await chamarGeminiRest({
+          apiKey,
+          prompt,
+          model: process.env.GEMINI_MODEL,
+        })
+      ).trim();
       return NextResponse.json({ success: true, resumoRefinado: texto || rascunho });
     }
 

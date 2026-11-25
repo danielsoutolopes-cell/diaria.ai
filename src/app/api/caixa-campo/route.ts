@@ -345,16 +345,7 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const rawModel = (process.env.GEMINI_MODEL || '').trim();
-      const safeModel =
-        !rawModel || rawModel.includes('3.5-flash-lite')
-          ? 'gemini-2.5-flash'
-          : rawModel;
-      const model = genAI.getGenerativeModel({
-        model: safeModel,
-        generationConfig: { responseMimeType: 'application/json' },
-      });
+      const { chamarGeminiRest } = await import('@/lib/geminiRest');
       const clean = body.imagemBase64.replace(/^data:[^;]+;base64,/, '');
 
       const prompt = `Você é o motor OCR financeiro de alta precisão do sistema diaria.ai.
@@ -381,18 +372,18 @@ Retorne APENAS JSON puro (sem markdown):
   "comprovanteCortado": true ou false
 }`;
 
-      const res = await model.generateContent([
+      const rawText = await chamarGeminiRest({
+        apiKey,
         prompt,
-        {
-          inlineData: {
-            data: clean,
-            mimeType: body.imagemMimeType || 'image/jpeg',
-          },
+        inlineData: {
+          data: clean,
+          mimeType: body.imagemMimeType || 'image/jpeg',
         },
-      ]);
+        jsonMode: true,
+        model: process.env.GEMINI_MODEL,
+      });
 
-      const raw = res.response
-        .text()
+      const raw = rawText
         .replace(/^```json\s*/i, '')
         .replace(/^```\s*/, '')
         .replace(/\s*```$/, '')

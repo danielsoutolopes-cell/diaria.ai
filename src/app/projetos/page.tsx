@@ -25,6 +25,18 @@ const CATEGORIAS_PROJETO = [
   'Outros',
 ] as const;
 
+const CATEGORIAS_DOCUMENTO = [
+  'Relatório Diário de Obra (RDO)',
+  'ART / RRT',
+  'Autorização de Condomínio',
+  'Contrato / Proposta',
+  'Ata de Reunião',
+  'Memorial Descritivo',
+  'Outros Documentos',
+] as const;
+
+const SET_CATEGORIAS_DOCUMENTO = new Set<string>(CATEGORIAS_DOCUMENTO);
+
 function formatarKB(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -32,6 +44,7 @@ function formatarKB(bytes: number): string {
 }
 
 export default function CofreProjetosPage() {
+  const [abaCofre, setAbaCofre] = useState<'PROJETOS' | 'DOCUMENTOS'>('PROJETOS');
   const [carregando, setCarregando] = useState(true);
   const [obras, setObras] = useState<string[]>([]);
   const [projetos, setProjetos] = useState<ProjetoPdfRecord[]>([]);
@@ -77,13 +90,19 @@ export default function CofreProjetosPage() {
     void carregar();
   }, [carregar]);
 
+  const categoriasAtivas =
+    abaCofre === 'DOCUMENTOS' ? CATEGORIAS_DOCUMENTO : CATEGORIAS_PROJETO;
+
   const projetosFiltrados = useMemo(() => {
     return projetos.filter((p) => {
+      const ehDoc = SET_CATEGORIAS_DOCUMENTO.has(p.categoria);
+      if (abaCofre === 'DOCUMENTOS' && !ehDoc) return false;
+      if (abaCofre === 'PROJETOS' && ehDoc) return false;
       if (filtroObra && p.obraNome !== filtroObra) return false;
       if (filtroCategoria && p.categoria !== filtroCategoria) return false;
       return true;
     });
-  }, [projetos, filtroObra, filtroCategoria]);
+  }, [projetos, abaCofre, filtroObra, filtroCategoria]);
 
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault();
@@ -198,12 +217,44 @@ export default function CofreProjetosPage() {
         <div>
           <h1 className="text-2xl font-black text-slate-950 flex items-center gap-2">
             <FolderLock className="w-6 h-6 text-indigo-600" />
-            <span>Cofre de Projetos (Plantas PDF)</span>
+            <span>Cofre de Projetos &amp; Documentos (PDF)</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Armazenamento seguro de plantas em PDF com compactação automática
-            (GZIP) e envio direto via WhatsApp.
+            Armazenamento seguro de plantas e documentos da obra em PDF com
+            ultracompactação automática (GZIP) e envio direto via WhatsApp.
           </p>
+          <div className="inline-flex p-1 mt-3 rounded-2xl bg-slate-100 border border-slate-200 gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setAbaCofre('PROJETOS');
+                setCategoria(CATEGORIAS_PROJETO[0]);
+                setFiltroCategoria('');
+              }}
+              className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
+                abaCofre === 'PROJETOS'
+                  ? 'bg-white text-indigo-800 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Plantas &amp; Projetos
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAbaCofre('DOCUMENTOS');
+                setCategoria(CATEGORIAS_DOCUMENTO[0]);
+                setFiltroCategoria('');
+              }}
+              className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
+                abaCofre === 'DOCUMENTOS'
+                  ? 'bg-white text-emerald-800 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Cofre de Documentos (RDO / Contratos / ART)
+            </button>
+          </div>
         </div>
         <button
           type="button"
@@ -284,7 +335,7 @@ export default function CofreProjetosPage() {
                 onChange={(e) => setCategoria(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900"
               >
-                {CATEGORIAS_PROJETO.map((c) => (
+                {categoriasAtivas.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -350,7 +401,7 @@ export default function CofreProjetosPage() {
               className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700"
             >
               <option value="">Todas as disciplinas</option>
-              {CATEGORIAS_PROJETO.map((c) => (
+              {categoriasAtivas.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
