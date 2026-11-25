@@ -53,11 +53,16 @@ export async function GET() {
         status?: string;
         connectedAt?: string | null;
         lastSyncAt?: string | null;
+        session?: {
+          status?: string;
+          connectedAt?: string | null;
+          lastSyncAt?: string | null;
+        };
         groups?: unknown[];
       };
-      status = data.status || 'DISCONNECTED';
-      connectedAt = data.connectedAt || null;
-      lastSyncAt = data.lastSyncAt || null;
+      status = data.session?.status || data.status || 'DISCONNECTED';
+      connectedAt = data.session?.connectedAt || data.connectedAt || null;
+      lastSyncAt = data.session?.lastSyncAt || data.lastSyncAt || null;
       groupsCount = Array.isArray(data.groups) ? data.groups.length : 0;
     }
   } catch {
