@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cf": "npx @opennextjs/cloudflare build",
     "start": "node start-production.js",
     "start:next": "next start -p ${PORT:-3000}",
     "lint": "next lint",
