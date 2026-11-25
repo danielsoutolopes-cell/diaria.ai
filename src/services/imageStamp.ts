@@ -1,5 +1,3 @@
-import sharp from 'sharp';
-
 export interface DateStampOptions {
   nomeObra: string;
   dataHoraFormatada?: string;
@@ -12,12 +10,29 @@ export interface DateStampOptions {
 /**
  * Aplica um carimbo indelével no rodapé da imagem com informações de auditoria
  * (Obra, Data/Hora de Brasília, Clima, Localização e Responsável).
+ * Em ambientes Edge/Cloudflare Workers (sem binário nativo sharp), retorna o buffer original.
  */
 export async function aplicarDateStamp(
   imageBuffer: Buffer,
   opcoes: DateStampOptions
 ): Promise<Buffer> {
-  const metadata = await sharp(imageBuffer).metadata();
+  type SharpFn = (typeof import('sharp'))['default'];
+  let sharpMod: SharpFn | null = null;
+  try {
+    const imported = await import('sharp');
+    const candidate = imported?.default ?? imported;
+    if (typeof candidate === 'function') {
+      sharpMod = candidate as SharpFn;
+    }
+  } catch {
+    return imageBuffer;
+  }
+
+  if (!sharpMod) {
+    return imageBuffer;
+  }
+
+  const metadata = await sharpMod(imageBuffer).metadata();
   const width = metadata.width || 1200;
   const height = metadata.height || 800;
 
@@ -61,7 +76,7 @@ export async function aplicarDateStamp(
     </svg>
   `);
 
-  return await sharp(imageBuffer)
+  return await sharpMod(imageBuffer)
     .composite([
       {
         input: svgOverlay,
