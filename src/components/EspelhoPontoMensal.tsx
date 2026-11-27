@@ -42,6 +42,7 @@ interface LinhaEspelho {
 export default function EspelhoPontoMensal() {
   const [modoVisao, setModoVisao] = useState<'PRESENCA' | 'FINANCEIRO'>('FINANCEIRO');
   const [tipoValor, setTipoValor] = useState<'LIQUIDO' | 'BRUTO'>('LIQUIDO');
+  const [periodo, setPeriodo] = useState<'SEMANAL' | 'QUINZENAL' | 'MENSAL'>('MENSAL');
   const [mes, setMes] = useState<string>('2026-11');
   const [obraId, setObraId] = useState<string>('TODAS');
   const [obras, setObras] = useState<{ id: string; nome: string }[]>([]);
@@ -127,7 +128,45 @@ export default function EspelhoPontoMensal() {
     carregarEspelho();
   }, [mes, obraId]);
 
-  const diasArray = Array.from({ length: diasNoMes }, (_, i) => i + 1);
+  const todosDias = Array.from({ length: diasNoMes }, (_, i) => i + 1);
+  const diaRefHoje = new Date().getDate();
+  const diasArray =
+    periodo === 'MENSAL'
+      ? todosDias
+      : periodo === 'QUINZENAL'
+        ? diaRefHoje <= 15
+          ? todosDias.filter((d) => d <= 15)
+          : todosDias.filter((d) => d >= 16)
+        : todosDias.filter((d) => d >= Math.max(1, diaRefHoje - 6) && d <= Math.min(diasNoMes, diaRefHoje + 3));
+
+  const linhasPeriodo = linhas.map((l) => {
+    if (periodo === 'MENSAL') return l;
+    let totalDias = 0;
+    let totalValor = 0;
+    let totalPago = 0;
+    let totalVales = 0;
+    const diasFiltrados: Record<number, CelulaDiaEspelhoUI> = {};
+    for (const d of diasArray) {
+      const cel = l.dias[d];
+      if (!cel) continue;
+      diasFiltrados[d] = cel;
+      if (cel.tipo !== 'VALE_ONLY') {
+        totalDias += Number(cel.fracao || 0);
+        totalValor += Number(cel.valor || 0);
+        if (cel.pago) totalPago += Number(cel.valor || 0);
+      }
+      totalVales += Number(cel.valeDia || 0);
+    }
+    return {
+      ...l,
+      dias: diasFiltrados,
+      totalDias: Number(totalDias.toFixed(2)),
+      totalValor: Number(totalValor.toFixed(2)),
+      totalPago: Number(totalPago.toFixed(2)),
+      totalVales: Number(totalVales.toFixed(2)),
+      saldoAPagar: Number(Math.max(0, totalValor - totalPago - totalVales).toFixed(2)),
+    };
+  });
 
   function renderSimbolo(info?: {
     fracao: number;
@@ -260,6 +299,29 @@ export default function EspelhoPontoMensal() {
             </button>
           </div>
 
+          <div className="inline-flex p-0.5 rounded-xl bg-slate-800 border border-slate-700">
+            {(
+              [
+                { k: 'SEMANAL', label: 'Semanal' },
+                { k: 'QUINZENAL', label: 'Quinzenal' },
+                { k: 'MENSAL', label: 'Mensal' },
+              ] as const
+            ).map((p) => (
+              <button
+                key={p.k}
+                type="button"
+                onClick={() => setPeriodo(p.k)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition-all ${
+                  periodo === p.k
+                    ? 'bg-indigo-500 text-white'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center gap-2 bg-slate-800 px-3 py-2 rounded-xl border border-slate-700">
             <Calendar className="w-4 h-4 text-sky-400" />
             <input
@@ -379,7 +441,7 @@ export default function EspelhoPontoMensal() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {linhas.map((l) => {
+              {linhasPeriodo.map((l) => {
                 const pago = Number(l.totalPago || 0);
                 const vales = Number(l.totalVales || 0);
                 const aPagar =
@@ -489,18 +551,18 @@ export default function EspelhoPontoMensal() {
                     Valores já descontando pagamentos liquidados e vales do mês
                   </td>
                   <td className="p-2 text-center tabular-nums">
-                    {linhas.reduce((s, x) => s + x.totalDias, 0).toFixed(1)}
+                    {linhasPeriodo.reduce((s, x) => s + x.totalDias, 0).toFixed(1)}
                   </td>
                   <td className="p-2 text-right text-emerald-300 tabular-nums whitespace-nowrap">
-                    R$ {linhas.reduce((s, x) => s + Number(x.totalPago || 0), 0).toFixed(2)}
+                    R$ {linhasPeriodo.reduce((s, x) => s + Number(x.totalPago || 0), 0).toFixed(2)}
                   </td>
                   <td className="p-2 text-right text-rose-300 tabular-nums whitespace-nowrap">
-                    - R$ {linhas.reduce((s, x) => s + Number(x.totalVales || 0), 0).toFixed(2)}
+                    - R$ {linhasPeriodo.reduce((s, x) => s + Number(x.totalVales || 0), 0).toFixed(2)}
                   </td>
                   <td className="p-2 text-right text-amber-300 tabular-nums whitespace-nowrap">
                     R${' '}
                     {(tipoValor === 'LIQUIDO'
-                      ? linhas.reduce(
+                      ? linhasPeriodo.reduce(
                           (s, x) =>
                             s +
                             (typeof x.saldoAPagar === 'number'
@@ -508,7 +570,7 @@ export default function EspelhoPontoMensal() {
                               : Math.max(0, x.totalValor - Number(x.totalPago || 0) - Number(x.totalVales || 0))),
                           0
                         )
-                      : linhas.reduce((s, x) => s + x.totalValor, 0)
+                      : linhasPeriodo.reduce((s, x) => s + x.totalValor, 0)
                     ).toFixed(2)}
                   </td>
                 </tr>
