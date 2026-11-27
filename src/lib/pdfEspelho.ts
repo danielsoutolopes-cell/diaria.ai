@@ -7,11 +7,18 @@ export interface LinhaEspelhoPDF {
       tipo: string;
       obs: string;
       valor: number;
+      pago?: boolean;
+      dataPagamento?: string | null;
+      valeDia?: number;
       partes?: Array<{ obra: string; fracao: number; valor: number }>;
     }
   >;
   totalDias: number;
   totalValor: number;
+  totalPago?: number;
+  totalVales?: number;
+  saldoAPagar?: number;
+  ultimoPagamentoData?: string | null;
 }
 
 function sanitize(text: string): string {
@@ -51,73 +58,153 @@ export function gerarPdfEspelhoBase64(params: {
   incluirValores: boolean;
 }): { base64: string; fileName: string } {
   const { mes, diasNoMes, linhas, incluirValores } = params;
-  const ops: string[] = ['BT'];
+  const ops: string[] = [];
 
-  // Cabeçalho
-  ops.push('/F2 13 Tf');
-  ops.push('1 0 0 1 30 560 Tm');
+  const totalBrutoGeral = linhas.reduce((s, l) => s + Number(l.totalValor || 0), 0);
+  const totalPagoGeral = linhas.reduce((s, l) => s + Number(l.totalPago || 0), 0);
+  const totalValesGeral = linhas.reduce((s, l) => s + Number(l.totalVales || 0), 0);
+  const totalLiquidoGeral = linhas.reduce(
+    (s, l) =>
+      s +
+      (typeof l.saldoAPagar === 'number'
+        ? l.saldoAPagar
+        : Math.max(0, Number(l.totalValor || 0) - Number(l.totalPago || 0) - Number(l.totalVales || 0))),
+    0
+  );
+  const totalDiasGeral = linhas.reduce((s, l) => s + Number(l.totalDias || 0), 0);
+
+  // 1. Banner de cabeçalho executivo (#0F172A com barra lateral esmeralda #10B981)
+  ops.push('0.059 0.090 0.165 rg 20 532 802 46 re f');
+  ops.push('0.063 0.725 0.506 rg 20 532 6 46 re f');
+
+  ops.push('BT');
+  ops.push('1 1 1 rg');
+  ops.push('/F4 13 Tf');
+  ops.push('1 0 0 1 36 558 Tm');
   ops.push(
     `(${sanitize(
-      `PONTO PATRICIA - RELATORIO 4: ESPELHO DO PONTO (${mes}) ${
-        incluirValores ? '[EXECUTIVO]' : '[OPERACIONAL SEM VALORES]'
-      }`
+      `PONTO PATRICIA (DIARIA.AI) — RELATORIO 4: ESPELHO DO PONTO (${mes})`
     )}) Tj`
   );
+  ops.push('0.64 0.72 0.82 rg');
+  ops.push('/F3 8 Tf');
+  ops.push('1 0 0 1 36 542 Tm');
+  ops.push(
+    `(${sanitize(
+      incluirValores
+        ? 'VISAO EXECUTIVA FINANCEIRA (LIQUIDO A PAGAR, DESCONTANDO PAGAMENTOS LIQUIDADOS E VALES)'
+        : 'VISAO OPERACIONAL DE PRESENCA (SEM VALORES FINANCEIROS)'
+    )}) Tj`
+  );
+  ops.push('ET');
 
-  ops.push('/F1 8 Tf');
-  ops.push('1 0 0 1 30 544 Tm');
-  ops.push('(Legenda: 1=Integral | 1/2=Meio Dia | R=Rateio 1/2+1/2 | C=Chuva R$120 | V=Viagem | P=Parado | .=Sem registro) Tj');
+  let tableTopY = 516;
 
-  // Cabeçalho da grade
-  let headerLine = 'COLABORADOR'.padEnd(18, ' ');
+  // 2. Cards KPI Executivos (apenas quando incluirValores = true)
+  if (incluirValores) {
+    const kpis = [
+      { label: 'BRUTO MES', val: `R$ ${totalBrutoGeral.toFixed(2)}`, bg: '0.95 0.96 0.98', fg: '0.12 0.16 0.23' },
+      { label: 'JA PAGO (LIQUIDADO)', val: `R$ ${totalPagoGeral.toFixed(2)}`, bg: '0.92 0.99 0.96', fg: '0.02 0.47 0.34' },
+      { label: 'VALES DESCONTADOS', val: `- R$ ${totalValesGeral.toFixed(2)}`, bg: '1.00 0.95 0.95', fg: '0.75 0.12 0.24' },
+      { label: 'LIQUIDO A PAGAR', val: `R$ ${totalLiquidoGeral.toFixed(2)}`, bg: '1.00 0.97 0.88', fg: '0.57 0.25 0.05' },
+    ];
+    kpis.forEach((k, idx) => {
+      const x = 20 + idx * 202;
+      ops.push(`${k.bg} rg ${x} 482 194 40 re f`);
+      ops.push('0.85 0.88 0.92 RG 0.5 w ' + `${x} 482 194 40 re S`);
+      ops.push('BT');
+      ops.push('0.40 0.45 0.52 rg /F4 7 Tf');
+      ops.push(`1 0 0 1 ${x + 10} 508 Tm (${sanitize(k.label)}) Tj`);
+      ops.push(`${k.fg} rg /F4 12 Tf`);
+      ops.push(`1 0 0 1 ${x + 10} 491 Tm (${sanitize(k.val)}) Tj`);
+      ops.push('ET');
+    });
+    tableTopY = 468;
+  }
+
+  // 3. Cabeçalho da grade
+  ops.push(`0.12 0.16 0.23 rg 20 ${tableTopY - 14} 802 18 re f`);
+
+  let headerLine = 'COLABORADOR'.padEnd(15, ' ');
   for (let d = 1; d <= diasNoMes; d++) {
     headerLine += String(d).padStart(2, '0') + ' ';
   }
   headerLine += ' DIAS';
-  if (incluirValores) headerLine += '   TOTAL(R$)';
+  if (incluirValores) {
+    headerLine += '   JA PAGO     VALES   LIQUIDO';
+  }
 
-  ops.push('/F2 7 Tf');
-  ops.push('1 0 0 1 30 524 Tm');
-  ops.push(`(${sanitize(headerLine)}) Tj`);
+  ops.push('BT 1 1 1 rg /F2 6.5 Tf');
+  ops.push(`1 0 0 1 26 ${tableTopY - 8} Tm`);
+  ops.push(`(${sanitize(headerLine)}) Tj ET`);
 
-  let y = 508;
-  ops.push('/F1 7 Tf');
+  let y = tableTopY - 26;
+  let rowIdx = 0;
 
   for (const linha of linhas) {
-    if (y < 40) break;
-    const nomeCurto = linha.nome.slice(0, 16).padEnd(18, ' ');
+    if (y < 52) break;
+    // Zebra striping
+    if (rowIdx % 2 === 1) {
+      ops.push(`0.97 0.98 0.99 rg 20 ${y - 4} 802 14 re f`);
+    }
+    const pago = Number(linha.totalPago || 0);
+    const vales = Number(linha.totalVales || 0);
+    const liquido =
+      typeof linha.saldoAPagar === 'number'
+        ? linha.saldoAPagar
+        : Math.max(0, Number(linha.totalValor || 0) - pago - vales);
+
+    const nomeCurto = linha.nome.slice(0, 14).padEnd(15, ' ');
     let row = nomeCurto;
     for (let d = 1; d <= diasNoMes; d++) {
-      const sym = simboloDia(linha.dias[d]);
+      const cell = linha.dias[d];
+      const sym =
+        cell && cell.tipo !== 'VALE_ONLY' ? simboloDia(cell) : '.';
       row += sym.padStart(2, ' ') + ' ';
     }
     row += String(linha.totalDias.toFixed(1)).padStart(5, ' ');
     if (incluirValores) {
-      row += `  R$ ${linha.totalValor.toFixed(2)}`;
+      row +=
+        pago.toFixed(2).padStart(10, ' ') +
+        vales.toFixed(2).padStart(10, ' ') +
+        liquido.toFixed(2).padStart(10, ' ');
     }
-    ops.push(`1 0 0 1 30 ${y} Tm`);
-    ops.push(`(${sanitize(row)}) Tj`);
+
+    ops.push('BT 0.10 0.14 0.20 rg /F1 6.5 Tf');
+    ops.push(`1 0 0 1 26 ${y} Tm`);
+    ops.push(`(${sanitize(row)}) Tj ET`);
     y -= 14;
+    rowIdx += 1;
   }
 
-  ops.push('/F1 7 Tf');
-  ops.push('1 0 0 1 30 22 Tm');
+  // 4. Rodapé TOTAL GERAL
+  ops.push(`0.059 0.090 0.165 rg 20 ${Math.max(34, y - 4)} 802 16 re f`);
+  const footerSummary = incluirValores
+    ? `TOTAL GERAL (${linhas.length} colab.) | DIAS: ${totalDiasGeral.toFixed(1)} | BRUTO: R$ ${totalBrutoGeral.toFixed(2)} | PAGO: R$ ${totalPagoGeral.toFixed(2)} | VALES: -R$ ${totalValesGeral.toFixed(2)} | LIQUIDO A PAGAR: R$ ${totalLiquidoGeral.toFixed(2)}`
+    : `TOTAL GERAL (${linhas.length} colaboradores) | TOTAL DE DIAS: ${totalDiasGeral.toFixed(1)}`;
+  ops.push('BT 1 1 1 rg /F4 8 Tf');
+  ops.push(`1 0 0 1 28 ${Math.max(39, y + 1)} Tm (${sanitize(footerSummary)}) Tj ET`);
+
+  // 5. Legenda + Emissão
+  ops.push('BT 0.45 0.50 0.56 rg /F3 7 Tf');
+  ops.push('1 0 0 1 20 18 Tm');
   ops.push(
     `(${sanitize(
-      `Emitido em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} | Ponto Patricia (Diaria.AI)`
-    )}) Tj`
+      `Legenda: 1=Integral | 1/2=Meio Dia | R=Rateio | C=Chuva | V=Viagem | P=Parado | Emitido em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} | Ponto Patricia (Diaria.AI)`
+    )}) Tj ET`
   );
-  ops.push('ET');
 
   const streamContent = ops.join('\n');
 
   const objects: string[] = [
     '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
     '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
-    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>\nendobj\n',
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R /F4 7 0 R >> >> /Contents 8 0 R >>\nendobj\n',
     '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n',
     '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold >>\nendobj\n',
-    `6 0 obj\n<< /Length ${Buffer.byteLength(streamContent, 'utf8')} >>\nstream\n${streamContent}\nendstream\nendobj\n`,
+    '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+    '7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n',
+    `8 0 obj\n<< /Length ${Buffer.byteLength(streamContent, 'utf8')} >>\nstream\n${streamContent}\nendstream\nendobj\n`,
   ];
 
   let pdf = '%PDF-1.4\n';
@@ -137,7 +224,7 @@ export function gerarPdfEspelhoBase64(params: {
 
   return {
     base64: Buffer.from(pdf, 'utf8').toString('base64'),
-    fileName: `Espelho-Ponto-${mes}${incluirValores ? '' : '-Operacional'}.pdf`,
+    fileName: `Espelho-Ponto-Liquido-${mes}${incluirValores ? '' : '-Operacional'}.pdf`,
   };
 }
 

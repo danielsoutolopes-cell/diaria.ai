@@ -136,7 +136,11 @@ export async function POST(req: NextRequest) {
       pdfUrl = null;
     }
 
-    const baileysLocal = process.env.BAILEYS_LOCAL_URL || 'http://127.0.0.1:3001';
+    const baileysLocal = (
+      process.env.BAILEYS_SERVER_URL ||
+      process.env.BAILEYS_LOCAL_URL ||
+      'http://127.0.0.1:3001'
+    ).replace(/\/+$/, '');
     const caption =
       `📅 *ESPELHO DO PONTO MENSAL (${body.mes})*\n` +
       `👤 Destinatário: ${body.nomeDestinatario || telLimpo}\n` +
