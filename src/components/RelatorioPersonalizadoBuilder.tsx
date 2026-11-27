@@ -34,7 +34,12 @@ export default function RelatorioPersonalizadoBuilder() {
   const [mes, setMes] = useState<string>('2026-11');
   const [obraId, setObraId] = useState<string>('TODAS');
   const [periodo, setPeriodo] = useState<'SEMANAL' | 'QUINZENAL' | 'MENSAL' | 'ANUAL'>('MENSAL');
-  const [modoConteudo, setModoConteudo] = useState<ModoConteudo>('PRESENCA');
+  const [secoes, setSecoes] = useState({
+    presenca: true,
+    diarias: true,
+    vales: false,
+    liquido: false,
+  });
 
   const [obras, setObras] = useState<Array<{ id: string; nome: string }>>([]);
   const [diasNoMes, setDiasNoMes] = useState<number>(30);
@@ -149,7 +154,7 @@ export default function RelatorioPersonalizadoBuilder() {
           mes,
           periodoLabel: periodo,
           obraLabel,
-          modoConteudo,
+          secoes,
           diasVisiveis,
           linhas: linhasFiltradas,
         }),
@@ -242,31 +247,43 @@ export default function RelatorioPersonalizadoBuilder() {
           </div>
         )}
 
-        {/* 1. O que exibir */}
+        {/* 1. O que incluir (Multi-seleção) */}
         <div className="space-y-2">
-          <p className="text-xs font-black uppercase text-slate-500">1. O que incluir no PDF:</p>
+          <p className="text-xs font-black uppercase text-slate-500">
+            1. Selecione os blocos que deseja no PDF (multi-seleção):
+          </p>
           <div className="flex flex-wrap gap-2">
             {(
               [
-                { k: 'PRESENCA', label: 'Somente Presença (sem R$)' },
-                { k: 'DIARIAS', label: 'Somente Diárias (sem vales)' },
-                { k: 'VALES', label: 'Somente Vales (sem diárias)' },
-                { k: 'COMPLETO', label: 'Completo (Diárias + Vales + Líquido)' },
+                { k: 'presenca', label: 'Presença (Grade de Dias com Legenda)' },
+                { k: 'diarias', label: 'Valores das Diárias (R$)' },
+                { k: 'vales', label: 'Vales Descontados (R$)' },
+                { k: 'liquido', label: 'Já Pago & Líquido a Pagar (R$)' },
               ] as const
-            ).map((m) => (
-              <button
-                key={m.k}
-                type="button"
-                onClick={() => setModoConteudo(m.k)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black border transition-all ${
-                  modoConteudo === m.k
-                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
+            ).map((m) => {
+              const ativo = secoes[m.k];
+              return (
+                <button
+                  key={m.k}
+                  type="button"
+                  onClick={() =>
+                    setSecoes((prev) => ({ ...prev, [m.k]: !prev[m.k] }))
+                  }
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black border flex items-center gap-1.5 transition-all ${
+                    ativo
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {ativo ? (
+                    <CheckSquare className="w-3.5 h-3.5 text-emerald-200" />
+                  ) : (
+                    <Square className="w-3.5 h-3.5 text-slate-400" />
+                  )}
+                  <span>{m.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
