@@ -35,6 +35,10 @@ const EspelhoPontoMensal = dynamic(
   () => import('@/components/EspelhoPontoMensal'),
   { ssr: false }
 );
+const RelatorioAdiantamentosAbertos = dynamic(
+  () => import('@/components/RelatorioAdiantamentosAbertos'),
+  { ssr: false }
+);
 const CalendarioVisualObra = dynamic(
   () => import('@/components/CalendarioVisualObra'),
   { ssr: false }
@@ -1068,6 +1072,9 @@ export default function RelatoriosPage() {
 
       {/* ================= RELATÓRIO 4: ESPELHO DO PONTO (CALENDÁRIO PAISAGEM) ================= */}
       <EspelhoPontoMensal />
+
+      {/* ================= PAINEL DE ADIANTAMENTOS DE DIÁRIAS EM ABERTO ================= */}
+      <RelatorioAdiantamentosAbertos />
 
       {/* ================= RELATÓRIO 5: CALENDÁRIO VISUAL DE OBRA & CLIMA ================= */}
       <CalendarioVisualObra />
