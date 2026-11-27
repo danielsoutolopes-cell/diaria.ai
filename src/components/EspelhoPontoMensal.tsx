@@ -10,23 +10,37 @@ interface DestinatarioWhatsApp {
   podeVerValores: boolean;
 }
 
+interface CelulaDiaEspelhoUI {
+  fracao: number;
+  tipo: string;
+  obs: string;
+  valor: number;
+  pago?: boolean;
+  dataPagamento?: string | null;
+  valeDia?: number;
+  partes?: Array<{
+    obra: string;
+    fracao: number;
+    valor: number;
+    tipo: string;
+    pago?: boolean;
+    dataPagamento?: string | null;
+  }>;
+}
+
 interface LinhaEspelho {
   nome: string;
-  dias: Record<
-    number,
-    {
-      fracao: number;
-      tipo: string;
-      obs: string;
-      valor: number;
-      partes?: Array<{ obra: string; fracao: number; valor: number; tipo: string }>;
-    }
-  >;
+  dias: Record<number, CelulaDiaEspelhoUI>;
   totalDias: number;
   totalValor: number;
+  totalPago?: number;
+  totalVales?: number;
+  saldoAPagar?: number;
+  ultimoPagamentoData?: string | null;
 }
 
 export default function EspelhoPontoMensal() {
+  const [modoVisao, setModoVisao] = useState<'PRESENCA' | 'FINANCEIRO'>('FINANCEIRO');
   const [mes, setMes] = useState<string>('2026-11');
   const [obraId, setObraId] = useState<string>('TODAS');
   const [obras, setObras] = useState<{ id: string; nome: string }[]>([]);
@@ -195,6 +209,31 @@ export default function EspelhoPontoMensal() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          <div className="inline-flex p-0.5 rounded-xl bg-slate-800 border border-slate-700">
+            <button
+              type="button"
+              onClick={() => setModoVisao('PRESENCA')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                modoVisao === 'PRESENCA'
+                  ? 'bg-sky-500 text-slate-950'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              Presença
+            </button>
+            <button
+              type="button"
+              onClick={() => setModoVisao('FINANCEIRO')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                modoVisao === 'FINANCEIRO'
+                  ? 'bg-emerald-500 text-slate-950'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              Financeiro (R$ / Pago)
+            </button>
+          </div>
+
           <div className="flex items-center gap-2 bg-slate-800 px-3 py-2 rounded-xl border border-slate-700">
             <Calendar className="w-4 h-4 text-sky-400" />
             <input
@@ -298,29 +337,165 @@ export default function EspelhoPontoMensal() {
                 <th className="p-2 text-center font-black border-l border-slate-300 bg-emerald-50 text-emerald-900">
                   Dias
                 </th>
-                <th className="p-2 text-right font-black border-l border-slate-200 bg-emerald-50 text-emerald-900">
-                  Total R$
+                <th className="p-2 text-right font-black border-l border-slate-200 bg-slate-100 text-slate-800">
+                  Bruto R$
                 </th>
+                {modoVisao === 'FINANCEIRO' && (
+                  <>
+                    <th className="p-2 text-right font-black border-l border-slate-200 bg-emerald-50 text-emerald-800">
+                      Já Pago
+                    </th>
+                    <th className="p-2 text-right font-black border-l border-slate-200 bg-rose-50 text-rose-800">
+                      Vales
+                    </th>
+                    <th className="p-2 text-right font-black border-l border-slate-300 bg-amber-50 text-amber-950">
+                      A Pagar
+                    </th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {linhas.map((l) => (
-                <tr key={l.nome} className="hover:bg-slate-50">
-                  <td className="p-2 font-bold text-slate-900 sticky left-0 bg-white">{l.nome}</td>
-                  {diasArray.map((d) => (
-                    <td key={d} className="p-1 text-center border-l border-slate-200">
-                      {renderSimbolo(l.dias[d])}
+              {linhas.map((l) => {
+                const pago = Number(l.totalPago || 0);
+                const vales = Number(l.totalVales || 0);
+                const aPagar =
+                  typeof l.saldoAPagar === 'number'
+                    ? l.saldoAPagar
+                    : Math.max(0, Number((l.totalValor - pago - vales).toFixed(2)));
+
+                return (
+                  <tr key={l.nome} className="hover:bg-slate-50">
+                    <td className="p-2 font-bold text-slate-900 sticky left-0 bg-white">
+                      <div>{l.nome}</div>
+                      {modoVisao === 'FINANCEIRO' && l.ultimoPagamentoData && (
+                        <div className="text-[9px] font-bold text-emerald-700">
+                          Últ. pgto: {l.ultimoPagamentoData}
+                        </div>
+                      )}
                     </td>
-                  ))}
-                  <td className="p-2 text-center font-black border-l border-slate-300 bg-emerald-50/40 text-emerald-900 tabular-nums">
-                    {l.totalDias}
+                    {diasArray.map((d) => {
+                      const cel = l.dias[d];
+                      if (modoVisao === 'PRESENCA') {
+                        return (
+                          <td key={d} className="p-1 text-center border-l border-slate-200">
+                            {cel && cel.tipo !== 'VALE_ONLY' ? renderSimbolo(cel) : <span className="text-slate-200">—</span>}
+                          </td>
+                        );
+                      }
+
+                      if (!cel) {
+                        return (
+                          <td key={d} className="p-1 text-center border-l border-slate-200 text-slate-200">
+                            —
+                          </td>
+                        );
+                      }
+
+                      const temDiaria = cel.valor > 0;
+                      const temVale = Number(cel.valeDia || 0) > 0;
+                      const titleText = [
+                        cel.obs,
+                        temDiaria
+                          ? cel.pago
+                            ? `PAGO${cel.dataPagamento ? ` em ${cel.dataPagamento}` : ''} (R$ ${cel.valor.toFixed(2)})`
+                            : `EM ABERTO (R$ ${cel.valor.toFixed(2)})`
+                          : null,
+                        temVale ? `Vale descontado: -R$ ${Number(cel.valeDia).toFixed(2)}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' • ');
+
+                      return (
+                        <td
+                          key={d}
+                          title={titleText}
+                          className={`p-1 text-center border-l border-slate-200 tabular-nums align-middle ${
+                            temDiaria && cel.pago
+                              ? 'bg-emerald-50/80 text-emerald-900'
+                              : temDiaria
+                                ? 'bg-amber-50/40 text-slate-800'
+                                : ''
+                          }`}
+                        >
+                          {temDiaria && (
+                            <div className="leading-tight">
+                              <div className="text-[10px] font-black">
+                                {cel.pago ? '✓' : ''}{Math.round(cel.valor)}
+                              </div>
+                              {cel.pago && cel.dataPagamento && (
+                                <div className="text-[8px] font-bold text-emerald-700">
+                                  {cel.dataPagamento}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {temVale && (
+                            <div className="text-[9px] font-black text-rose-600 leading-tight">
+                              -{Math.round(Number(cel.valeDia))}
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="p-2 text-center font-black border-l border-slate-300 bg-emerald-50/40 text-emerald-900 tabular-nums">
+                      {l.totalDias}
+                    </td>
+                    <td className="p-2 text-right font-bold border-l border-slate-200 text-slate-700 tabular-nums whitespace-nowrap">
+                      R$ {l.totalValor.toFixed(2)}
+                    </td>
+                    {modoVisao === 'FINANCEIRO' && (
+                      <>
+                        <td className="p-2 text-right font-bold border-l border-slate-200 bg-emerald-50/50 text-emerald-800 tabular-nums whitespace-nowrap">
+                          R$ {pago.toFixed(2)}
+                        </td>
+                        <td className="p-2 text-right font-bold border-l border-slate-200 bg-rose-50/50 text-rose-700 tabular-nums whitespace-nowrap">
+                          {vales > 0 ? `- R$ ${vales.toFixed(2)}` : 'R$ 0.00'}
+                        </td>
+                        <td className="p-2 text-right font-black border-l border-slate-300 bg-amber-50/70 text-amber-950 tabular-nums whitespace-nowrap">
+                          R$ {aPagar.toFixed(2)}
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+            {modoVisao === 'FINANCEIRO' && linhas.length > 0 && (
+              <tfoot>
+                <tr className="bg-slate-900 text-white font-black border-t-2 border-slate-900">
+                  <td className="p-2 sticky left-0 bg-slate-900">TOTAL GERAL</td>
+                  <td colSpan={diasArray.length} className="p-2 text-right text-[10px] text-slate-300">
+                    Valores já descontando pagamentos liquidados e vales do mês
                   </td>
-                  <td className="p-2 text-right font-black border-l border-slate-200 bg-emerald-50/40 text-emerald-900 tabular-nums">
-                    R$ {l.totalValor.toFixed(2)}
+                  <td className="p-2 text-center tabular-nums">
+                    {linhas.reduce((s, x) => s + x.totalDias, 0).toFixed(1)}
+                  </td>
+                  <td className="p-2 text-right tabular-nums whitespace-nowrap">
+                    R$ {linhas.reduce((s, x) => s + x.totalValor, 0).toFixed(2)}
+                  </td>
+                  <td className="p-2 text-right text-emerald-300 tabular-nums whitespace-nowrap">
+                    R$ {linhas.reduce((s, x) => s + Number(x.totalPago || 0), 0).toFixed(2)}
+                  </td>
+                  <td className="p-2 text-right text-rose-300 tabular-nums whitespace-nowrap">
+                    - R$ {linhas.reduce((s, x) => s + Number(x.totalVales || 0), 0).toFixed(2)}
+                  </td>
+                  <td className="p-2 text-right text-amber-300 tabular-nums whitespace-nowrap">
+                    R${' '}
+                    {linhas
+                      .reduce(
+                        (s, x) =>
+                          s +
+                          (typeof x.saldoAPagar === 'number'
+                            ? x.saldoAPagar
+                            : Math.max(0, x.totalValor - Number(x.totalPago || 0) - Number(x.totalVales || 0))),
+                        0
+                      )
+                      .toFixed(2)}
                   </td>
                 </tr>
-              ))}
-            </tbody>
+              </tfoot>
+            )}
           </table>
         )}
 

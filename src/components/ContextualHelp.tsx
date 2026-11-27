@@ -482,25 +482,6 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
     exemplo:
       'Lance 1.0 dia Normal para um colaborador em uma obra, anexe foto opcional, revise no modal de dupla confirmação e clique em Confirmar Gravação.',
   },
-  '/projetos': {
-    titulo: 'Cofre de Projetos & Documentos (PDF Ultracompactado)',
-    resumo:
-      'Armazenamento seguro de Plantas & Projetos e Documentos da Obra (RDO, ART/RRT, Contratos, Atas) em PDF ultracompactado (GZIP) com envio direto em Base64 via WhatsApp.',
-    funcoes: [
-      {
-        nome: 'Duas Abas Organizadas',
-        descricao:
-          'Alterne entre "Plantas & Projetos" e "Cofre de Documentos" para manter desenhos técnicos separados de relatórios e contratos.',
-      },
-      {
-        nome: 'Envio Direto em PDF via WhatsApp',
-        descricao:
-          'Clique em "Enviar Zap" em qualquer arquivo para descompactar e enviar o PDF formatado diretamente no WhatsApp.',
-      },
-    ],
-    exemplo:
-      'Suba o Relatório Diário de Obra em PDF na aba Cofre de Documentos vinculado à obra e compartilhe com 1 clique via WhatsApp.',
-  },
 };
 
 const AJUDA_PADRAO: AjudaRota = {
