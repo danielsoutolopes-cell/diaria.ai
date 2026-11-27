@@ -741,14 +741,39 @@ export default function RelatoriosPage() {
             </p>
           </div>
 
-          <button
-            onClick={handleExportarBorderoXls}
-            disabled={dadosBordero.length === 0}
-            className="w-full sm:w-auto justify-center px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 border border-white/20 disabled:opacity-40"
-          >
-            <Download className="w-4 h-4 text-emerald-400" />
-            <span>Exportar Excel (.xlsx)</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="inline-flex p-0.5 rounded-xl bg-slate-800 border border-slate-700">
+              {(
+                [
+                  { k: 'semanal', label: 'Semanal' },
+                  { k: 'quinzenal', label: 'Quinzenal' },
+                  { k: 'mensal', label: 'Mensal' },
+                ] as const
+              ).map((p) => (
+                <button
+                  key={p.k}
+                  type="button"
+                  onClick={() => setPeriodo(p.k)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                    periodo === p.k
+                      ? 'bg-emerald-500 text-slate-950'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleExportarBorderoXls}
+              disabled={dadosBordero.length === 0}
+              className="w-full sm:w-auto justify-center px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 border border-white/20 disabled:opacity-40"
+            >
+              <Download className="w-4 h-4 text-emerald-400" />
+              <span>Exportar Excel (.xlsx)</span>
+            </button>
+          </div>
         </div>
 
         {loading ? (
