@@ -90,6 +90,8 @@ export default function CaixaCampoPanel({
   const [loading, setLoading] = useState(true);
   const [lendoIA, setLendoIA] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [pdfMenuAberto, setPdfMenuAberto] = useState<string | null>(null);
+  const [enviandoPdfPara, setEnviandoPdfPara] = useState<string | null>(null);
 
   // Form rápido com Portador x Emissor do PIX + Data e Hora (HH:MM)
   const [encarregado, setEncarregado] = useState('');
@@ -343,6 +345,59 @@ export default function CaixaCampoPanel({
     if (d.message) mostrarAviso(d.message);
     await carregar();
     onDadosAtualizados?.();
+  }
+
+  async function handleExtratoPdf(
+    c: ContaEncarregado,
+    acao: 'BAIXAR' | 'ENVIAR_ZAP',
+    destinatarioTipo?: 'COLABORADOR' | 'PATRICIA' | 'DANIEL' | 'JOABSON'
+  ) {
+    setEnviandoPdfPara(c.encarregado);
+    setAviso(null);
+    try {
+      const res = await fetch('/api/caixa-campo/extrato-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          acao,
+          destinatarioTipo,
+          colaborador: c.encarregado,
+          totalRecebido: c.totalRecebido,
+          totalNotas: c.totalComprovado,
+          saldoFinal: c.saldoEmMaos,
+          movimentos: c.movimentos.map((m) => ({
+            data: m.data,
+            hora: m.hora,
+            obra: m.obra,
+            tipo: m.tipo,
+            descricao: m.descricao,
+            emissorPix: m.emissorPix,
+            valor: m.valor,
+          })),
+        }),
+      });
+      const d = (await res.json()) as {
+        pdfBase64?: string;
+        fileName?: string;
+        enviadoViaWhatsApp?: boolean;
+        message?: string;
+        error?: string;
+      };
+      if (d.error) {
+        setAviso(d.error);
+        return;
+      }
+      if (d.message) setAviso(d.message);
+      if ((acao === 'BAIXAR' || !d.enviadoViaWhatsApp) && d.pdfBase64 && d.fileName) {
+        const a = document.createElement('a');
+        a.href = `data:application/pdf;base64,${d.pdfBase64}`;
+        a.download = d.fileName;
+        a.click();
+      }
+      setPdfMenuAberto(null);
+    } finally {
+      setEnviandoPdfPara(null);
+    }
   }
 
   function handleCopiarExtratoZap(c: ContaEncarregado) {
@@ -739,6 +794,65 @@ export default function CaixaCampoPanel({
                     >
                       📋 Copiar Zap
                     </button>
+
+                    <div className="relative">
+                      <button
+                        type="button"
+                        disabled={enviandoPdfPara === c.encarregado}
+                        onClick={() =>
+                          setPdfMenuAberto((prev) =>
+                            prev === c.encarregado ? null : c.encarregado
+                          )
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold disabled:opacity-50"
+                        title="Gerar ou enviar PDF formato Extrato Bancário no WhatsApp"
+                      >
+                        {enviandoPdfPara === c.encarregado
+                          ? '⏳ Enviando...'
+                          : '📄 PDF Extrato ▾'}
+                      </button>
+
+                      {pdfMenuAberto === c.encarregado && (
+                        <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-30 text-left">
+                          <button
+                            type="button"
+                            onClick={() => void handleExtratoPdf(c, 'ENVIAR_ZAP', 'COLABORADOR')}
+                            className="w-full px-3 py-1.5 text-[11px] font-bold text-slate-800 hover:bg-emerald-50 text-left"
+                          >
+                            📱 Enviar p/ {c.encarregado}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleExtratoPdf(c, 'ENVIAR_ZAP', 'PATRICIA')}
+                            className="w-full px-3 py-1.5 text-[11px] font-bold text-slate-800 hover:bg-emerald-50 text-left"
+                          >
+                            📱 Enviar p/ Patrícia
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleExtratoPdf(c, 'ENVIAR_ZAP', 'DANIEL')}
+                            className="w-full px-3 py-1.5 text-[11px] font-bold text-slate-800 hover:bg-emerald-50 text-left"
+                          >
+                            📱 Enviar p/ Daniel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleExtratoPdf(c, 'ENVIAR_ZAP', 'JOABSON')}
+                            className="w-full px-3 py-1.5 text-[11px] font-bold text-slate-800 hover:bg-emerald-50 text-left"
+                          >
+                            📱 Enviar p/ Joabson
+                          </button>
+                          <div className="my-1 border-t border-slate-100" />
+                          <button
+                            type="button"
+                            onClick={() => void handleExtratoPdf(c, 'BAIXAR')}
+                            className="w-full px-3 py-1.5 text-[11px] font-bold text-indigo-700 hover:bg-indigo-50 text-left"
+                          >
+                            ⬇️ Baixar PDF Bancário
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
                     {c.saldoEmMaos !== 0 && (
                       <>
