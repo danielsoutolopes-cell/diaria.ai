@@ -122,7 +122,8 @@ async function enviarPedidoParaPatriciaWhatsApp(
     { tipo: 'daniel', phone: TELEFONE_DANIEL },
   ]) {
     try {
-      const res = await fetch('http://127.0.0.1:3001/send-message', {
+      const baileysUrl = (process.env.BAILEYS_SERVER_URL || 'http://127.0.0.1:3001').replace(/\/+$/, '');
+      const res = await fetch(`${baileysUrl}/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: alvo.phone, message: mensagem }),

@@ -98,7 +98,8 @@ export async function POST(req: NextRequest) {
       // 1. Tenta enviar o PDF nativamente via Baileys /send-document
       if (body.pdfBase64) {
         try {
-          const docRes = await fetch('http://127.0.0.1:3001/send-document', {
+          const baileysUrl = (process.env.BAILEYS_SERVER_URL || 'http://127.0.0.1:3001').replace(/\/+$/, '');
+          const docRes = await fetch(`${baileysUrl}/send-document`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -124,7 +125,8 @@ export async function POST(req: NextRequest) {
 
       // 2. Fallback para mensagem de texto com link do recibo salvo no R2
       try {
-        const txtRes = await fetch('http://127.0.0.1:3001/send-message', {
+        const baileysUrlTxt = (process.env.BAILEYS_SERVER_URL || 'http://127.0.0.1:3001').replace(/\/+$/, '');
+        const txtRes = await fetch(`${baileysUrlTxt}/send-message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

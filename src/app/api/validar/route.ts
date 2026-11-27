@@ -313,7 +313,8 @@ export async function POST(req: NextRequest) {
     // Disparo real no WhatsApp privado de Daniel e Patrícia via Baileys local
     const destinatarios = ['5511988139833', '5511978543369'];
     for (const phone of destinatarios) {
-      fetch('http://127.0.0.1:3001/send-message', {
+      const baileysUrl = (process.env.BAILEYS_SERVER_URL || 'http://127.0.0.1:3001').replace(/\/+$/, '');
+      fetch(`${baileysUrl}/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, message: ticketTexto }),
