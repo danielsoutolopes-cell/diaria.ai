@@ -16,6 +16,8 @@ const AUTH_DIR = path.join(DATA_DIR, '.baileys_service_auth');
 const GROUPS_CONFIG_FILE = path.join(DATA_DIR, 'monitored_groups.json');
 const SESSION_ID = process.env.BAILEYS_SESSION_ID || 'default';
 const processedMessageIds = new Set();
+const AGRUPADOR_MS = 30000; // 30 segundos para agrupar mensagens picadas do mesmo remetente
+const pendingSenderBuffers = new Map();
 let lastActivityAt = Date.now();
 let currentAuthClear = null;
 
