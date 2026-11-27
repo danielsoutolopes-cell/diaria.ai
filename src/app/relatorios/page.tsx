@@ -39,6 +39,10 @@ const RelatorioAdiantamentosAbertos = dynamic(
   () => import('@/components/RelatorioAdiantamentosAbertos'),
   { ssr: false }
 );
+const CalendarioPagamentosFuncionarios = dynamic(
+  () => import('@/components/CalendarioPagamentosFuncionarios'),
+  { ssr: false }
+);
 const CalendarioVisualObra = dynamic(
   () => import('@/components/CalendarioVisualObra'),
   { ssr: false }
@@ -1075,6 +1079,9 @@ export default function RelatoriosPage() {
 
       {/* ================= PAINEL DE ADIANTAMENTOS DE DIÁRIAS EM ABERTO ================= */}
       <RelatorioAdiantamentosAbertos />
+
+      {/* ================= CALENDÁRIO DE PAGAMENTOS REALIZADOS AOS FUNCIONÁRIOS ================= */}
+      <CalendarioPagamentosFuncionarios />
 
       {/* ================= RELATÓRIO 5: CALENDÁRIO VISUAL DE OBRA & CLIMA ================= */}
       <CalendarioVisualObra />

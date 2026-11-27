@@ -41,6 +41,7 @@ interface LinhaEspelho {
 
 export default function EspelhoPontoMensal() {
   const [modoVisao, setModoVisao] = useState<'PRESENCA' | 'FINANCEIRO'>('FINANCEIRO');
+  const [tipoValor, setTipoValor] = useState<'LIQUIDO' | 'BRUTO'>('LIQUIDO');
   const [mes, setMes] = useState<string>('2026-11');
   const [obraId, setObraId] = useState<string>('TODAS');
   const [obras, setObras] = useState<{ id: string; nome: string }[]>([]);
@@ -230,7 +231,32 @@ export default function EspelhoPontoMensal() {
                   : 'text-slate-300 hover:text-white'
               }`}
             >
-              Financeiro (R$ / Pago)
+              Financeiro
+            </button>
+          </div>
+
+          <div className="inline-flex p-0.5 rounded-xl bg-slate-800 border border-slate-700">
+            <button
+              type="button"
+              onClick={() => setTipoValor('LIQUIDO')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition-all ${
+                tipoValor === 'LIQUIDO'
+                  ? 'bg-amber-400 text-slate-950'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              Líquido
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipoValor('BRUTO')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition-all ${
+                tipoValor === 'BRUTO'
+                  ? 'bg-slate-200 text-slate-950'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              Bruto
             </button>
           </div>
 
@@ -337,9 +363,6 @@ export default function EspelhoPontoMensal() {
                 <th className="p-2 text-center font-black border-l border-slate-300 bg-emerald-50 text-emerald-900">
                   Dias
                 </th>
-                <th className="p-2 text-right font-black border-l border-slate-200 bg-slate-100 text-slate-800">
-                  Bruto R$
-                </th>
                 {modoVisao === 'FINANCEIRO' && (
                   <>
                     <th className="p-2 text-right font-black border-l border-slate-200 bg-emerald-50 text-emerald-800">
@@ -348,11 +371,11 @@ export default function EspelhoPontoMensal() {
                     <th className="p-2 text-right font-black border-l border-slate-200 bg-rose-50 text-rose-800">
                       Vales
                     </th>
-                    <th className="p-2 text-right font-black border-l border-slate-300 bg-amber-50 text-amber-950">
-                      A Pagar
-                    </th>
                   </>
                 )}
+                <th className="p-2 text-right font-black border-l border-slate-300 bg-amber-50 text-amber-950 whitespace-nowrap">
+                  {tipoValor === 'LIQUIDO' ? 'Líquido a Pagar' : 'Bruto Mês'}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -441,9 +464,6 @@ export default function EspelhoPontoMensal() {
                     <td className="p-2 text-center font-black border-l border-slate-300 bg-emerald-50/40 text-emerald-900 tabular-nums">
                       {l.totalDias}
                     </td>
-                    <td className="p-2 text-right font-bold border-l border-slate-200 text-slate-700 tabular-nums whitespace-nowrap">
-                      R$ {l.totalValor.toFixed(2)}
-                    </td>
                     {modoVisao === 'FINANCEIRO' && (
                       <>
                         <td className="p-2 text-right font-bold border-l border-slate-200 bg-emerald-50/50 text-emerald-800 tabular-nums whitespace-nowrap">
@@ -452,11 +472,11 @@ export default function EspelhoPontoMensal() {
                         <td className="p-2 text-right font-bold border-l border-slate-200 bg-rose-50/50 text-rose-700 tabular-nums whitespace-nowrap">
                           {vales > 0 ? `- R$ ${vales.toFixed(2)}` : 'R$ 0.00'}
                         </td>
-                        <td className="p-2 text-right font-black border-l border-slate-300 bg-amber-50/70 text-amber-950 tabular-nums whitespace-nowrap">
-                          R$ {aPagar.toFixed(2)}
-                        </td>
                       </>
                     )}
+                    <td className="p-2 text-right font-black border-l border-slate-300 bg-amber-50/70 text-amber-950 tabular-nums whitespace-nowrap">
+                      R$ {(tipoValor === 'LIQUIDO' ? aPagar : l.totalValor).toFixed(2)}
+                    </td>
                   </tr>
                 );
               })}
@@ -471,9 +491,6 @@ export default function EspelhoPontoMensal() {
                   <td className="p-2 text-center tabular-nums">
                     {linhas.reduce((s, x) => s + x.totalDias, 0).toFixed(1)}
                   </td>
-                  <td className="p-2 text-right tabular-nums whitespace-nowrap">
-                    R$ {linhas.reduce((s, x) => s + x.totalValor, 0).toFixed(2)}
-                  </td>
                   <td className="p-2 text-right text-emerald-300 tabular-nums whitespace-nowrap">
                     R$ {linhas.reduce((s, x) => s + Number(x.totalPago || 0), 0).toFixed(2)}
                   </td>
@@ -482,16 +499,17 @@ export default function EspelhoPontoMensal() {
                   </td>
                   <td className="p-2 text-right text-amber-300 tabular-nums whitespace-nowrap">
                     R${' '}
-                    {linhas
-                      .reduce(
-                        (s, x) =>
-                          s +
-                          (typeof x.saldoAPagar === 'number'
-                            ? x.saldoAPagar
-                            : Math.max(0, x.totalValor - Number(x.totalPago || 0) - Number(x.totalVales || 0))),
-                        0
-                      )
-                      .toFixed(2)}
+                    {(tipoValor === 'LIQUIDO'
+                      ? linhas.reduce(
+                          (s, x) =>
+                            s +
+                            (typeof x.saldoAPagar === 'number'
+                              ? x.saldoAPagar
+                              : Math.max(0, x.totalValor - Number(x.totalPago || 0) - Number(x.totalVales || 0))),
+                          0
+                        )
+                      : linhas.reduce((s, x) => s + x.totalValor, 0)
+                    ).toFixed(2)}
                   </td>
                 </tr>
               </tfoot>
