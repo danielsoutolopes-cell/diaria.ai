@@ -193,7 +193,8 @@ export async function GET(req: NextRequest) {
 
       let tipoParte = 'NORMAL';
       if (obsUpper.includes('CHUVA')) tipoParte = 'CHUVA';
-      else if (obsUpper.includes('VIAGEM')) tipoParte = 'VIAGEM';
+      else if (obsUpper.includes('VIAGEM') && !obsUpper.includes('MOTORISTA'))
+        tipoParte = 'VIAGEM';
       else if (obsUpper.includes('PARADO')) tipoParte = 'PARADO';
       else if (Number(l.fracao_dia) === 0.5) tipoParte = 'MEIO';
       else if (Number(l.fracao_dia) === 0) tipoParte = 'FALTA';
