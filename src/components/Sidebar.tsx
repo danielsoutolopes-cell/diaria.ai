@@ -117,6 +117,13 @@ const navItems = [
     badge: null,
   },
   {
+    name: 'Relatório Gerencial',
+    href: '/relatorio-gerencial',
+    icon: BarChart3,
+    badge: 'DRE',
+    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  },
+  {
     name: 'Fechamento & Pagamentos (PIX)',
     href: '/bordero',
     icon: FileSpreadsheet,

@@ -482,6 +482,25 @@ const AJUDA_POR_ROTA: Record<string, AjudaRota> = {
     exemplo:
       'Lance 1.0 dia Normal para um colaborador em uma obra, anexe foto opcional, revise no modal de dupla confirmação e clique em Confirmar Gravação.',
   },
+  '/relatorio-gerencial': {
+    titulo: 'Relatório Gerencial — DRE & Fluxo por Obra',
+    resumo:
+      'Visão executiva quinzenal ou mensal cruzando Mão de Obra, Vales, Caixinha de Campo, Impacto de Chuva/Viagem e Fluxo Financeiro Cronológico dia a dia.',
+    funcoes: [
+      {
+        nome: 'DRE Simplificado por Obra',
+        descricao:
+          'Soma Mão de Obra + Notas do Caixinha + Vales + Impacto Climático em uma única tabela com participação percentual por obra.',
+      },
+      {
+        nome: 'PDF Executivo Multi-Página (2 Páginas) + WhatsApp',
+        descricao:
+          'Gere e envie em 1 clique o relatório executivo de 2 páginas (DRE por Obra na Pág. 1 + Fluxo de Caixa Diário e Conferência por Colaborador na Pág. 2).',
+      },
+    ],
+    exemplo:
+      'Selecione "2ª Quinz." ou "Mensal", clique em uma obra para detalhar e dispare o PDF de 2 páginas direto no WhatsApp da Diretoria.',
+  },
 };
 
 const AJUDA_PADRAO: AjudaRota = {
