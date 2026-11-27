@@ -43,6 +43,10 @@ const CalendarioPagamentosFuncionarios = dynamic(
   () => import('@/components/CalendarioPagamentosFuncionarios'),
   { ssr: false }
 );
+const RelatorioPersonalizadoBuilder = dynamic(
+  () => import('@/components/RelatorioPersonalizadoBuilder'),
+  { ssr: false }
+);
 const CalendarioVisualObra = dynamic(
   () => import('@/components/CalendarioVisualObra'),
   { ssr: false }
@@ -1107,6 +1111,9 @@ export default function RelatoriosPage() {
 
       {/* ================= CALENDÁRIO DE PAGAMENTOS REALIZADOS AOS FUNCIONÁRIOS ================= */}
       <CalendarioPagamentosFuncionarios />
+
+      {/* ================= CONSTRUTOR DE RELATÓRIO PERSONALIZADO (PDF & ZAP) ================= */}
+      <RelatorioPersonalizadoBuilder />
 
       {/* ================= RELATÓRIO 5: CALENDÁRIO VISUAL DE OBRA & CLIMA ================= */}
       <CalendarioVisualObra />
