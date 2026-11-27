@@ -77,6 +77,37 @@ export async function GET(req: NextRequest) {
 
     const saldoLiquidoSemana = Math.max(0, totalBruto - totalValesValidados);
 
+    // 4. Clima ao vivo via OpenWeather (São Paulo / BR)
+    let climaAtual: { descricao: string; tempC: number | null; cidade: string } = {
+      descricao: 'Indisponível',
+      tempC: null,
+      cidade: 'São Paulo',
+    };
+    const owKey = (process.env.OPENWEATHER_API_KEY || '').trim();
+    if (owKey) {
+      try {
+        const resClima = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?q=Sao%20Paulo,BR&units=metric&lang=pt_br&appid=${encodeURIComponent(owKey)}`,
+          { cache: 'no-store' }
+        );
+        if (resClima.ok) {
+          const cw = (await resClima.json()) as {
+            weather?: Array<{ description?: string }>;
+            main?: { temp?: number };
+            name?: string;
+          };
+          const descRaw = cw.weather?.[0]?.description || 'Sem dados';
+          climaAtual = {
+            descricao: descRaw.charAt(0).toUpperCase() + descRaw.slice(1),
+            tempC: typeof cw.main?.temp === 'number' ? Math.round(cw.main.temp) : null,
+            cidade: cw.name || 'São Paulo',
+          };
+        }
+      } catch {
+        // fallback silencioso
+      }
+    }
+
     return NextResponse.json({
       obrasAtivas: obras?.length || 0,
       obrasLista: obras || [],
@@ -84,6 +115,7 @@ export async function GET(req: NextRequest) {
       totalOperarios: totalOperarios,
       totalVales,
       saldoLiquidoSemana,
+      climaAtual,
     });
   } catch (error) {
     console.error('Erro no endpoint dashboard:', error);

@@ -26,6 +26,11 @@ interface DashboardMetrics {
   totalOperarios: number;
   totalVales: number;
   saldoLiquidoSemana: number;
+  climaAtual?: {
+    descricao: string;
+    tempC: number | null;
+    cidade: string;
+  };
 }
 
 export default function DashboardPage() {
@@ -160,8 +165,13 @@ export default function DashboardPage() {
               <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium flex items-center gap-1">
                 <CloudSun className="w-3.5 h-3.5 text-sky-400 shrink-0" /> Clima
               </div>
-              <div className="text-base sm:text-xl font-black text-sky-300">Tempo Aberto</div>
-              <div className="text-[10px] text-slate-400">OpenWeather ativo</div>
+              <div className="text-base sm:text-xl font-black text-sky-300">
+                {metrics.climaAtual?.descricao || 'Carregando...'}
+                {typeof metrics.climaAtual?.tempC === 'number' ? ` • ${metrics.climaAtual.tempC}°C` : ''}
+              </div>
+              <div className="text-[10px] text-slate-400">
+                {metrics.climaAtual?.cidade || 'São Paulo'} • OpenWeather ao vivo
+              </div>
             </div>
           </div>
         </div>
