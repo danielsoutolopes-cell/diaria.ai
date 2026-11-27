@@ -41,6 +41,7 @@ export default function PontoDiretoPage() {
   );
   const [fracaoDia, setFracaoDia] = useState<number>(1.0);
   const [motivo, setMotivo] = useState<'NORMAL' | 'MEIO_DIA' | 'CHUVA' | 'VIAGEM' | 'DIA_PARADO'>('NORMAL');
+  const [ehMotoristaViagem, setEhMotoristaViagem] = useState<boolean>(false);
   const [valorCustom, setValorCustom] = useState<string>('');
   const [observacao, setObservacao] = useState('');
   const [fotoFile, setFotoFile] = useState<File | null>(null);
@@ -90,7 +91,7 @@ export default function PontoDiretoPage() {
     if (valorCustom.trim() !== '' && !Number.isNaN(Number(valorCustom))) {
       return Number(valorCustom);
     }
-    if (motivo === 'CHUVA' || motivo === 'VIAGEM') {
+    if (motivo === 'CHUVA' || (motivo === 'VIAGEM' && !ehMotoristaViagem)) {
       return Number((150 * fracaoDia).toFixed(2));
     }
     if (motivo === 'DIA_PARADO') {
@@ -102,7 +103,7 @@ export default function PontoDiretoPage() {
         ? funcSelecionado.valorDiariaPiscina
         : funcSelecionado.valorDiariaObra;
     return Number((base * fracaoDia).toFixed(2));
-  }, [valorCustom, motivo, fracaoDia, funcSelecionado, obraSelecionada]);
+  }, [valorCustom, motivo, ehMotoristaViagem, fracaoDia, funcSelecionado, obraSelecionada]);
 
   function handleSelecionarFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] || null;
@@ -140,9 +141,11 @@ export default function PontoDiretoPage() {
       fd.append('dataReferencia', dataReferencia);
       fd.append('fracaoDia', String(fracaoDia));
       fd.append('valorMonetario', String(valorCalculado));
+      const motivoTag =
+        motivo === 'VIAGEM' && ehMotoristaViagem ? 'VIAGEM (MOTORISTA)' : motivo;
       fd.append(
         'observacao',
-        observacao.trim() ? `${motivo} — ${observacao.trim()}` : motivo
+        observacao.trim() ? `${motivoTag} — ${observacao.trim()}` : motivoTag
       );
       fd.append('indicadoPor', 'DANIEL');
       if (fotoFile) fd.append('foto', fotoFile);
@@ -294,6 +297,7 @@ export default function PontoDiretoPage() {
                   onClick={() => {
                     setMotivo(op.m);
                     setFracaoDia(op.f);
+                    if (op.m !== 'VIAGEM') setEhMotoristaViagem(false);
                     setValorCustom('');
                   }}
                   className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all ${
@@ -306,6 +310,17 @@ export default function PontoDiretoPage() {
                 </button>
               ))}
             </div>
+            {motivo === 'VIAGEM' && (
+              <label className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-900 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={ehMotoristaViagem}
+                  onChange={(e) => setEhMotoristaViagem(e.target.checked)}
+                  className="rounded border-amber-400 text-emerald-700"
+                />
+                <span>🚗 É o Motorista (recebe diária inteira normal)</span>
+              </label>
+            )}
           </div>
         </div>
 
