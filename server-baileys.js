@@ -227,42 +227,98 @@ async function startBaileys(pairingPhone = null, targetOs = 'ANDROID', fresh = f
         text
       );
 
-      // Enviar para o endpoint do Webhook do Ponto Patrícia para análise de IA e gravação no banco
-      const webhookPayload = {
-        data: {
-          key: msg.key,
-          message: msg.message,
-          messageTimestamp: msg.messageTimestamp || Math.floor(Date.now() / 1000),
-          fromMe: Boolean(msg.key.fromMe),
-          base64: fullBase64,
-        },
+      const despacharParaWebhook = async (msgRef, textoConsolidado, base64Midia) => {
+        try {
+          const messageObj = base64Midia
+            ? {
+                ...msgRef.message,
+                imageMessage: msgRef.message?.imageMessage
+                  ? { ...msgRef.message.imageMessage, caption: textoConsolidado }
+                  : undefined,
+                conversation: textoConsolidado,
+              }
+            : { conversation: textoConsolidado };
+
+          const webhookPayload = {
+            data: {
+              key: msgRef.key,
+              message: messageObj,
+              messageTimestamp: msgRef.messageTimestamp || Math.floor(Date.now() / 1000),
+              fromMe: Boolean(msgRef.key.fromMe),
+              base64: base64Midia,
+            },
+          };
+
+          const nextBaseUrl = (
+            process.env.NEXT_APP_URL ||
+            process.env.APP_URL ||
+            'http://localhost:3000'
+          ).replace(/\/+$/, '');
+          const res = await fetch(`${nextBaseUrl}/api/webhook/whatsapp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(webhookPayload),
+          });
+
+          const data = await res.json();
+          console.log(`[BAILEYS-SERVICE] Retorno do Webhook:`, data.status);
+
+          if (data && data.whatsappNotifications && Array.isArray(data.whatsappNotifications)) {
+            for (const notif of data.whatsappNotifications) {
+              const rawTel = notif.telefone ? notif.telefone.replace(/\D/g, '') : '';
+              if (!rawTel) continue;
+              const targetJid = `${rawTel}@s.whatsapp.net`;
+
+              console.log(`[BAILEYS-SERVICE] Enviando Ticket Privado para ${notif.destinatario} (${targetJid}). Contém valores? ${notif.contemValores}`);
+              await sock.sendMessage(targetJid, { text: notif.mensagem });
+            }
+          }
+        } catch (errDispatch) {
+          console.error('[BAILEYS-SERVICE] Erro no disparo para Webhook:', errDispatch?.message || errDispatch);
+        }
       };
 
-      const nextBaseUrl = (
-        process.env.NEXT_APP_URL ||
-        process.env.APP_URL ||
-        'http://localhost:3000'
-      ).replace(/\/+$/, '');
-      const res = await fetch(`${nextBaseUrl}/api/webhook/whatsapp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(webhookPayload),
-      });
+      const senderKey = `${remoteJid}::${msg.key.participant || (msg.key.fromMe ? 'SELF' : 'UNKNOWN')}`;
 
-      const data = await res.json();
-      console.log(`[BAILEYS-SERVICE] Retorno do Webhook:`, data.status);
-
-      // Disparar notificações no PRIVADO (nunca no grupo da obra)
-      if (data && data.whatsappNotifications && Array.isArray(data.whatsappNotifications)) {
-        for (const notif of data.whatsappNotifications) {
-          const rawTel = notif.telefone ? notif.telefone.replace(/\D/g, '') : '';
-          if (!rawTel) continue;
-          const targetJid = `${rawTel}@s.whatsapp.net`;
-
-          console.log(`[BAILEYS-SERVICE] Enviando Ticket Privado para ${notif.destinatario} (${targetJid}). Contém valores? ${notif.contemValores}`);
-          await sock.sendMessage(targetJid, { text: notif.mensagem });
+      if (!hasImage) {
+        const existing = pendingSenderBuffers.get(senderKey);
+        if (existing) {
+          clearTimeout(existing.timer);
+          if (text.trim()) existing.texts.push(text.trim());
+          existing.lastMsg = msg;
+          existing.timer = setTimeout(() => {
+            pendingSenderBuffers.delete(senderKey);
+            const joined = existing.texts.join('\n');
+            console.log(`[BAILEYS-SERVICE] Agrupador 30s disparando ${existing.texts.length} bolha(s) de [${senderKey}]:`, joined);
+            void despacharParaWebhook(existing.lastMsg, joined, null);
+          }, AGRUPADOR_MS);
+        } else {
+          const entry = {
+            texts: text.trim() ? [text.trim()] : [],
+            lastMsg: msg,
+            timer: null,
+          };
+          entry.timer = setTimeout(() => {
+            pendingSenderBuffers.delete(senderKey);
+            const joined = entry.texts.join('\n');
+            console.log(`[BAILEYS-SERVICE] Agrupador 30s disparando ${entry.texts.length} bolha(s) de [${senderKey}]:`, joined);
+            void despacharParaWebhook(entry.lastMsg, joined, null);
+          }, AGRUPADOR_MS);
+          pendingSenderBuffers.set(senderKey, entry);
         }
+        return;
       }
+
+      // Se chegou imagem (comprovante PIX / nota), junta eventual texto pendente do mesmo remetente e envia na hora
+      let textoFinalImg = text.trim();
+      const pending = pendingSenderBuffers.get(senderKey);
+      if (pending) {
+        clearTimeout(pending.timer);
+        pendingSenderBuffers.delete(senderKey);
+        const prefix = pending.texts.join('\n');
+        textoFinalImg = prefix ? `${prefix}\n${textoFinalImg}`.trim() : textoFinalImg;
+      }
+      await despacharParaWebhook(msg, textoFinalImg, fullBase64);
     } catch (err) {
       console.error('[BAILEYS-SERVICE] Erro ao processar mensagem do grupo:', err);
     }
